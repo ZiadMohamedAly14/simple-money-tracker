@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Money Tracker",
+    "name": "Mizan",
     "slug": "money-tracker",
     "scheme": "moneytracker",
     "version": "0.1.0",
@@ -21,7 +21,8 @@
           "supportsRTL": true
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-font"
     ],
     "extra": {
       "router": {

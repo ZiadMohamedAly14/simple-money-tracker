@@ -7,7 +7,7 @@ const valid = {
   CODE_HASH_SECRET: 'c'.repeat(32),
   SMTP_HOST: 'localhost',
   SMTP_PORT: '1025',
-  EMAIL_FROM: 'Money Tracker <no-reply@example.com>',
+  EMAIL_FROM: 'Mizan <no-reply@example.com>',
 };
 
 function problemsOf(source: Record<string, string | undefined>): string[] {
@@ -31,7 +31,7 @@ describe('loadEnv', () => {
       jwtRefreshSecret: 'r'.repeat(32),
       codeHashSecret: 'c'.repeat(32),
       email: { transport: 'smtp', host: 'localhost', port: 1025, user: undefined, pass: undefined },
-      emailFrom: 'Money Tracker <no-reply@example.com>',
+      emailFrom: 'Mizan <no-reply@example.com>',
     });
   });
 

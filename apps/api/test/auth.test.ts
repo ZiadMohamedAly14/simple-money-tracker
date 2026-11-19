@@ -68,9 +68,11 @@ describe('sign in with an email code', () => {
   it('sends the code email in the requesting device language', async () => {
     await requestCode('en@example.com', 'en');
     await requestCode('ar@example.com', 'ar');
-    expect(mailer.lastTo('en@example.com').subject).toBe('Your Money Tracker sign-in code');
-    expect(mailer.lastTo('ar@example.com').subject).toBe('رمز الدخول إلى متتبع المال');
+    expect(mailer.lastTo('en@example.com').subject).toBe('Your Mizan sign-in code');
+    expect(mailer.lastTo('ar@example.com').subject).toBe('رمز الدخول إلى ميزان');
     expect(mailer.lastTo('ar@example.com').html).toContain('dir="rtl"');
+    expect(mailer.lastTo('en@example.com').text).toContain('Mizan');
+    expect(mailer.lastTo('ar@example.com').text).toContain('ميزان');
     expect(mailer.lastCodeFor('ar@example.com')).toMatch(/^\d{6}$/);
   });
 

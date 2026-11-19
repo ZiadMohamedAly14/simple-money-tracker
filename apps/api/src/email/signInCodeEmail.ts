@@ -10,14 +10,14 @@ interface Copy {
 
 const COPY: Record<Language, Copy> = {
   en: {
-    subject: 'Your Money Tracker sign-in code',
-    intro: 'Your sign-in code is:',
+    subject: 'Your Mizan sign-in code',
+    intro: 'Your Mizan sign-in code is:',
     expiry: (minutes) => `It expires in ${minutes} minutes.`,
     ignore: "If you didn't ask for this code, you can ignore this email.",
   },
   ar: {
-    subject: 'رمز الدخول إلى متتبع المال',
-    intro: 'رمز الدخول الخاص بك هو:',
+    subject: 'رمز الدخول إلى ميزان',
+    intro: 'رمز الدخول الخاص بك إلى ميزان هو:',
     expiry: (minutes) => `تنتهي صلاحيته خلال ${minutes} دقائق.`,
     ignore: 'إذا لم تطلب هذا الرمز، يمكنك تجاهل هذه الرسالة.',
   },
