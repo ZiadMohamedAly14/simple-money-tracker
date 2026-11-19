@@ -1,6 +1,16 @@
 export { isApiEnvelope } from './api/envelope';
 export type { ApiEnvelope } from './api/envelope';
 export type { HealthData } from './api/health';
+export { SIGN_IN_CODE_LENGTH, normalizeEmail, normalizeSignInCode } from './auth/signIn';
+export type {
+  AuthErrorData,
+  AuthErrorReason,
+  RequestCodeBody,
+  RequestCodeData,
+  VerifyCodeBody,
+  VerifyCodeData,
+} from './auth/signIn';
+export { toWesternDigits } from './i18n/digits';
 export {
   DEFAULT_LANGUAGE,
   DEFAULT_NUMBERING_SYSTEM,

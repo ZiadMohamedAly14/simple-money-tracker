@@ -3,6 +3,7 @@
  * (ADR-0004); conversion to and from decimal text is done on strings so no
  * float arithmetic ever touches a stored amount.
  */
+import { toWesternDigits } from '../i18n/digits';
 import { intlLocale, type Language, type NumberingSystem } from '../i18n/language';
 
 /** ISO 4217 code, e.g. "EGP", "USD". One per Account. */
@@ -14,17 +15,12 @@ export function currencyMinorDigits(currency: CurrencyCode): number {
     .maximumFractionDigits ?? 2;
 }
 
-const ARABIC_INDIC_ZERO = 0x0660; // ٠
-const PERSIAN_ZERO = 0x06f0; // ۰
-
 /**
  * Western digits, "." as the decimal separator, no grouping separators or
  * spaces, so Arabic-Indic or Persian input parses the same as Western input.
  */
 function normalizeAmountText(input: string): string {
-  return input
-    .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - ARABIC_INDIC_ZERO))
-    .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - PERSIAN_ZERO))
+  return toWesternDigits(input)
     .replace(/٫/g, '.') // Arabic decimal separator ٫
     .replace(/[,٬\s]/g, ''); // grouping: comma, Arabic thousands separator ٬, spaces
 }
