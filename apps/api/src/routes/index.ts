@@ -13,6 +13,6 @@ export function apiRoutes(env: Env, { mailer, now }: AppDeps): Router {
 
   const router = Router();
   router.use('/health', healthRoutes());
-  router.use('/auth', authRoutes(auth));
+  router.use('/auth', authRoutes(auth, tokens));
   return router;
 }

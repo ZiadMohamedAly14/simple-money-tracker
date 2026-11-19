@@ -4,7 +4,9 @@ import { rateLimit } from 'express-rate-limit';
 import { SUPPORTED_LANGUAGES, normalizeEmail, type AuthErrorData } from '@money-tracker/shared';
 import { createAuthController } from '../controllers/auth.controller';
 import { validate } from '../middleware/validate';
+import { requireAuth } from '../middleware/requireAuth';
 import type { AuthService } from '../services/auth.service';
+import type { TokenService } from '../services/token.service';
 import { asyncHandler } from '../utils/asyncHandler';
 import { TooManyRequestsError } from '../utils/AppError';
 
@@ -37,9 +39,9 @@ const emailField = () =>
     .isEmail()
     .withMessage('Enter a valid email address');
 
-export function authRoutes(auth: AuthService): Router {
+export function authRoutes(auth: AuthService, tokens: TokenService): Router {
   const router = Router();
-  const controller = createAuthController(auth);
+  const controller = createAuthController(auth, tokens);
 
   router.post(
     '/code',
@@ -60,6 +62,15 @@ export function authRoutes(auth: AuthService): Router {
     validate,
     asyncHandler(controller.verifyCode),
   );
+
+  router.post(
+    '/refresh',
+    [body('refreshToken').isString().bail().notEmpty().isLength({ max: 4096 })],
+    validate,
+    asyncHandler(controller.refresh),
+  );
+
+  router.post('/logout', requireAuth(tokens), asyncHandler(controller.logout));
 
   return router;
 }
