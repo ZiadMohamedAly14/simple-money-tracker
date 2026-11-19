@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import type { Env } from './config/env';
 import { apiRoutes } from './routes';
 import { createErrorHandler, notFoundHandler } from './middleware/errorHandler';
-import { createSmtpMailer, type Mailer } from './email/mailer';
+import { createMailer, type Mailer } from './email/mailer';
 import { systemClock, type Clock } from './utils/clock';
 
 /** The outside world the app talks to; tests replace these. */
@@ -20,7 +20,7 @@ export interface AppDeps {
  */
 export function createApp(env: Env, deps: Partial<AppDeps> = {}): Express {
   const fullDeps: AppDeps = {
-    mailer: deps.mailer ?? createSmtpMailer(env),
+    mailer: deps.mailer ?? createMailer(env),
     now: deps.now ?? systemClock,
   };
   const app = express();

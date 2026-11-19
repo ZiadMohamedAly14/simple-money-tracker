@@ -136,9 +136,9 @@ All money is virtual. Everything works offline, and changes sync between devices
 ### Architecture
 
 - A monorepo using npm workspaces, with three parts: the mobile app, the API, and a shared package. The shared package holds domain types, sync payload types, money and date helpers, and pure domain logic, and must not depend on React Native or Node APIs.
-- The API mirrors the a previous backend stack and conventions (ADR-0005): Express 4, Mongoose and express-validator. Requests flow routes → validation → controller → service → model. Responses use the `{ message, data, success }` envelope, errors are `AppError` subclasses caught by a central error handler, and nodemailer sends email. Deliberate differences from another project are listed in ADR-0005.
+- The API mirrors the a previous backend stack and conventions (ADR-0005): Express 4, Mongoose and express-validator. Requests flow routes → validation → controller → service → model. Responses use the `{ message, data, success }` envelope, errors are `AppError` subclasses caught by a central error handler, and email goes through a swappable mailer (Resend's HTTPS API in production, nodemailer to a local catcher in development; see ADR-0008). Deliberate differences from another project are listed in ADR-0005.
 - The mobile app uses Expo with expo-router (separate route groups for authentication, onboarding, Personal, Kid and the PIN-gated Parent Area), expo-sqlite with Drizzle as the single source of truth for screens (ADR-0003), zustand for UI and session state only, axios for authentication and sync calls, NativeWind with start/end styling classes, i18next with expo-localization, SecureStore for tokens, and expo-local-authentication for biometrics.
-- Hosting is fully separate from another project (ADR-0008): Railway Hobby runs the API, MongoDB Atlas M0 holds the data (with a nightly `mongodump`), and Resend sends email over SMTP.
+- Hosting is fully separate from another project (ADR-0008): Railway Hobby runs the API, MongoDB Atlas M0 holds the data (with a nightly `mongodump`), and Resend sends email through its HTTPS API (Railway Hobby blocks outbound SMTP).
 - Builds use EAS: a development client and a preview APK for Android, with over-the-air updates switched on. iOS is set up but not released.
 
 ### Domain rules

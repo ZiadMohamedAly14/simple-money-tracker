@@ -13,7 +13,7 @@ export function testEnv(overrides: Partial<Env> = {}): Env {
     jwtAccessSecret: 'test-access-secret-0123456789abcdef',
     jwtRefreshSecret: 'test-refresh-secret-0123456789abcdef',
     codeHashSecret: 'test-code-hash-secret-0123456789abcdef',
-    smtp: { host: 'unused-in-tests', port: 1025 },
+    email: { transport: 'smtp', host: 'unused-in-tests', port: 1025 },
     emailFrom: 'Money Tracker <no-reply@example.test>',
     ...overrides,
   };
