@@ -4,7 +4,7 @@
 
 **Blocked by:** 03 (Sign in with an email code).
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] Access tokens last 15 minutes and refresh tokens 90 days. They use separate secrets and carry a type marker, so a refresh token is rejected where an access token is expected.
 - [x] Sessions store the hashed refresh token, its scope and expiry (deleted automatically), and a rotation family. Each refresh issues a new token atomically.

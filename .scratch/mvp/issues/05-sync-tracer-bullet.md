@@ -4,7 +4,7 @@
 
 **Blocked by:** 04 (Session lifecycle).
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] Local SQLite with Drizzle is the screens' only data source. Every write updates the table and adds an outbox entry in one transaction.
 - [x] Synced records carry a UUIDv7 ID created on the device, the owning Account, the edit time and the server version (ADR-0006, ADR-0007).

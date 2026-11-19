@@ -4,7 +4,7 @@
 
 **Blocked by:** 03 (Sign in with an email code).
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] Theme tokens in `apps/mobile/src/theme/themes.ts` and `tailwind.config.js` use the Mizan palette for the Personal and Kid themes, including tint, warning surface and the three Jar colors. Screens still use token classes only.
 - [x] Inter (Latin) and Alexandria (Arabic) are bundled and loaded; the family follows the device language.
