@@ -4,7 +4,7 @@
 
 **Blocked by:** 02 (Bilingual shell and right-to-left layout).
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] Request a code and verify a code. Verifying creates the Account if it doesn't exist (email lowercased and unique) and returns an access token, a refresh token and a new-Account flag. There's no separate registration step.
 - [x] Codes are hashed and expire after 10 minutes. There are separate counters for codes sent and wrong guesses: at most 5 wrong guesses, and resends limited to one a minute and five an hour. Rate limits apply per IP and per email, and there's no hard-coded test code.

@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 (Walking skeleton).
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] i18next with expo-localization. Language is per device and defaults to the phone's language.
 - [x] Switching to or from Arabic shows "The app will restart" and reloads with the correct direction.

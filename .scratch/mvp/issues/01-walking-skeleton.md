@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** ready-for-human
 
 - [x] npm-workspaces monorepo with the mobile app, the API and the shared package. TypeScript strict everywhere; the shared package has no React Native or Node dependencies.
 - [x] The API follows another project's conventions (ADR-0005): middleware order, the `{ message, data, success }` envelope, `AppError` plus a central error handler, environment variables checked at start-up, and a Mongo connection.
