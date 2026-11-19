@@ -1,0 +1,29 @@
+{
+  "name": "@money-tracker/api",
+  "version": "0.0.0",
+  "private": true,
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/server.js",
+    "dev": "tsx watch --conditions=source src/server.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "NODE_OPTIONS=\"--experimental-vm-modules --disable-warning=ExperimentalWarning\" jest"
+  },
+  "dependencies": {
+    "@money-tracker/shared": "*",
+    "cors": "^2.8.6",
+    "express": "^4.22.3",
+    "express-validator": "^7.3.2",
+    "helmet": "^8.3.0",
+    "mongoose": "^9.12.2"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^4.17.25",
+    "@types/supertest": "^7.2.1",
+    "mongodb-memory-server": "^11.3.0",
+    "supertest": "^7.3.2",
+    "tsx": "^4.23.15"
+  }
+}
