@@ -26,7 +26,7 @@ npm test               # Jest in every workspace (API tests start an in-memory M
 npm run build          # builds packages/shared and apps/api to dist/
 ```
 
-API locally: copy `apps/api/.env.example` to `apps/api/.env`, start a MongoDB, then `npm run dev -w @money-tracker/api` (loads env from your shell; e.g. `set -a; . apps/api/.env; set +a` first).
+API locally: copy `apps/api/.env.example` to `apps/api/.env`, start a MongoDB, then `npm run dev -w @money-tracker/api` (loads env from your shell; e.g. `set -a; . apps/api/.env; set +a` first). Sign-in code emails go to a local catcher in development: run Mailpit (`docker run --rm -p 1025:1025 -p 8025:8025 axllent/mailpit`) and read the codes at http://localhost:8025.
 
 Mobile locally: copy `apps/mobile/.env.example` to `apps/mobile/.env`, then `npm start -w @money-tracker/mobile` and open the development build on an Android device or emulator.
 
@@ -36,7 +36,9 @@ These steps are done by a human; nothing is deployed automatically.
 
 **MongoDB Atlas (ADR-0008).** Create a new Atlas organization (not another project's), a project and an M0 cluster. Add a database user and allow Railway's egress (or `0.0.0.0/0` for M0). Copy the `mongodb+srv://` connection string. Set up a nightly `mongodump` since M0 has no backups.
 
-**Railway.** Create a project on the Hobby plan from this repo. `railway.json` at the repo root sets the build (`npm run build -w @money-tracker/shared -w @money-tracker/api`), the start command and the `/health` health check. Set variables `NODE_ENV=production`, `MONGODB_URI=<Atlas string>` and optionally `DB_NAME` (defaults to `money-tracker`; Railway provides `PORT`). Generate a public domain.
+**Railway.** Create a project on the Hobby plan from this repo. `railway.json` at the repo root sets the build (`npm run build -w @money-tracker/shared -w @money-tracker/api`), the start command and the `/health` health check. Set variables `NODE_ENV=production`, `MONGODB_URI=<Atlas string>` and optionally `DB_NAME` (defaults to `money-tracker`; Railway provides `PORT`), three fresh random secrets `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `CODE_HASH_SECRET` (32+ characters, all different), and the email settings below. Generate a public domain.
+
+**Resend (email, ADR-0008).** Create a Resend account (not another project's), verify a sending domain, and create an API key. On Railway set `SMTP_HOST=smtp.resend.com`, `SMTP_PORT=465`, `SMTP_USER=resend`, `SMTP_PASS=<API key>` and `EMAIL_FROM=Money Tracker <no-reply@your-domain>`. Then request a code from the app in English and in Arabic and check both emails arrive.
 
 **EAS (Android).** `npm i -g eas-cli`, `eas login`, then from `apps/mobile`: `eas init` (writes the project ID into `app.json`), replace `REPLACE-WITH-RAILWAY-DOMAIN` in `eas.json` with the Railway domain, and run `eas build --profile development --platform android`. Install the APK, start Metro with `npm start -w @money-tracker/mobile`, and the app should show "API: ok".
 
