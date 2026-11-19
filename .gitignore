@@ -1,3 +1,5 @@
+# Expo CLI generates and deletes this; type references live in nativewind-env.d.ts
+apps/mobile/expo-env.d.ts
 node_modules/
 dist/
 coverage/
