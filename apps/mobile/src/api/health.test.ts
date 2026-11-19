@@ -18,31 +18,43 @@ async function serve(status: number, body: string): Promise<{ url: string; close
 }
 
 describe('checkHealth', () => {
-  it('shows "API: ok" when the API reports ok', async () => {
+  it('reports ok when the API reports ok', async () => {
     const api = await serve(
       200,
       JSON.stringify({ message: 'ok', data: { status: 'ok', database: 'connected' }, success: true }),
     );
     try {
-      expect(await checkHealth(createApiClient(api.url))).toBe('API: ok');
+      expect(await checkHealth(createApiClient(api.url))).toEqual({ status: 'ok' });
     } finally {
       await api.close();
     }
   });
 
-  it("shows the API's error message when it reports a failure", async () => {
+  it("passes on the API's error message when it reports a failure", async () => {
     const api = await serve(503, JSON.stringify({ message: 'Database unavailable', data: null, success: false }));
     try {
-      expect(await checkHealth(createApiClient(api.url))).toBe('API: Database unavailable');
+      expect(await checkHealth(createApiClient(api.url))).toEqual({
+        status: 'error',
+        message: 'Database unavailable',
+      });
     } finally {
       await api.close();
     }
   });
 
-  it('shows "API: unreachable" when nothing answers', async () => {
+  it('reports an unexpected response when the body is not an API envelope', async () => {
+    const api = await serve(502, '<html>Bad gateway</html>');
+    try {
+      expect(await checkHealth(createApiClient(api.url))).toEqual({ status: 'unexpected' });
+    } finally {
+      await api.close();
+    }
+  });
+
+  it('reports unreachable when nothing answers', async () => {
     const api = await serve(200, '{}');
     await api.close();
 
-    expect(await checkHealth(createApiClient(api.url))).toBe('API: unreachable');
+    expect(await checkHealth(createApiClient(api.url))).toEqual({ status: 'unreachable' });
   });
 });
