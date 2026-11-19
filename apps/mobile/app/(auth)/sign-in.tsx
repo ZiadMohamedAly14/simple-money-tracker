@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
+import { View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { normalizeEmail, type Language } from '@money-tracker/shared';
@@ -8,6 +9,7 @@ import { createApiClient } from '@/api/client';
 import { authErrorMessage } from '@/auth/authErrorMessage';
 import { API_URL } from '@/config';
 import { useTheme } from '@/theme/ThemeProvider';
+import { Button, Screen, Text, TextField } from '@/ui';
 
 const LOOKS_LIKE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -39,50 +41,40 @@ export default function SignInScreen() {
   }
 
   return (
-    <View className="flex-1 justify-center gap-4 px-6">
-      <Text className="text-start text-2xl font-bold text-text">{t('auth.signInTitle')}</Text>
-      <Text className="text-start text-muted">{t('auth.signInIntro')}</Text>
-
-      <View className="gap-2">
-        <Text className="text-start text-sm text-muted">{t('auth.emailLabel')}</Text>
-        <TextInput
-          value={email}
-          onChangeText={setEmail}
-          onSubmitEditing={() => void send()}
-          placeholder={t('auth.emailPlaceholder')}
-          placeholderTextColor={theme.colors.muted}
-          autoCapitalize="none"
-          autoComplete="email"
-          autoCorrect={false}
-          keyboardType="email-address"
-          inputMode="email"
-          textContentType="emailAddress"
-          returnKeyType="send"
-          accessibilityLabel={t('auth.emailLabel')}
-          // Emails are left-to-right even in an Arabic layout.
-          style={{ writingDirection: 'ltr' }}
-          className="min-h-control rounded-theme border border-border bg-surface px-4 text-text"
-        />
+    <Screen className="justify-center">
+      <View className="h-16 w-16 items-center justify-center rounded-2xl bg-primary">
+        <Ionicons name="wallet-outline" size={32} color={theme.colors['on-primary']} />
       </View>
+      <Text weight="bold" accessibilityRole="header" className="text-3xl">
+        {t('auth.signInTitle')}
+      </Text>
+      <Text tone="muted" className="text-base">
+        {t('auth.signInIntro')}
+      </Text>
+
+      <TextField
+        label={t('auth.emailLabel')}
+        ltr
+        value={email}
+        onChangeText={setEmail}
+        onSubmitEditing={() => void send()}
+        placeholder={t('auth.emailPlaceholder')}
+        autoCapitalize="none"
+        autoComplete="email"
+        autoCorrect={false}
+        keyboardType="email-address"
+        inputMode="email"
+        textContentType="emailAddress"
+        returnKeyType="send"
+      />
 
       {error ? (
-        <Text accessibilityRole="alert" className="text-start text-negative">
+        <Text accessibilityRole="alert" tone="negative">
           {error}
         </Text>
       ) : null}
 
-      <Pressable
-        accessibilityRole="button"
-        disabled={sending}
-        onPress={() => void send()}
-        className="min-h-control items-center justify-center rounded-theme bg-primary"
-      >
-        {sending ? (
-          <ActivityIndicator color={theme.colors['on-primary']} />
-        ) : (
-          <Text className="font-semibold text-on-primary">{t('auth.sendCode')}</Text>
-        )}
-      </Pressable>
-    </View>
+      <Button label={t('auth.sendCode')} loading={sending} onPress={() => void send()} />
+    </Screen>
   );
 }

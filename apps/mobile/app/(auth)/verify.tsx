@@ -1,19 +1,28 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { SIGN_IN_CODE_LENGTH, normalizeSignInCode, type Language } from '@money-tracker/shared';
+import {
+  SIGN_IN_CODE_LENGTH,
+  applyKeypadKey,
+  formatCountdown,
+  ltrIsolate,
+  normalizeSignInCode,
+  type KeypadKey,
+  type Language,
+} from '@money-tracker/shared';
 import { requestCode, verifyCode } from '@/api/auth';
 import { createApiClient } from '@/api/client';
 import { authErrorMessage } from '@/auth/authErrorMessage';
 import { saveSession } from '@/auth/tokenStore';
 import { API_URL } from '@/config';
-import { useTheme } from '@/theme/ThemeProvider';
+import { useLanguage } from '@/i18n/useLanguage';
+import { Button, CodeBoxes, NumericKeypad, Screen, ScreenHeader, Text } from '@/ui';
 
 /** Step 2 of sign-in: enter the emailed code. Verifying creates the Account the first time. */
 export default function VerifyScreen() {
   const { t, i18n } = useTranslation();
-  const theme = useTheme();
+  const language = useLanguage();
   const params = useLocalSearchParams<{ email: string; resendAfter?: string }>();
   const email = params.email ?? '';
   const [code, setCode] = useState('');
@@ -60,62 +69,54 @@ export default function VerifyScreen() {
     setError(authErrorMessage(t, result));
   }
 
-  return (
-    <View className="flex-1 justify-center gap-4 px-6">
-      <Text className="text-start text-2xl font-bold text-text">{t('auth.verifyTitle')}</Text>
-      <Text className="text-start text-muted">{t('auth.verifyIntro', { email })}</Text>
+  function press(key: KeypadKey) {
+    setError(null);
+    setCode((current) => applyKeypadKey(current, key, { kind: 'digits', length: SIGN_IN_CODE_LENGTH }));
+  }
 
+  return (
+    <Screen
+      footer={
+        <>
+          {/* Codes are digits only: no decimal key (design flaw 1). */}
+          <NumericKeypad onKey={press} disabled={busy} />
+          <Button
+            label={t('auth.verify')}
+            loading={busy}
+            disabled={code.length < SIGN_IN_CODE_LENGTH}
+            onPress={() => void submit()}
+          />
+        </>
+      }
+    >
+      <ScreenHeader onBack={() => router.back()} />
       <View className="gap-2">
-        <Text className="text-start text-sm text-muted">{t('auth.codeLabel')}</Text>
-        <TextInput
-          value={code}
-          onChangeText={setCode}
-          onSubmitEditing={() => void submit()}
-          keyboardType="number-pad"
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          textContentType="oneTimeCode"
-          maxLength={SIGN_IN_CODE_LENGTH + 2}
-          autoFocus
-          accessibilityLabel={t('auth.codeLabel')}
-          style={{ writingDirection: 'ltr', letterSpacing: 8 }}
-          className="min-h-control rounded-theme border border-border bg-surface px-4 text-center text-2xl text-text"
-        />
+        <Text weight="bold" accessibilityRole="header" className="text-2xl">
+          {t('auth.verifyTitle')}
+        </Text>
+        <Text tone="muted" className="text-base">
+          {t('auth.verifyIntro', { email: ltrIsolate(email) })}
+        </Text>
       </View>
 
-      {error ? (
-        <Text accessibilityRole="alert" className="text-start text-negative">
-          {error}
-        </Text>
-      ) : null}
-
-      <Pressable
-        accessibilityRole="button"
-        disabled={busy}
-        onPress={() => void submit()}
-        className="min-h-control items-center justify-center rounded-theme bg-primary"
-      >
-        {busy ? (
-          <ActivityIndicator color={theme.colors['on-primary']} />
-        ) : (
-          <Text className="font-semibold text-on-primary">{t('auth.verify')}</Text>
-        )}
-      </Pressable>
+      <CodeBoxes value={code} length={SIGN_IN_CODE_LENGTH} accessibilityLabel={t('auth.codeLabel')} />
 
       <Pressable
         accessibilityRole="button"
         disabled={busy || resendIn > 0}
         onPress={() => void resend()}
-        className="min-h-control items-center justify-center"
+        className="min-h-11 items-center justify-center"
       >
-        <Text className={resendIn > 0 ? 'text-muted' : 'font-semibold text-primary'}>
-          {resendIn > 0 ? t('auth.resendIn', { seconds: resendIn }) : t('auth.resend')}
+        <Text weight={resendIn > 0 ? 'regular' : 'semibold'} tone={resendIn > 0 ? 'muted' : 'primary'} align="center">
+          {resendIn > 0 ? t('auth.resendIn', { time: formatCountdown(resendIn, { language }) }) : t('auth.resend')}
         </Text>
       </Pressable>
 
-      <Pressable accessibilityRole="button" onPress={() => router.back()} className="min-h-control items-center justify-center">
-        <Text className="text-muted">{t('auth.changeEmail')}</Text>
-      </Pressable>
-    </View>
+      {error ? (
+        <Text accessibilityRole="alert" tone="negative" align="center">
+          {error}
+        </Text>
+      ) : null}
+    </Screen>
   );
 }
