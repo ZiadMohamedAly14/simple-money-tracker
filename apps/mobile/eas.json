@@ -9,20 +9,20 @@
       "distribution": "internal",
       "android": { "buildType": "apk" },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://REPLACE-WITH-RAILWAY-DOMAIN.up.railway.app"
+        "EXPO_PUBLIC_API_URL": "https://REPLACE-WITH-PRODUCTION-API-URL"
       }
     },
     "preview": {
       "distribution": "internal",
       "android": { "buildType": "apk" },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://REPLACE-WITH-RAILWAY-DOMAIN.up.railway.app"
+        "EXPO_PUBLIC_API_URL": "https://REPLACE-WITH-PRODUCTION-API-URL"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://REPLACE-WITH-RAILWAY-DOMAIN.up.railway.app"
+        "EXPO_PUBLIC_API_URL": "https://REPLACE-WITH-PRODUCTION-API-URL"
       }
     }
   },

@@ -10,7 +10,8 @@
       "package": "com.moneytracker.app"
     },
     "ios": {
-      "bundleIdentifier": "com.moneytracker.app"
+      "bundleIdentifier": "com.moneytracker.app",
+      "infoPlist": {}
     },
     "plugins": [
       "expo-router",
@@ -21,6 +22,18 @@
         }
       ],
       "expo-secure-store"
-    ]
+    ],
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "supportsRTL": true,
+      "eas": {
+        "projectId": "ce4f34bf-57e6-4189-b2ca-31507a4941e6"
+      }
+    },
+    "owner": "ziadmhmd"
   }
 }
