@@ -13,7 +13,32 @@ All money in the app is virtual: no bank connections, no payments. It works offl
 
 ## Status
 
-Planning is done and implementation hasn't started yet. The work is broken into tickets in [`.scratch/mvp/issues/`](.scratch/mvp/issues/), starting with `01-walking-skeleton`.
+Implementation is in progress. The work is broken into tickets in [`.scratch/mvp/issues/`](.scratch/mvp/issues/).
+
+## Development
+
+Requires Node 22 (see `.nvmrc`).
+
+```sh
+npm install            # installs every workspace
+npm run typecheck      # tsc --noEmit in every workspace
+npm test               # Jest in every workspace (API tests start an in-memory MongoDB)
+npm run build          # builds packages/shared and apps/api to dist/
+```
+
+API locally: copy `apps/api/.env.example` to `apps/api/.env`, start a MongoDB, then `npm run dev -w @money-tracker/api` (loads env from your shell; e.g. `set -a; . apps/api/.env; set +a` first).
+
+Mobile locally: copy `apps/mobile/.env.example` to `apps/mobile/.env`, then `npm start -w @money-tracker/mobile` and open the development build on an Android device or emulator.
+
+## Deployment
+
+These steps are done by a human; nothing is deployed automatically.
+
+**MongoDB Atlas (ADR-0008).** Create a new Atlas organization (not another project's), a project and an M0 cluster. Add a database user and allow Railway's egress (or `0.0.0.0/0` for M0). Copy the `mongodb+srv://` connection string. Set up a nightly `mongodump` since M0 has no backups.
+
+**Railway.** Create a project on the Hobby plan from this repo. `railway.json` at the repo root sets the build (`npm run build -w @money-tracker/shared -w @money-tracker/api`), the start command and the `/health` health check. Set variables `NODE_ENV=production` and `MONGODB_URI=<Atlas string>` (Railway provides `PORT`). Generate a public domain.
+
+**EAS (Android).** `npm i -g eas-cli`, `eas login`, then from `apps/mobile`: `eas init` (writes the project ID into `app.json`), replace `REPLACE-WITH-RAILWAY-DOMAIN` in `eas.json` with the Railway domain, and run `eas build --profile development --platform android`. Install the APK, start Metro with `npm start -w @money-tracker/mobile`, and the app should show "API: ok".
 
 ## Tech stack
 
