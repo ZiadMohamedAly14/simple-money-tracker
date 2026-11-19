@@ -19,7 +19,7 @@ export interface Env {
    * SMTP. Development without RESEND_API_KEY uses SMTP to a local catcher (Mailpit).
    */
   email: EmailTransport;
-  /** The From address of every email, e.g. `Money Tracker <no-reply@example.com>`. */
+  /** The From address of every email, e.g. `Mizan <no-reply@example.com>`. */
   emailFrom: string;
 }
 

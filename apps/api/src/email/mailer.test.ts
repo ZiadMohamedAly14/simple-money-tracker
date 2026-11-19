@@ -14,7 +14,7 @@ function fakeFetch(status: number, body: unknown = {}) {
 describe('createResendMailer', () => {
   it('posts the email to the Resend API with the key and From address', async () => {
     const { calls, fetchFn } = fakeFetch(200, { id: 'abc' });
-    await createResendMailer({ apiKey: 're_123', from: 'Money Tracker <onboarding@resend.dev>', fetchFn }).send(email);
+    await createResendMailer({ apiKey: 're_123', from: 'Mizan <onboarding@resend.dev>', fetchFn }).send(email);
 
     expect(calls).toHaveLength(1);
     const [call] = calls as [(typeof calls)[number]];
@@ -22,7 +22,7 @@ describe('createResendMailer', () => {
     expect(call.init.method).toBe('POST');
     expect(new Headers(call.init.headers).get('authorization')).toBe('Bearer re_123');
     expect(JSON.parse(call.init.body as string)).toEqual({
-      from: 'Money Tracker <onboarding@resend.dev>',
+      from: 'Mizan <onboarding@resend.dev>',
       to: 'me@example.com',
       subject: 'Your code',
       text: '123456',
