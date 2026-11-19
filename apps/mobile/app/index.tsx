@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
-import { Redirect } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SUPPORTED_LANGUAGES } from '@money-tracker/shared';
-import { loadSession } from '@/auth/tokenStore';
+import { authSession, useAuthStatus } from '@/auth/appSession';
 import { createApiClient } from '@/api/client';
 import { checkHealth, type HealthResult } from '@/api/health';
 import { API_URL } from '@/config';
@@ -18,14 +18,11 @@ import { useTheme } from '@/theme/ThemeProvider';
  * mirrored chevron and the language switch).
  */
 export default function HomeScreen() {
-  // Signed-out devices go to sign-in first. Ticket 04 owns the full session lifecycle.
-  const [signedIn, setSignedIn] = useState<boolean | null>(null);
-  useEffect(() => {
-    loadSession().then((session) => setSignedIn(session !== null));
-  }, []);
-
-  if (signedIn === null) return null;
-  if (!signedIn) return <Redirect href="/sign-in" />;
+  // Signed-out devices go to sign-in first. A device whose session ended keeps
+  // showing its data (HealthScreen shows a sign-in-again notice instead).
+  const status = useAuthStatus();
+  if (status === 'loading') return null;
+  if (status === 'signedOut') return <Redirect href="/sign-in" />;
   return <HealthScreen />;
 }
 
@@ -33,6 +30,7 @@ function HealthScreen() {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const formatMoney = useFormatMoney();
+  const needsSignIn = useAuthStatus() === 'needsSignIn';
   const [health, setHealth] = useState<HealthResult | null>(null);
 
   useEffect(() => {
@@ -55,6 +53,15 @@ function HealthScreen() {
   return (
     <View className="flex-1 justify-center gap-4 px-6">
       <Text className="text-start text-2xl font-bold text-text">{t('health.title')}</Text>
+
+      {needsSignIn ? (
+        <View className="gap-2 rounded-theme border border-border bg-surface p-4">
+          <Text className="text-start text-text">{t('session.needsSignInBody')}</Text>
+          <Pressable accessibilityRole="button" onPress={() => router.push('/sign-in')} className="min-h-control justify-center">
+            <Text className="text-start font-semibold text-primary">{t('session.signInAgain')}</Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       <View className="gap-2 rounded-theme border border-border bg-surface p-4">
         {statusLine === null ? (
@@ -96,6 +103,14 @@ function HealthScreen() {
           })}
         </View>
       </View>
+
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => void authSession.signOut()}
+        className="min-h-control items-center justify-center"
+      >
+        <Text className="text-negative">{t('session.signOut')}</Text>
+      </Pressable>
     </View>
   );
 }
