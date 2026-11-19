@@ -3,9 +3,18 @@ import type { Translations } from './en';
 /** Arabic strings. Typed against English so a missing key fails typecheck. */
 export const ar: Translations = {
   common: {
-    appName: 'متتبع المال',
+    appName: 'ميزان',
     ok: 'حسنًا',
     cancel: 'إلغاء',
+    back: 'رجوع',
+    close: 'إغلاق',
+  },
+  keypad: {
+    backspace: 'حذف',
+    decimal: 'فاصلة عشرية',
+  },
+  sync: {
+    pending: 'بانتظار المزامنة',
   },
   health: {
     title: 'الاتصال',
@@ -17,18 +26,17 @@ export const ar: Translations = {
     details: 'التفاصيل',
   },
   auth: {
-    signInTitle: 'تسجيل الدخول',
-    signInIntro: 'أدخل بريدك الإلكتروني وسنرسل إليك رمزًا من 6 أرقام. لا حاجة إلى كلمة مرور.',
+    signInTitle: 'أهلاً بك في ميزان',
+    signInIntro: 'أدخل بريدك الإلكتروني وسنرسل لك رمزًا من 6 أرقام. لا حاجة إلى كلمة مرور.',
     emailLabel: 'البريد الإلكتروني',
-    emailPlaceholder: 'you@example.com',
+    emailPlaceholder: 'name@email.com',
     sendCode: 'إرسال الرمز',
     verifyTitle: 'أدخل الرمز',
-    verifyIntro: 'أرسلنا رمزًا من 6 أرقام إلى {{email}}. تنتهي صلاحيته خلال 10 دقائق.',
+    verifyIntro: 'أرسلنا الرمز إلى {{email}}',
     codeLabel: 'الرمز',
-    verify: 'تسجيل الدخول',
-    resend: 'إرسال رمز جديد',
-    resendIn: 'إرسال رمز جديد بعد {{seconds}} ث',
-    changeEmail: 'استخدام بريد إلكتروني آخر',
+    verify: 'تحقّق',
+    resend: 'إعادة إرسال الرمز',
+    resendIn: 'إعادة إرسال الرمز بعد {{time}}',
     errors: {
       invalidEmail: 'أدخل بريدًا إلكترونيًا صحيحًا.',
       invalidCode: 'أدخل الرمز المكوّن من 6 أرقام الموجود في الرسالة.',

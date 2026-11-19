@@ -1,9 +1,18 @@
 /** English strings. The source of truth for keys; ar.ts must match its shape. */
 export const en = {
   common: {
-    appName: 'Money Tracker',
+    appName: 'Mizan',
     ok: 'OK',
     cancel: 'Cancel',
+    back: 'Back',
+    close: 'Close',
+  },
+  keypad: {
+    backspace: 'Delete',
+    decimal: 'Decimal point',
+  },
+  sync: {
+    pending: 'Pending sync',
   },
   health: {
     title: 'Connection',
@@ -15,18 +24,17 @@ export const en = {
     details: 'Details',
   },
   auth: {
-    signInTitle: 'Sign in',
-    signInIntro: "Enter your email and we'll send you a 6-digit code. No password needed.",
+    signInTitle: 'Welcome to Mizan',
+    signInIntro: 'Enter your email and we will send you a 6-digit code. No password needed.',
     emailLabel: 'Email',
-    emailPlaceholder: 'you@example.com',
+    emailPlaceholder: 'name@email.com',
     sendCode: 'Send code',
-    verifyTitle: 'Enter your code',
-    verifyIntro: 'We sent a 6-digit code to {{email}}. It expires in 10 minutes.',
+    verifyTitle: 'Enter the code',
+    verifyIntro: 'We sent it to {{email}}',
     codeLabel: 'Code',
-    verify: 'Sign in',
-    resend: 'Send a new code',
-    resendIn: 'Send a new code in {{seconds}} s',
-    changeEmail: 'Use a different email',
+    verify: 'Verify',
+    resend: 'Resend code',
+    resendIn: 'Resend code in {{time}}',
     errors: {
       invalidEmail: 'Enter a valid email address.',
       invalidCode: 'Enter the 6-digit code from the email.',
