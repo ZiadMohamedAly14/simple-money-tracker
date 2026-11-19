@@ -1,8 +1,11 @@
 import { Schema, model } from 'mongoose';
 
 /**
- * A signed-in device. Holds only the hash of its current refresh token.
- * Ticket 04 builds rotation, reuse revocation and logout on this.
+ * A signed-in device, and the rotation family of its refresh tokens: every
+ * refresh token carries this Session's id (`sid`), and only the newest one's
+ * hash is stored. A validly signed token for this Session that isn't the
+ * newest is a replaced one being reused, so the whole Session is deleted.
+ * Revoking (logout, reuse, expiry) means deleting the document.
  */
 const sessionSchema = new Schema(
   {
@@ -12,6 +15,8 @@ const sessionSchema = new Schema(
     kidProfileId: { type: String, default: null },
     deviceLabel: { type: String, default: null },
     refreshTokenHash: { type: String, required: true },
+    /** How many times the refresh token has been rotated; for diagnostics. */
+    rotations: { type: Number, required: true, default: 0 },
     /** Deleted automatically when the refresh token expires. */
     expiresAt: { type: Date, required: true, expires: 0 },
   },

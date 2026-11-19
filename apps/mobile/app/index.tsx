@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { Redirect } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SUPPORTED_LANGUAGES, formatMoneyParts, type Language } from '@money-tracker/shared';
-import { loadSession } from '@/auth/tokenStore';
+import { authSession, useAuthStatus } from '@/auth/appSession';
 import { createApiClient } from '@/api/client';
 import { checkHealth, type HealthResult } from '@/api/health';
 import { API_URL } from '@/config';
@@ -11,22 +11,19 @@ import { switchLanguage } from '@/i18n/i18n';
 import { useFormatMoney } from '@/i18n/useFormatMoney';
 import { useLanguage } from '@/i18n/useLanguage';
 import { useTheme } from '@/theme/ThemeProvider';
-import { AmountDisplay, Card, IconCircle, Screen, SegmentedControl, Text } from '@/ui';
+import { AmountDisplay, Button, Card, IconCircle, Screen, SegmentedControl, Text } from '@/ui';
 
 /**
  * Walking-skeleton health screen: proves the app can reach the API, and
- * doubles as the right-to-left check for the shell (text, a sample amount, a
- * mirrored chevron and the language switch).
+ * doubles as the right-to-left check for the shell (text, a sample amount and
+ * the language switch).
  */
 export default function HomeScreen() {
-  // Signed-out devices go to sign-in first. Ticket 04 owns the full session lifecycle.
-  const [signedIn, setSignedIn] = useState<boolean | null>(null);
-  useEffect(() => {
-    loadSession().then((session) => setSignedIn(session !== null));
-  }, []);
-
-  if (signedIn === null) return null;
-  if (!signedIn) return <Redirect href="/sign-in" />;
+  // Signed-out devices go to sign-in first. A device whose session ended keeps
+  // showing its data (HealthScreen shows a sign-in-again notice instead).
+  const status = useAuthStatus();
+  if (status === 'loading') return null;
+  if (status === 'signedOut') return <Redirect href="/sign-in" />;
   return <HealthScreen />;
 }
 
@@ -35,6 +32,7 @@ function HealthScreen() {
   const theme = useTheme();
   const language = useLanguage();
   const formatMoney = useFormatMoney();
+  const needsSignIn = useAuthStatus() === 'needsSignIn';
   const [health, setHealth] = useState<HealthResult | null>(null);
 
   useEffect(() => {
@@ -64,6 +62,13 @@ function HealthScreen() {
         </Text>
         <Text tone="muted">{t('health.title')}</Text>
       </View>
+
+      {needsSignIn ? (
+        <Card className="gap-3 p-4">
+          <Text>{t('session.needsSignInBody')}</Text>
+          <Button label={t('session.signInAgain')} onPress={() => router.push('/sign-in')} />
+        </Card>
+      ) : null}
 
       <Card className="flex-row items-center gap-3 p-4">
         <IconCircle icon={health?.status === 'ok' ? 'cloud-done-outline' : 'cloud-offline-outline'} />
@@ -105,6 +110,8 @@ function HealthScreen() {
           accessibilityLabel={t('language.label')}
         />
       </Card>
+
+      <Button label={t('session.signOut')} variant="danger" onPress={() => void authSession.signOut()} />
     </Screen>
   );
 }

@@ -47,7 +47,14 @@ export const en = {
       invalid_input: 'Check what you entered and try again.',
       unknown: 'Something went wrong. Please try again.',
       unreachable: "Can't reach the server. Check your connection.",
+      token_invalid: 'Your sign-in needs refreshing. Please try again.',
+      session_ended: 'Your session has ended. Sign in again.',
     },
+  },
+  session: {
+    needsSignInBody: 'Your data is still here. Sign in again to keep syncing it.',
+    signInAgain: 'Sign in again',
+    signOut: 'Sign out',
   },
   language: {
     label: 'Language',
