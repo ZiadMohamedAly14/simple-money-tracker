@@ -35,6 +35,9 @@ export interface CategoryFields {
   archivedAt: number | null;
 }
 
+/** The Other Category's fields. Its ID is `otherCategoryId(accountId)`; it sorts last. */
+export const OTHER_CATEGORY: CategoryFields = { name: 'Other', order: 9999, isOther: true, archivedAt: null };
+
 export type TransactionKind = 'income' | 'expense';
 
 export interface TransactionFields {
