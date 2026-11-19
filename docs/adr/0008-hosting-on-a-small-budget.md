@@ -1,0 +1,3 @@
+# Hosting is fully separate from another project and kept to about $5 a month
+
+This product must share no accounts or infrastructure with another project (no EC2, no AWS account, no Atlas organization). For the MVP the API runs on Railway Hobby as one always-on container. The database is MongoDB Atlas M0 (free), with a nightly `mongodump` because M0 has no backups. Sign-in emails go through Resend's free tier over SMTP, using the same nodemailer code pattern as another project. We rejected Render's free tier because it sleeps when idle, which breaks sign-in codes and sync. We rejected a new AWS account (SES + Lightsail) because SES starts in a sandbox mode and the account adds upkeep for no MVP benefit. Move to Atlas M10 once real users depend on the data.
