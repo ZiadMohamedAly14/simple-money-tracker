@@ -26,12 +26,21 @@ describe('loadEnv', () => {
       nodeEnv: 'development',
       port: 4000,
       mongodbUri: 'mongodb+srv://user:pass@cluster.example.net/money',
+      dbName: 'money-tracker',
       jwtAccessSecret: 'a'.repeat(32),
       jwtRefreshSecret: 'r'.repeat(32),
       codeHashSecret: 'c'.repeat(32),
       smtp: { host: 'localhost', port: 1025, user: undefined, pass: undefined },
       emailFrom: 'Money Tracker <no-reply@example.com>',
     });
+  });
+
+  it('uses DB_NAME to choose the database when given', () => {
+    expect(loadEnv({ ...valid, DB_NAME: 'money-tracker-staging' }).dbName).toBe('money-tracker-staging');
+  });
+
+  it('rejects a DB_NAME MongoDB would refuse', () => {
+    expect(problemsOf({ ...valid, DB_NAME: 'bad/name' })).toHaveLength(1);
   });
 
   it('uses PORT, NODE_ENV and SMTP credentials when given', () => {

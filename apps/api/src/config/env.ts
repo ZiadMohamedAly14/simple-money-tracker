@@ -6,6 +6,8 @@ export interface Env {
   nodeEnv: 'development' | 'test' | 'production';
   port: number;
   mongodbUri: string;
+  /** Database to use on the cluster; overrides any name in the URI. */
+  dbName: string;
   /** Signs access tokens. Must differ from the refresh secret (ADR-0005). */
   jwtAccessSecret: string;
   /** Signs refresh tokens. */
@@ -47,6 +49,11 @@ export function loadEnv(source: Record<string, string | undefined> = process.env
     problems.push('MONGODB_URI is required and must start with mongodb:// or mongodb+srv://');
   }
 
+  const dbName = (source.DB_NAME ?? '').trim() || 'money-tracker';
+  if (!/^[^/\\. "$*<>:|?]{1,63}$/.test(dbName)) {
+    problems.push('DB_NAME must be 1-63 characters without spaces or any of / \\ . " $ * < > : | ?');
+  }
+
   const secret = (name: string): string => {
     const value = source[name] ?? '';
     if (value.length < MIN_SECRET_LENGTH) {
@@ -81,6 +88,7 @@ export function loadEnv(source: Record<string, string | undefined> = process.env
     nodeEnv,
     port,
     mongodbUri,
+    dbName,
     jwtAccessSecret,
     jwtRefreshSecret,
     codeHashSecret,

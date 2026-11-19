@@ -9,6 +9,7 @@ export function testEnv(overrides: Partial<Env> = {}): Env {
     nodeEnv: 'test',
     port: 0,
     mongodbUri: 'mongodb://unused-in-tests',
+    dbName: 'money-tracker-test',
     jwtAccessSecret: 'test-access-secret-0123456789abcdef',
     jwtRefreshSecret: 'test-refresh-secret-0123456789abcdef',
     codeHashSecret: 'test-code-hash-secret-0123456789abcdef',
