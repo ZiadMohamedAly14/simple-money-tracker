@@ -76,3 +76,13 @@ export function normalizeSignInCode(input: string): string | null {
   const code = toWesternDigits(input).replace(/\s/g, '');
   return new RegExp(`^\\d{${SIGN_IN_CODE_LENGTH}}$`).test(code) ? code : null;
 }
+
+/**
+ * The code inside pasted text (e.g. a line copied from the sign-in email), or null.
+ * Accepts six digits in a row or two groups of three split by a space or hyphen,
+ * in any digit script, and ignores longer or shorter digit runs.
+ */
+export function findSignInCode(text: string): string | null {
+  const match = /(?<!\d)(\d{3})[ -]?(\d{3})(?!\d)/.exec(toWesternDigits(text));
+  return match ? `${match[1]}${match[2]}` : null;
+}

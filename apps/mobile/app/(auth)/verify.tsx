@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import {
   SIGN_IN_CODE_LENGTH,
   applyKeypadKey,
+  findSignInCode,
   formatCountdown,
   ltrIsolate,
   normalizeSignInCode,
@@ -36,8 +38,8 @@ export default function VerifyScreen() {
     return () => clearTimeout(timer);
   }, [resendIn]);
 
-  async function submit() {
-    const normalized = normalizeSignInCode(code);
+  async function submit(entered: string = code) {
+    const normalized = normalizeSignInCode(entered);
     if (!normalized) {
       setError(t('auth.errors.invalidCode'));
       return;
@@ -67,6 +69,17 @@ export default function VerifyScreen() {
     }
     if (result.status === 'rejected' && result.retryAfterSeconds) setResendIn(result.retryAfterSeconds);
     setError(authErrorMessage(t, result));
+  }
+
+  /** The in-app keypad replaces the system keyboard, so paste needs its own button. */
+  async function paste() {
+    const found = findSignInCode(await Clipboard.getStringAsync());
+    if (!found) {
+      setError(t('auth.errors.noCodeToPaste'));
+      return;
+    }
+    setCode(found);
+    await submit(found);
   }
 
   function press(key: KeypadKey) {
@@ -100,6 +113,17 @@ export default function VerifyScreen() {
       </View>
 
       <CodeBoxes value={code} length={SIGN_IN_CODE_LENGTH} accessibilityLabel={t('auth.codeLabel')} />
+
+      <Pressable
+        accessibilityRole="button"
+        disabled={busy}
+        onPress={() => void paste()}
+        className="min-h-11 items-center justify-center"
+      >
+        <Text weight="semibold" tone="primary" align="center">
+          {t('auth.pasteCode')}
+        </Text>
+      </Pressable>
 
       <Pressable
         accessibilityRole="button"
