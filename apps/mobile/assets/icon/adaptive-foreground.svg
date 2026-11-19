@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<!-- Android adaptive icon foreground: icon.svg without its background, scaled to 60% so launcher masks never clip it. -->
+<g transform="translate(256 256) scale(0.6) translate(-256 -256)">
+  <!-- Background -->
+  
+
+  <!-- Decorative accent marks -->
+  <g stroke="#F2B15B" stroke-width="17" stroke-linecap="round">
+    <path d="M365 91 L377 53"/>
+    <path d="M410 108 L437 80"/>
+  </g>
+
+  <!-- Wallet upper flap -->
+  <path
+    d="M126 205
+       C151 181 184 166 218 157
+       L277 141
+       C307 133 329 151 329 180"
+    fill="none"
+    stroke="#F5F2E9"
+    stroke-width="19"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <!-- Main wallet body -->
+  <rect
+    x="116" y="190"
+    width="258" height="208"
+    rx="43"
+    fill="#207D68"
+    stroke="#F5F2E9"
+    stroke-width="19"
+  />
+
+  <!-- Chart bars -->
+  <g>
+    <rect x="157" y="300" width="36" height="67" rx="12" fill="#DCECE5"/>
+    <rect x="210" y="267" width="36" height="100" rx="12" fill="#F2B15B"/>
+    <rect x="263" y="232" width="36" height="135" rx="12" fill="#DCECE5"/>
+  </g>
+
+  <!-- Front wallet clasp -->
+  <path
+    d="M350 266
+       H395
+       C411 266 423 278 423 294
+       V326
+       C423 342 411 354 395 354
+       H350
+       C327 354 309 336 309 313
+       V307
+       C309 284 327 266 350 266Z"
+    fill="#F5F2E9"
+  />
+
+  <circle cx="365" cy="310" r="11" fill="#207D68"/>
+</g>
+</svg>

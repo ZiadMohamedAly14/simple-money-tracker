@@ -5,9 +5,14 @@
     "scheme": "moneytracker",
     "version": "0.1.0",
     "orientation": "portrait",
+    "icon": "./assets/icon/icon.png",
     "userInterfaceStyle": "automatic",
     "android": {
-      "package": "com.moneytracker.app"
+      "package": "com.moneytracker.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon/adaptive-foreground.png",
+        "backgroundColor": "#207D68"
+      }
     },
     "ios": {
       "bundleIdentifier": "com.moneytracker.app",
