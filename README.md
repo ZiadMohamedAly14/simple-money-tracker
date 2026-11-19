@@ -26,7 +26,7 @@ npm test               # Jest in every workspace (API tests start an in-memory M
 npm run build          # builds packages/shared and apps/api to dist/
 ```
 
-API locally: copy `apps/api/.env.example` to `apps/api/.env`, start a MongoDB, then `npm run dev -w @money-tracker/api` (loads env from your shell; e.g. `set -a; . apps/api/.env; set +a` first). Sign-in code emails go to a local catcher in development: run Mailpit (`docker run --rm -p 1025:1025 -p 8025:8025 axllent/mailpit`) and read the codes at http://localhost:8025.
+API locally: copy `apps/api/.env.example` to `apps/api/.env`, start a MongoDB, then `npm run dev -w @money-tracker/api`, which loads `apps/api/.env` (variables already set in your shell take precedence). Sign-in code emails: set `RESEND_API_KEY` to send real emails through Resend, or leave it empty and run a local catcher, Mailpit (`docker run --rm -p 1025:1025 -p 8025:8025 axllent/mailpit`), reading the codes at http://localhost:8025.
 
 Mobile locally: copy `apps/mobile/.env.example` to `apps/mobile/.env`, then `npm start -w @money-tracker/mobile` and open the development build on an Android device or emulator.
 
