@@ -111,6 +111,9 @@ function HealthScreen() {
         />
       </Card>
 
+      {/* Sync tracer bullet (ticket 05); the Month overview (ticket 07) replaces this screen. */}
+      <Button label={t('expenses.open')} variant="secondary" onPress={() => router.push('/expenses')} />
+
       <Button label={t('session.signOut')} variant="danger" onPress={() => void authSession.signOut()} />
     </Screen>
   );
