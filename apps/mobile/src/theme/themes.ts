@@ -1,8 +1,8 @@
 /**
- * Color tokens for the two experiences. Screens use token classes
- * (bg-background, text-primary, rounded-theme…) from tailwind.config.js, never
- * raw colors, so swapping in final branding means editing only this file.
- * Branding is still open (spec "Further Notes"); these are placeholders.
+ * Color tokens for the two experiences, from the Mizan design (docs/design).
+ * Screens use token classes (bg-background, text-primary, bg-tint,
+ * rounded-theme…) from tailwind.config.js, never raw colors, so branding
+ * changes mean editing only this file.
  */
 export type ThemeName = 'personal' | 'kid';
 
@@ -10,54 +10,74 @@ export type ColorToken =
   | 'background'
   | 'surface'
   | 'text'
+  /** Secondary text (grey-green): captions, "Pending sync", labels. */
   | 'muted'
+  /** Main buttons, selected chips/segments, FAB, progress fill, the kid "In my wallet" card. */
   | 'primary'
   | 'on-primary'
-  | 'accent'
+  /** Pale green: icon circles, round header buttons, secondary buttons, progress track. */
+  | 'tint'
+  /** Unselected chip fill (tint in Personal, white in Kid). */
+  | 'chip'
+  /** Dark buttons (kid "I spent money"). */
+  | 'dark'
+  | 'on-dark'
+  /** Warning surface: negative Unallocated, over-plan banner, low Jar, "went below zero". */
+  | 'warning'
+  /** Dark amber text on the warning surface. */
+  | 'on-warning'
+  /** Amounts in, "X left". Same green as primary. */
   | 'positive'
+  /** "X over", over-budget bars, negative Jar balances, "Delete account" text. */
   | 'negative'
-  | 'border';
+  /** Pale red surface behind a danger button. */
+  | 'negative-surface'
+  /** Orange highlight (kid avatar). */
+  | 'accent'
+  | 'border'
+  | 'jar-save'
+  | 'jar-spend'
+  | 'jar-give';
 
 export interface Theme {
   colors: Record<ColorToken, `#${string}`>;
   /** Corner radius for cards and buttons. The Kid theme is rounder. */
   radius: number;
-  /** Minimum touch height for buttons. The Kid theme has bigger buttons. */
+  /** Minimum touch height for buttons and keypad keys. The Kid theme has bigger controls. */
   controlHeight: number;
 }
 
+const shared = {
+  surface: '#FFFFFF',
+  text: '#1E2A26',
+  muted: '#5E6B66',
+  primary: '#1D7962',
+  'on-primary': '#FFFFFF',
+  tint: '#DBEAE3',
+  dark: '#1E2A26',
+  'on-dark': '#FFFFFF',
+  warning: '#FAEFD9',
+  'on-warning': '#7A4E06',
+  positive: '#1D7962',
+  negative: '#B23D27',
+  'negative-surface': '#FBE3DE',
+  accent: '#FD9E42',
+  border: '#D3DED8',
+  'jar-save': '#3AA675',
+  'jar-spend': '#FD9E42',
+  'jar-give': '#F16A8A',
+} as const;
+
 export const themes: Record<ThemeName, Theme> = {
   personal: {
-    colors: {
-      background: '#F7F8FA',
-      surface: '#FFFFFF',
-      text: '#16181D',
-      muted: '#6B7280',
-      primary: '#1F6FEB',
-      'on-primary': '#FFFFFF',
-      accent: '#0EA5A4',
-      positive: '#15803D',
-      negative: '#B91C1C',
-      border: '#E5E7EB',
-    },
-    radius: 8,
-    controlHeight: 44,
+    colors: { ...shared, background: '#F5F2EB', chip: '#DBEAE3' },
+    radius: 16,
+    controlHeight: 52,
   },
   kid: {
-    colors: {
-      background: '#FFF8E7',
-      surface: '#FFFFFF',
-      text: '#2B2140',
-      muted: '#7A6F8F',
-      primary: '#7C3AED',
-      'on-primary': '#FFFFFF',
-      accent: '#F59E0B',
-      positive: '#16A34A',
-      negative: '#DC2626',
-      border: '#F1E3C2',
-    },
-    radius: 20,
-    controlHeight: 56,
+    colors: { ...shared, background: '#FEF0CB', chip: '#FFFFFF' },
+    radius: 24,
+    controlHeight: 60,
   },
 };
 
