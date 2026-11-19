@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { normalizeEmail, type Language } from '@money-tracker/shared';
 import { requestCode } from '@/api/auth';
 import { createApiClient } from '@/api/client';
+import { authSession } from '@/auth/appSession';
 import { authErrorMessage } from '@/auth/authErrorMessage';
 import { API_URL } from '@/config';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -15,7 +16,8 @@ const LOOKS_LIKE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export default function SignInScreen() {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
-  const [email, setEmail] = useState('');
+  // After a session ends, the remembered Account's email is filled in.
+  const [email, setEmail] = useState(() => authSession.account()?.email ?? '');
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
 

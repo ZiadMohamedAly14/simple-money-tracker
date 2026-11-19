@@ -45,7 +45,20 @@ export type AuthErrorReason =
   | 'too_many_guesses' // 429: request a new code
   | 'resend_too_soon' // 429, data.retryAfterSeconds
   | 'too_many_codes' // 429, data.retryAfterSeconds
-  | 'too_many_requests'; // 429 per-IP limit, data.retryAfterSeconds
+  | 'too_many_requests' // 429 per-IP limit, data.retryAfterSeconds
+  | 'token_invalid' // 401: access token missing, expired or not an access token; refresh and retry
+  | 'session_ended'; // 401: signed out, revoked, or refresh token expired/reused; sign in with a new code
+
+/** `POST /auth/refresh` body. */
+export interface RefreshBody {
+  refreshToken: string;
+}
+
+/** `POST /auth/refresh` success data: a new pair; the old refresh token is now spent. */
+export interface TokenPair {
+  accessToken: string;
+  refreshToken: string;
+}
 
 export interface AuthErrorData {
   reason: AuthErrorReason;

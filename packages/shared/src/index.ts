@@ -5,7 +5,9 @@ export { SIGN_IN_CODE_LENGTH, normalizeEmail, normalizeSignInCode } from './auth
 export type {
   AuthErrorData,
   AuthErrorReason,
+  RefreshBody,
   RequestCodeBody,
+  TokenPair,
   RequestCodeData,
   VerifyCodeBody,
   VerifyCodeData,

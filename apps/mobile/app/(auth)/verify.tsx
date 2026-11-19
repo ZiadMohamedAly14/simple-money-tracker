@@ -6,7 +6,7 @@ import { SIGN_IN_CODE_LENGTH, normalizeSignInCode, type Language } from '@money-
 import { requestCode, verifyCode } from '@/api/auth';
 import { createApiClient } from '@/api/client';
 import { authErrorMessage } from '@/auth/authErrorMessage';
-import { saveSession } from '@/auth/tokenStore';
+import { authSession } from '@/auth/appSession';
 import { API_URL } from '@/config';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -37,7 +37,7 @@ export default function VerifyScreen() {
     setBusy(true);
     const result = await verifyCode(createApiClient(API_URL), { email, code: normalized });
     if (result.status === 'ok') {
-      await saveSession(result.data);
+      await authSession.signedIn(result.data);
       setBusy(false);
       router.replace('/');
       return;
