@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { Redirect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SUPPORTED_LANGUAGES } from '@money-tracker/shared';
+import { loadSession } from '@/auth/tokenStore';
 import { createApiClient } from '@/api/client';
 import { checkHealth, type HealthResult } from '@/api/health';
 import { API_URL } from '@/config';
@@ -15,7 +17,19 @@ import { useTheme } from '@/theme/ThemeProvider';
  * doubles as the right-to-left check for the shell (text, a sample amount, a
  * mirrored chevron and the language switch).
  */
-export default function HealthScreen() {
+export default function HomeScreen() {
+  // Signed-out devices go to sign-in first. Ticket 04 owns the full session lifecycle.
+  const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  useEffect(() => {
+    loadSession().then((session) => setSignedIn(session !== null));
+  }, []);
+
+  if (signedIn === null) return null;
+  if (!signedIn) return <Redirect href="/sign-in" />;
+  return <HealthScreen />;
+}
+
+function HealthScreen() {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const formatMoney = useFormatMoney();
