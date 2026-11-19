@@ -30,7 +30,22 @@ const reasonOf = (body: unknown): unknown =>
  * time, since reusing a replaced refresh token revokes the session), and never
  * needs the network to say who is signed in.
  */
-export function createAuthSession({ client, store }: { client: AxiosInstance; store: SessionStore }) {
+/**
+ * The device's local records. They belong to one Account: signing in as a
+ * different Account, or signing out, empties them first (see `LocalStore`).
+ */
+export interface LocalAccountData {
+  claimAccount(accountId: string): void;
+  wipe(): void;
+}
+
+export interface AuthSessionDeps {
+  client: AxiosInstance;
+  store: SessionStore;
+  localData: LocalAccountData;
+}
+
+export function createAuthSession({ client, store, localData }: AuthSessionDeps) {
   let current: StoredSession | null = null;
   let status: AuthStatus = 'loading';
   let refreshing: Promise<RefreshOutcome> | null = null;
@@ -97,6 +112,8 @@ export function createAuthSession({ client, store }: { client: AxiosInstance; st
     /** Reads the stored session. Call once at app start, before rendering signed-in screens. */
     async start(): Promise<void> {
       current = await store.load();
+      if (current) localData.claimAccount(current.account.id);
+      else localData.wipe();
       setStatus(current === null ? 'signedOut' : current.tokens ? 'signedIn' : 'needsSignIn');
     },
 
@@ -113,6 +130,7 @@ export function createAuthSession({ client, store }: { client: AxiosInstance; st
 
     /** Stores the tokens from a verified email code. */
     async signedIn({ accessToken, refreshToken, account }: VerifyCodeData): Promise<void> {
+      localData.claimAccount(account.id);
       current = { account, tokens: { accessToken, refreshToken } };
       await store.save(current);
       setStatus('signedIn');
@@ -139,11 +157,15 @@ export function createAuthSession({ client, store }: { client: AxiosInstance; st
       return fresh ? send(config, fresh.accessToken) : { status: 'session_ended' };
     },
 
-    /** Ends the session on the server if it can be reached, and always forgets it on this device. */
+    /**
+     * Ends the session on the server if it can be reached, and always forgets
+     * it on this device, local records included (unsynced ones too).
+     */
     async signOut(): Promise<void> {
       if (current?.tokens) await this.request({ method: 'POST', url: '/auth/logout' });
       current = null;
       await store.clear();
+      localData.wipe();
       setStatus('signedOut');
     },
   };

@@ -14,6 +14,18 @@ export const en = {
   sync: {
     pending: 'Pending sync',
   },
+  categories: {
+    other: 'Other',
+  },
+  expenses: {
+    title: 'Expenses',
+    open: 'Expenses',
+    add: 'Add expense',
+    empty: 'No expenses yet. Tap + to record one.',
+    save: 'Save',
+    today: 'Today',
+    amountLabel: 'Amount',
+  },
   health: {
     title: 'Connection',
     ok: 'API: ok',

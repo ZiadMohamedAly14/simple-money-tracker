@@ -16,6 +16,18 @@ export const ar: Translations = {
   sync: {
     pending: 'بانتظار المزامنة',
   },
+  categories: {
+    other: 'أخرى',
+  },
+  expenses: {
+    title: 'المصروفات',
+    open: 'المصروفات',
+    add: 'إضافة مصروف',
+    empty: 'لا توجد مصروفات بعد. اضغط + لتسجيل مصروف.',
+    save: 'حفظ',
+    today: 'اليوم',
+    amountLabel: 'المبلغ',
+  },
   health: {
     title: 'الاتصال',
     ok: 'الخادم: يعمل',

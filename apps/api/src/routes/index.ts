@@ -5,6 +5,8 @@ import { createAuthService } from '../services/auth.service';
 import { createTokenService } from '../services/token.service';
 import { authRoutes } from './auth.routes';
 import { healthRoutes } from './health.routes';
+import { createSyncService } from '../services/sync.service';
+import { syncRoutes } from './sync.routes';
 
 /** Mounts every feature router. Add new feature routers here. */
 export function apiRoutes(env: Env, { mailer, now }: AppDeps): Router {
@@ -14,5 +16,6 @@ export function apiRoutes(env: Env, { mailer, now }: AppDeps): Router {
   const router = Router();
   router.use('/health', healthRoutes());
   router.use('/auth', authRoutes(auth, tokens));
+  router.use('/sync', syncRoutes(createSyncService({ now }), tokens));
   return router;
 }
