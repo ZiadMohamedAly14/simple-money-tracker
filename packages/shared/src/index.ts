@@ -32,6 +32,7 @@ export {
 export type { Language, NumberingSystem } from './i18n/language';
 export { currencyMinorDigits, formatMoney, fromMinorUnits, toMinorUnits } from './money/money';
 export type { CurrencyCode, MoneyFormatOptions } from './money/money';
+export { toLocalDate } from './dates/localDate';
 export { isUuid, otherCategoryId, uuidv7 } from './sync/ids';
 export type { RandomBytes } from './sync/ids';
 export { MAX_PUSHED_CHANGES, OTHER_CATEGORY, SYNC_ENTITIES, parsePushedChange } from './sync/records';
