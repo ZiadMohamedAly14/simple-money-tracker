@@ -6,7 +6,18 @@ describe('loadEnv', () => {
       nodeEnv: 'development',
       port: 4000,
       mongodbUri: 'mongodb+srv://user:pass@cluster.example.net/money',
+      dbName: 'money-tracker',
     });
+  });
+
+  it('uses DB_NAME to choose the database when given', () => {
+    expect(loadEnv({ MONGODB_URI: 'mongodb://localhost', DB_NAME: 'money-tracker-staging' }).dbName).toBe(
+      'money-tracker-staging',
+    );
+  });
+
+  it('rejects a DB_NAME MongoDB would refuse', () => {
+    expect(() => loadEnv({ MONGODB_URI: 'mongodb://localhost', DB_NAME: 'bad/name' })).toThrow(EnvError);
   });
 
   it('uses PORT and NODE_ENV when given', () => {

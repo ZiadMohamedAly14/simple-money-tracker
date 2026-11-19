@@ -4,7 +4,7 @@ import { loadEnv } from './config/env';
 
 async function main(): Promise<void> {
   const env = loadEnv();
-  await connectDatabase(env.mongodbUri);
+  await connectDatabase(env.mongodbUri, env.dbName);
 
   const server = createApp(env).listen(env.port, () => {
     console.log(`API listening on port ${env.port} (${env.nodeEnv})`);

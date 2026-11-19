@@ -36,7 +36,7 @@ These steps are done by a human; nothing is deployed automatically.
 
 **MongoDB Atlas (ADR-0008).** Create a new Atlas organization (not another project's), a project and an M0 cluster. Add a database user and allow Railway's egress (or `0.0.0.0/0` for M0). Copy the `mongodb+srv://` connection string. Set up a nightly `mongodump` since M0 has no backups.
 
-**Railway.** Create a project on the Hobby plan from this repo. `railway.json` at the repo root sets the build (`npm run build -w @money-tracker/shared -w @money-tracker/api`), the start command and the `/health` health check. Set variables `NODE_ENV=production` and `MONGODB_URI=<Atlas string>` (Railway provides `PORT`). Generate a public domain.
+**Railway.** Create a project on the Hobby plan from this repo. `railway.json` at the repo root sets the build (`npm run build -w @money-tracker/shared -w @money-tracker/api`), the start command and the `/health` health check. Set variables `NODE_ENV=production`, `MONGODB_URI=<Atlas string>` and optionally `DB_NAME` (defaults to `money-tracker`; Railway provides `PORT`). Generate a public domain.
 
 **EAS (Android).** `npm i -g eas-cli`, `eas login`, then from `apps/mobile`: `eas init` (writes the project ID into `app.json`), replace `REPLACE-WITH-RAILWAY-DOMAIN` in `eas.json` with the Railway domain, and run `eas build --profile development --platform android`. Install the APK, start Metro with `npm start -w @money-tracker/mobile`, and the app should show "API: ok".
 

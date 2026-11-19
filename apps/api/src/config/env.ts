@@ -6,6 +6,8 @@ export interface Env {
   nodeEnv: 'development' | 'test' | 'production';
   port: number;
   mongodbUri: string;
+  /** Database to use on the cluster; overrides any name in the URI. */
+  dbName: string;
 }
 
 export class EnvError extends Error {
@@ -36,6 +38,11 @@ export function loadEnv(source: Record<string, string | undefined> = process.env
     problems.push('MONGODB_URI is required and must start with mongodb:// or mongodb+srv://');
   }
 
+  const dbName = (source.DB_NAME ?? '').trim() || 'money-tracker';
+  if (!/^[^/\\. "$*<>:|?]{1,63}$/.test(dbName)) {
+    problems.push('DB_NAME must be 1-63 characters without spaces or any of / \\ . " $ * < > : | ?');
+  }
+
   if (problems.length > 0) throw new EnvError(problems);
-  return { nodeEnv, port, mongodbUri };
+  return { nodeEnv, port, mongodbUri, dbName };
 }

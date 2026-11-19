@@ -1,9 +1,9 @@
 import mongoose from 'mongoose';
 
 /** Opens the single Mongoose connection used by every model. */
-export async function connectDatabase(uri: string): Promise<void> {
+export async function connectDatabase(uri: string, dbName?: string): Promise<void> {
   mongoose.set('strictQuery', true);
-  await mongoose.connect(uri);
+  await mongoose.connect(uri, dbName ? { dbName } : {});
 }
 
 export async function disconnectDatabase(): Promise<void> {
