@@ -1,10 +1,13 @@
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { createApiClient } from '@/api/client';
-import { createAuthSession, type AuthSession } from './authSession';
+import { createAuthSession, type AuthSession, type LocalAccountData } from './authSession';
 import type { SessionStore, StoredSession } from './tokenStore';
 
 const account = { id: 'acc-1', email: 'sara@example.com' };
+
+/** Local records are covered by the Seam B tests (sync.seamB.test.ts). */
+const noLocalData: LocalAccountData = { claimAccount: () => undefined, wipe: () => undefined };
 
 /** Holds the session in memory, the way SecureStore would on a device. */
 function memoryStore(initial: StoredSession | null): SessionStore & { current: StoredSession | null } {
@@ -69,7 +72,7 @@ describe('auth session on the device', () => {
   });
 
   async function startSession(store: SessionStore, url: string): Promise<AuthSession> {
-    const session = createAuthSession({ client: createApiClient(url), store });
+    const session = createAuthSession({ client: createApiClient(url), store, localData: noLocalData });
     await session.start();
     return session;
   }
@@ -161,7 +164,7 @@ describe('auth session on the device', () => {
   it('works offline: an unreachable server changes nothing', async () => {
     api = await fakeApi({});
     const store = memoryStore(signedIn());
-    const session = createAuthSession({ client: createApiClient('http://127.0.0.1:1'), store });
+    const session = createAuthSession({ client: createApiClient('http://127.0.0.1:1'), store, localData: noLocalData });
     await session.start();
 
     expect(await session.request({ method: 'GET', url: '/things' })).toEqual({ status: 'unreachable' });
@@ -190,7 +193,7 @@ describe('auth session on the device', () => {
     expect(session.status()).toBe('signedOut');
 
     const offlineStore = memoryStore(signedIn());
-    const offline = createAuthSession({ client: createApiClient('http://127.0.0.1:1'), store: offlineStore });
+    const offline = createAuthSession({ client: createApiClient('http://127.0.0.1:1'), store: offlineStore, localData: noLocalData });
     await offline.start();
     await offline.signOut();
     expect(offlineStore.current).toBeNull();
