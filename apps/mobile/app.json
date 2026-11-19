@@ -1,0 +1,19 @@
+{
+  "expo": {
+    "name": "Money Tracker",
+    "slug": "money-tracker",
+    "scheme": "moneytracker",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "android": {
+      "package": "com.moneytracker.app"
+    },
+    "ios": {
+      "bundleIdentifier": "com.moneytracker.app"
+    },
+    "plugins": [
+      "expo-router"
+    ]
+  }
+}
