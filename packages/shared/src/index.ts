@@ -1,7 +1,7 @@
 export { isApiEnvelope } from './api/envelope';
 export type { ApiEnvelope } from './api/envelope';
 export type { HealthData } from './api/health';
-export { SIGN_IN_CODE_LENGTH, normalizeEmail, normalizeSignInCode } from './auth/signIn';
+export { SIGN_IN_CODE_LENGTH, findSignInCode, normalizeEmail, normalizeSignInCode } from './auth/signIn';
 export type {
   AuthErrorData,
   AuthErrorReason,

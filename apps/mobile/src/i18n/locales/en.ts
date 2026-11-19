@@ -47,9 +47,11 @@ export const en = {
     verify: 'Verify',
     resend: 'Resend code',
     resendIn: 'Resend code in {{time}}',
+    pasteCode: 'Paste code',
     errors: {
       invalidEmail: 'Enter a valid email address.',
       invalidCode: 'Enter the 6-digit code from the email.',
+      noCodeToPaste: 'No 6-digit code found. Copy the code from the email first.',
       invalid_code: 'That code is not right. {{count}} tries left.',
       code_expired: 'This code has expired or was already used. Send a new code.',
       too_many_guesses: 'Too many wrong codes. Send a new code.',

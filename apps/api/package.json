@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/server.js",
-    "dev": "tsx watch --conditions=source src/server.ts",
+    "dev": "tsx watch --env-file-if-exists=.env --conditions=source src/server.ts",
     "typecheck": "tsc --noEmit",
     "test": "NODE_OPTIONS=\"--experimental-vm-modules --disable-warning=ExperimentalWarning\" jest"
   },
