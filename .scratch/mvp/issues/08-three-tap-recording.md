@@ -4,7 +4,7 @@
 
 **Blocked by:** 07 (Personal onboarding and Month overview).
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] Tapping + opens an amount keypad with focus already in it. Category chips are ordered by most recent use, and Save completes the Expense in three taps.
 - [x] Adult amount keypads (Expense, Income, Expected Income, Category Budget, Top-up, Jar Transfer) have `+ − × ÷` keys. The amount line shows the expression as typed with the live result below it; Save records the result. There is no `=` key.
