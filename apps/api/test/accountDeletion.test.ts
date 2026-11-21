@@ -256,6 +256,18 @@ describe('Account deletion (Seam A)', () => {
       expect((await sync(phone)).status).toBe(200);
     });
 
+    it('a deletion code does not sign in or reset the PIN', async () => {
+      const phone = await signIn();
+      await requestDeletionCode(phone);
+      const code = mailer.lastCodeFor('sara@example.com');
+
+      const verify = await request(app).post('/auth/verify').send({ email: 'sara@example.com', code });
+      expect(verify.status).toBe(400);
+      const reset = await request(app).post('/account/pin/reset').set('Authorization', as(phone)).send({ code, pin: '1234' });
+      expect(reset.status).toBe(400);
+      expect((await confirmDeletion(phone, code)).status).toBe(200);
+    });
+
     it('needs a code requested first', async () => {
       const phone = await signIn();
       const res = await confirmDeletion(phone, '123456');

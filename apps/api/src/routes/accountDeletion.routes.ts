@@ -1,8 +1,8 @@
 import { Router, type Request, type Response } from 'express';
-import { body } from 'express-validator';
-import { SUPPORTED_LANGUAGES, type ConfirmDeletionBody, type RequestDeletionCodeBody } from '@money-tracker/shared';
+import { type ConfirmDeletionBody, type RequestDeletionCodeBody } from '@money-tracker/shared';
 import { authOf, requireAuth, requireFullScope } from '../middleware/requireAuth';
 import { validate } from '../middleware/validate';
+import { codeField, languageField } from './fields';
 import type { AccountDeletionService } from '../services/accountDeletion.service';
 import type { TokenService } from '../services/token.service';
 import { asyncHandler } from '../utils/asyncHandler';
@@ -19,7 +19,7 @@ export function accountDeletionRoutes(deletion: AccountDeletionService, tokens: 
 
   router.post(
     '/code',
-    [body('language').default('en').isIn([...SUPPORTED_LANGUAGES])],
+    [languageField()],
     validate,
     asyncHandler(async (req: Request, res: Response) => {
       const { language } = req.body as RequestDeletionCodeBody;
@@ -29,7 +29,7 @@ export function accountDeletionRoutes(deletion: AccountDeletionService, tokens: 
 
   router.post(
     '/',
-    [body('code').isString().matches(/^\d{6}$/).withMessage('The code is 6 digits')],
+    [codeField()],
     validate,
     asyncHandler(async (req: Request, res: Response) => {
       const { code } = req.body as ConfirmDeletionBody;

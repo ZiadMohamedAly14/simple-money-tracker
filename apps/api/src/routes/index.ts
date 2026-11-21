@@ -29,6 +29,6 @@ export function apiRoutes(env: Env, { mailer, now }: AppDeps): Router {
   const pins = createParentPinService({ now, codes: auth });
   router.use('/account/pin', parentPinRoutes(pins, tokens));
   router.use('/kid-devices', kidDeviceRoutes(createKidDeviceService({ tokens, pins, now }), tokens));
-  router.use('/account/deletion', accountDeletionRoutes(createAccountDeletionService({ env, mailer, now }), tokens));
+  router.use('/account/deletion', accountDeletionRoutes(createAccountDeletionService({ codes: auth }), tokens));
   return router;
 }

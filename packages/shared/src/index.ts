@@ -38,6 +38,7 @@ export type { Language, NumberingSystem } from './i18n/language';
 export { currencyMinorDigits, formatMoney, fromMinorUnits, toMinorUnits } from './money/money';
 export type { CurrencyCode, MoneyFormatOptions } from './money/money';
 export { toLocalDate } from './dates/localDate';
+export { secondsUntil } from './dates/secondsUntil';
 export { addMonths, currentMonth, formatMonth, monthOf } from './dates/month';
 export type { Month } from './dates/month';
 export { DEFAULT_CATEGORY_ICONS, DEFAULT_CATEGORY_KEYS, EARLIER_DEFAULT_CATEGORY_ICONS } from './budget/defaultCategories';
