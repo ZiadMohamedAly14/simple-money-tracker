@@ -145,4 +145,25 @@ describe('recording Transactions (Seam B)', () => {
     expect(phone.monthTransactions('2026-03').map((t) => t.id)).toEqual([taxi]);
     expect(phone.monthOverview('2026-03')).toMatchObject({ income: 0, spending: 3_000, remaining: 997_000 });
   });
+
+  it('deleting several selected Transactions at once, offline, removes them all on both devices and skips ones already gone', async () => {
+    const [phone, tablet] = await twoDevices();
+    const salary = phone.recordIncome({ amount: 850_000, date: '2026-03-01' });
+    const lunch = phone.recordExpense({ amount: 12_000, date: '2026-03-02' });
+    const taxi = phone.recordExpense({ amount: 3_000, date: '2026-03-03' });
+    const coffee = phone.recordExpense({ amount: 1_000, date: '2026-03-04' });
+    await phone.sync();
+    await tablet.sync();
+
+    tablet.goOffline();
+    expect(tablet.deleteTransaction(coffee)).toBe(true);
+    expect(tablet.deleteTransactions([salary, lunch, coffee])).toBe(2); // coffee was already deleted
+    expect(tablet.monthTransactions('2026-03').map((t) => t.id)).toEqual([taxi]);
+    tablet.goOnline();
+    await tablet.sync();
+    await phone.sync();
+
+    expect(phone.monthTransactions('2026-03').map((t) => t.id)).toEqual([taxi]);
+    expect(phone.monthOverview('2026-03')).toMatchObject({ income: 0, spending: 3_000 });
+  });
 });

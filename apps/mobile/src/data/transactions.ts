@@ -98,6 +98,15 @@ export function deleteTransaction(store: LocalStore, id: string): boolean {
   return store.remove('transaction', id);
 }
 
+/**
+ * Deletes several Transactions at once (multi-select on the Transactions
+ * screen), in one local write, each with a deletion marker that syncs like a
+ * single delete. Ones already deleted are skipped. Returns how many were deleted.
+ */
+export function deleteTransactions(store: LocalStore, ids: readonly string[]): number {
+  return store.removeAll(ids.map((id) => ({ entity: 'transaction' as const, id })));
+}
+
 /** Live-queryable: Expenses, newest date first. Run with `.all()` or pass to `useLiveQuery`. */
 export function expensesQuery(db: LocalDb) {
   return db

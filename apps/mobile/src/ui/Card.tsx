@@ -16,12 +16,14 @@ export interface CardProps {
   accessibilityLabel?: string;
   /** What pressing does, when the label says what the card shows ("Edit expected income"). */
   accessibilityHint?: string;
+  /** A long press (e.g. starting multi-select). */
+  onLongPress?: () => void;
   /** Padding, gaps, layout. Default padding is p-4. */
   className?: string;
 }
 
 /** White, rounded, no shadow or border (unless selected). */
-export function Card({ children, onPress, selected, accessibilityLabel, accessibilityHint, className = 'p-4' }: CardProps) {
+export function Card({ children, onPress, onLongPress, selected, accessibilityLabel, accessibilityHint, className = 'p-4' }: CardProps) {
   const classes = `rounded-theme border-2 bg-surface ${selected ? 'border-primary' : 'border-transparent'} ${className}`;
   if (!onPress) return <View className={classes}>{children}</View>;
   return (
@@ -31,6 +33,7 @@ export function Card({ children, onPress, selected, accessibilityLabel, accessib
       accessibilityHint={accessibilityHint}
       accessibilityState={selected === undefined ? undefined : { selected }}
       onPress={onPress}
+      onLongPress={onLongPress}
       className={`${classes} active:opacity-80`}
     >
       {children}
@@ -54,16 +57,26 @@ export interface ListRowProps {
    * `end`; pass it when `end` is an element whose text should be read.
    */
   accessibilityLabel?: string;
+  /** What pressing does, read after the label. */
+  accessibilityHint?: string;
+  onLongPress?: () => void;
 }
 
 /** A card row: icon in a circle, title and subtitle, something at the end. */
-export function ListRow({ icon, iconTone, title, subtitle, end, endTone = 'text', onPress, selected, accessibilityLabel }: ListRowProps) {
+export function ListRow({ icon, iconTone, title, subtitle, end, endTone = 'text', onPress, onLongPress, selected, accessibilityLabel, accessibilityHint }: ListRowProps) {
   const { t } = useTranslation();
   const theme = useTheme();
   const spoken =
     accessibilityLabel ?? joinSpoken([title, subtitle, typeof end === 'string' ? end : undefined], t('common.listSeparator'));
   return (
-    <Card onPress={onPress} selected={selected} accessibilityLabel={spoken} className="flex-row items-center gap-3 px-3 py-3">
+    <Card
+      onPress={onPress}
+      onLongPress={onLongPress}
+      selected={selected}
+      accessibilityLabel={spoken}
+      accessibilityHint={accessibilityHint}
+      className="flex-row items-center gap-3 px-3 py-3"
+    >
       <IconCircle icon={icon} tone={iconTone} />
       <View className="flex-1 gap-0.5">
         <Text weight="semibold" numberOfLines={1} className="text-base">

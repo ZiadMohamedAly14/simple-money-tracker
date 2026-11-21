@@ -26,6 +26,7 @@ import {
 import {
   categoriesQuery,
   deleteTransaction,
+  deleteTransactions,
   editExpense,
   editIncome,
   expensesQuery,
@@ -276,6 +277,7 @@ export async function createTestDevice(
     editExpense: (id: string, changes: ExpenseChanges) => editExpense(store, db, id, changes),
     editIncome: (id: string, changes: IncomeChanges) => editIncome(store, db, id, changes),
     deleteTransaction: (id: string) => deleteTransaction(store, id),
+    deleteTransactions: (ids: readonly string[]) => deleteTransactions(store, ids),
     expenses: () => expensesQuery(db).all(),
     recordIncome: (income: NewIncome) => recordIncome(store, db, income),
     monthTransactions: (month: string) => monthTransactionListQuery(db, month).all(),
