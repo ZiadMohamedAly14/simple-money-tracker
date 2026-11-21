@@ -24,12 +24,17 @@ import {
 } from '@/data/budget';
 import {
   categoriesQuery,
-  deleteExpense,
+  deleteTransaction,
   editExpense,
+  editIncome,
   expensesQuery,
+  monthTransactionListQuery,
   recordExpense,
+  recordIncome,
   type ExpenseChanges,
+  type IncomeChanges,
   type NewExpense,
+  type NewIncome,
 } from '@/data/transactions';
 import {
   addJar,
@@ -55,6 +60,7 @@ import {
   activeCategoriesQuery,
   archivedCategoriesQuery,
   categoryActions,
+  categoryChoicesQuery,
   readCategoryBreakdown,
 } from '@/data/categories';
 import { createLocalStore } from '@/db/localStore';
@@ -205,9 +211,13 @@ export async function createTestDevice(
 
     recordExpense: (expense: NewExpense) => recordExpense(store, db, expense),
     editExpense: (id: string, changes: ExpenseChanges) => editExpense(store, db, id, changes),
-    deleteExpense: (id: string) => deleteExpense(store, id),
+    editIncome: (id: string, changes: IncomeChanges) => editIncome(store, db, id, changes),
+    deleteTransaction: (id: string) => deleteTransaction(store, id),
     expenses: () => expensesQuery(db).all(),
+    recordIncome: (income: NewIncome) => recordIncome(store, db, income),
+    monthTransactions: (month: string) => monthTransactionListQuery(db, month).all(),
     categories: () => categoriesQuery(db).all(),
+    categoryChoices: () => categoryChoicesQuery(db).all(),
     pendingChanges: () => store.pendingCount(),
 
     onboarding: () => store.onboarding(),

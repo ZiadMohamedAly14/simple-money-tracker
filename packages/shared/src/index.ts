@@ -18,8 +18,10 @@ export { formatCountdown } from './i18n/countdown';
 export type { CountdownOptions } from './i18n/countdown';
 export { toWesternDigits } from './i18n/digits';
 export { applyKeypadKey } from './keypad/keypad';
-export type { KeypadKey, KeypadMode } from './keypad/keypad';
-export { formatAmountInput, formatMoneyParts } from './money/display';
+export type { DigitKey, KeypadKey, KeypadMode, OperatorKey } from './keypad/keypad';
+export { evaluateAllocation, evaluateAmountExpression } from './keypad/expression';
+export type { ExpressionOperator, ExpressionResult } from './keypad/expression';
+export { formatAmountExpression, formatAmountInput, formatMoneyParts } from './money/display';
 export type { AmountInputOptions, MoneyParts } from './money/display';
 export {
   DEFAULT_LANGUAGE,

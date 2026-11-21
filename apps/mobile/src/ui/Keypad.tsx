@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Pressable, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { intlLocale, type KeypadKey, type NumberingSystem } from '@money-tracker/shared';
+import { intlLocale, type KeypadKey, type NumberingSystem, type OperatorKey } from '@money-tracker/shared';
 import { useLanguage } from '@/i18n/useLanguage';
 import { useTheme } from '@/theme/ThemeProvider';
 import { AppIcon } from './AppIcon';
@@ -14,21 +14,28 @@ const ROWS: readonly (readonly KeypadKey[])[] = [
   ['decimal', '0', 'backspace'],
 ];
 
+/** The operator column at the end side, one per row (adult amount keypads only). */
+const OPERATORS: readonly OperatorKey[] = ['divide', 'times', 'minus', 'plus'];
+const OPERATOR_SYMBOL: Record<OperatorKey, string> = { plus: '+', minus: '−', times: '×', divide: '÷' };
+
 export interface NumericKeypadProps {
   /** Feed into applyKeypadKey(value, key, mode) from @money-tracker/shared. */
   onKey: (key: KeypadKey) => void;
   /** Amounts in a currency with minor units only; never for codes or PINs (design flaw 1). */
   showDecimal?: boolean;
+  /** `+ − × ÷` keys, on adult amount keypads only (never the child's keypad, codes or PINs). Use `expression` mode. */
+  showOperators?: boolean;
   /** Digits shown on the keys. Values stay Western either way. */
   numberingSystem?: NumberingSystem;
   disabled?: boolean;
 }
 
 /**
- * 3×4 grid of white keys. Follows the layout direction, so "1" sits at the
- * start (right in Arabic), as in the design.
+ * 3×4 grid of white keys, plus a tint operator column when `showOperators`.
+ * Follows the layout direction, so "1" sits at the start (right in Arabic),
+ * as in the design.
  */
-export function NumericKeypad({ onKey, showDecimal = false, numberingSystem, disabled }: NumericKeypadProps) {
+export function NumericKeypad({ onKey, showDecimal = false, showOperators = false, numberingSystem, disabled }: NumericKeypadProps) {
   const { t } = useTranslation();
   const theme = useTheme();
   const language = useLanguage();
@@ -65,6 +72,19 @@ export function NumericKeypad({ onKey, showDecimal = false, numberingSystem, dis
               </Pressable>
             );
           })}
+          {showOperators ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t(`keypad.${OPERATORS[index]!}`)}
+              disabled={disabled}
+              onPress={() => onKey(OPERATORS[index]!)}
+              className="min-h-control flex-1 items-center justify-center rounded-theme bg-tint active:opacity-60"
+            >
+              <Text weight="medium" align="center" className="text-2xl">
+                {OPERATOR_SYMBOL[OPERATORS[index]!]}
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
       ))}
     </View>

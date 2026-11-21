@@ -179,12 +179,24 @@ function MonthOverview() {
           </Card>
         </View>
 
-        {/* Sync tracer bullet (ticket 05) until the Transactions screen (ticket 08). */}
-        <Button label={t('expenses.open')} variant="secondary" onPress={() => router.push('/expenses')} />
+        <View className="flex-row gap-3">
+          <Button
+            label={t('transactions.addIncome')}
+            variant="secondary"
+            icon="app:income-money"
+            className="flex-1"
+            onPress={() => router.push({ pathname: '/transactions/new', params: { kind: 'income', month } })}
+          />
+          <Button label={t('transactions.open')} variant="secondary" icon="app:reorder-history" className="flex-1" onPress={() => router.push({ pathname: '/transactions', params: { month } })} />
+        </View>
         {/* PIN-gated Parent Area (ticket 11); the kid wallet entry point (ticket 12) will lead here. */}
         <Button label={t('parentArea.open')} variant="secondary" icon="app:lock-pin" onPress={() => router.push('/parent')} />
       </ScrollView>
-      <Fab accessibilityLabel={t('expenses.add')} onPress={() => router.push('/expenses/new')} />
+      <Fab
+        icon="app:add"
+        accessibilityLabel={t('transactions.addExpense')}
+        onPress={() => router.push({ pathname: '/transactions/new', params: { month } })}
+      />
     </SafeAreaView>
   );
 }

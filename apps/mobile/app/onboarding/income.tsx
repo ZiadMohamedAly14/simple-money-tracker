@@ -1,42 +1,25 @@
-import { useState } from 'react';
 import { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import {
-  DEFAULT_CATEGORY_KEYS,
-  applyKeypadKey,
-  currencyMinorDigits,
-  currentMonth,
-  formatAmountInput,
-  formatMoneyParts,
-  toMinorUnits,
-  type DefaultCategoryKey,
-  type KeypadKey,
-} from '@money-tracker/shared';
+import { DEFAULT_CATEGORY_KEYS, currentMonth, type DefaultCategoryKey } from '@money-tracker/shared';
 import { completePersonalOnboarding } from '@/data/budget';
 import { FALLBACK_CURRENCY, PERSONAL_STEPS } from '@/data/currency';
 import { localStore } from '@/db/appDatabase';
-import { useLanguage } from '@/i18n/useLanguage';
-import { AmountDisplay, Button, NumericKeypad, Screen, ScreenHeader, Text } from '@/ui';
+import { AmountEntryDisplay, AmountKeypad, Button, Screen, ScreenHeader, Text, useAmountEntry } from '@/ui';
 
 /**
  * Step 3: this Month's Expected Income (PDF page 5). Next finishes onboarding
  * on this device, offline if need be: currency, default Categories and the
  * Month plan are saved, and the server is told on the next sync. The keypad
- * gains `+ − × ÷` in ticket 08.
+ * takes sums (`+ − × ÷`); Next saves the result.
  */
 export default function ExpectedIncomeScreen() {
   const { t } = useTranslation();
-  const language = useLanguage();
   const params = useLocalSearchParams<{ currency?: string }>();
   const currency = params.currency ?? FALLBACK_CURRENCY;
-  const fractionDigits = currencyMinorDigits(currency);
-  const [typed, setTyped] = useState('');
-  const amount = typed ? toMinorUnits(typed, currency) : null;
-
-  function press(key: KeypadKey) {
-    setTyped((current) => applyKeypadKey(current, key, { kind: 'amount', fractionDigits }));
-  }
+  const entry = useAmountEntry(currency);
+  // Expected Income may be 0 (unlike a Transaction), but not negative or an unfinished sum.
+  const amount = entry.typed ? entry.allocation : null;
 
   function next() {
     if (amount === null) return;
@@ -52,7 +35,7 @@ export default function ExpectedIncomeScreen() {
     <Screen
       footer={
         <>
-          <NumericKeypad onKey={press} showDecimal={fractionDigits > 0} />
+          <AmountKeypad entry={entry} />
           <Button label={t('onboarding.next')} disabled={amount === null} onPress={next} />
         </>
       }
@@ -68,11 +51,7 @@ export default function ExpectedIncomeScreen() {
         <Text tone="muted">{t('onboarding.incomeBody')}</Text>
       </View>
       <View className="flex-1 justify-center">
-        <AmountDisplay
-          amount={formatAmountInput(typed || '0', { language })}
-          currency={formatMoneyParts(0, { language, currency }).currency}
-          accessibilityLabel={t('onboarding.incomeTitle')}
-        />
+        <AmountEntryDisplay entry={entry} currency={currency} accessibilityLabel={t('onboarding.incomeTitle')} />
       </View>
     </Screen>
   );
