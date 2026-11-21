@@ -7,13 +7,18 @@ import {
   verifyParentPin,
   type ParentPinData,
   type ParentPinErrorData,
+  type RequestCodeData,
+  type Language,
 } from '@money-tracker/shared';
 import { Account } from '../models/account.model';
 import { ForbiddenError, NotFoundError, TooManyRequestsError } from '../utils/AppError';
 import type { Clock } from '../utils/clock';
+import type { AuthService } from './auth.service';
 
 interface Deps {
   now: Clock;
+  /** The emailed one-time codes, for resetting a forgotten PIN. */
+  codes: Pick<AuthService, 'requestCode' | 'useCode'>;
 }
 
 const secondsUntil = (from: Date, to: Date): number => Math.max(1, Math.ceil((to.getTime() - from.getTime()) / 1000));
@@ -33,7 +38,7 @@ function wrongPin(failures: number): Error {
  * to full sessions (the route checks the scope). Wrong PINs are throttled per
  * Account with `pinRetryAfterSeconds`.
  */
-export function createParentPinService({ now }: Deps) {
+export function createParentPinService({ now, codes }: Deps) {
   const newHash = (pin: string): Promise<string> => hashParentPin(pin, new Uint8Array(randomBytes(PARENT_PIN_SALT_BYTES)));
 
   /**
@@ -65,8 +70,27 @@ export function createParentPinService({ now }: Deps) {
     }
   }
 
+  async function emailOf(accountId: string): Promise<string> {
+    const account = await Account.findById(accountId).select({ email: 1 }).lean();
+    if (!account) throw new NotFoundError('No such Account');
+    return account.email;
+  }
+
   return {
     checkPin,
+
+    /** Emails a one-time code for resetting a forgotten PIN to the Account's address. */
+    async requestReset(accountId: string, language: Language): Promise<RequestCodeData> {
+      return codes.requestCode(await emailOf(accountId), language, 'pinReset');
+    },
+
+    /** Sets a new PIN with an emailed code instead of the current PIN, and clears any wrong-PIN wait. */
+    async reset(accountId: string, code: string, pin: string): Promise<ParentPinData> {
+      await codes.useCode(await emailOf(accountId), code);
+      const pinHash = await newHash(pin);
+      await Account.updateOne({ _id: accountId }, { $set: { parentPinHash: pinHash, pinFailures: 0, pinLockedUntil: null } });
+      return { pinHash };
+    },
 
     async get(accountId: string): Promise<ParentPinData> {
       const account = await Account.findById(accountId).lean();

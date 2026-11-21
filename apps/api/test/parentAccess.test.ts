@@ -279,4 +279,95 @@ describe('Parent access on a kid device (Seam A)', () => {
       expect((await listDevices(parent)).body.data.devices).toHaveLength(1);
     });
   });
+
+  /** Asks for a reset code a minute after the last email, past the resend wait. */
+  const requestResetCode = (who: { accessToken: string }, language = 'en') => {
+    clock.advance(MINUTE);
+    return request(app).post('/account/pin/reset-code').set('Authorization', bearer(who)).send({ language });
+  };
+  const resetPin = (who: { accessToken: string }, body: object) =>
+    request(app).post('/account/pin/reset').set('Authorization', bearer(who)).send(body);
+
+  describe('resetting a forgotten Parent PIN', () => {
+    it('emails a code to the Account, which sets a new PIN in place of the forgotten one', async () => {
+      const parent = await family();
+      const sent = await requestResetCode(parent);
+      expect(sent.status).toBe(200);
+      expect(sent.body.data).toEqual({ expiresInSeconds: 600, resendAfterSeconds: 60 });
+      const email = mailer.lastTo(EMAIL);
+      expect(email.subject).toMatch(/PIN/);
+
+      const res = await resetPin(parent, { code: mailer.lastCodeFor(EMAIL), pin: '9753' });
+      expect(res.status).toBe(200);
+      expect(res.body.data).toEqual({ pinHash: expect.any(String) });
+
+      // The new PIN works and the old one doesn't, on the kid's phone too.
+      const phone = await signIn();
+      const setUpWith = (pin: string) =>
+        request(app).post('/kid-devices').set('Authorization', bearer(phone)).send({ kidProfileId: OMAR, pin });
+      expect((await setUpWith(PIN)).status).toBe(403);
+      const setUp = await setUpWith('9753');
+      expect(setUp.status).toBe(200);
+      expect((await elevate(setUp.body.data, '9753')).status).toBe(200);
+    });
+
+    it('sends the email in the asking device language', async () => {
+      const parent = await family();
+      await requestResetCode(parent, 'ar');
+      expect(mailer.lastTo(EMAIL).html).toContain('dir="rtl"');
+    });
+
+    it('clears a wrong-PIN lock', async () => {
+      const parent = await family();
+      const kid = await kidDevice();
+      for (let attempt = 0; attempt < 5; attempt++) await elevate(kid, '1111');
+      expect((await elevate(kid, PIN)).status).toBe(429);
+
+      await requestResetCode(parent);
+      expect((await resetPin(parent, { code: mailer.lastCodeFor(EMAIL), pin: '9753' })).status).toBe(200);
+      expect((await elevate(kid, '9753')).status).toBe(200);
+    });
+
+    it('refuses a wrong, used or expired code, and limits wrong guesses', async () => {
+      const parent = await family();
+      await requestResetCode(parent);
+      const code = mailer.lastCodeFor(EMAIL);
+      const wrong = code === '000000' ? '111111' : '000000';
+
+      const refused = await resetPin(parent, { code: wrong, pin: '9753' });
+      expect(refused.status).toBe(400);
+      expect(refused.body.data).toEqual({ reason: 'invalid_code', attemptsRemaining: 4 });
+      expect((await resetPin(parent, { code, pin: '9753' })).status).toBe(200);
+      expect((await resetPin(parent, { code, pin: '1357' })).body.data).toEqual({ reason: 'code_expired' });
+
+      await requestResetCode(parent);
+      const late = mailer.lastCodeFor(EMAIL);
+      clock.advance(11 * MINUTE);
+      expect((await resetPin(parent, { code: late, pin: '1357' })).body.data).toEqual({ reason: 'code_expired' });
+
+      await requestResetCode(parent);
+      const fresh = mailer.lastCodeFor(EMAIL);
+      const other = fresh === '000000' ? '111111' : '000000';
+      for (let attempt = 0; attempt < 5; attempt++) await resetPin(parent, { code: other, pin: '1357' });
+      const exhausted = await resetPin(parent, { code: fresh, pin: '1357' });
+      expect(exhausted.status).toBe(429);
+      expect(exhausted.body.data).toEqual({ reason: 'too_many_guesses' });
+    });
+
+    it('is not available to a Kid Session, so a child cannot reset the PIN', async () => {
+      await family();
+      const kid = await kidDevice();
+      const sent = await requestResetCode(kid);
+      expect(sent.status).toBe(403);
+      expect(sent.body.data).toEqual({ reason: 'kid_session' });
+      expect((await resetPin(kid, { code: '123456', pin: '9753' })).status).toBe(403);
+      expect(mailer.sent.filter((email) => /PIN/.test(email.subject))).toHaveLength(0);
+    });
+
+    it('validates the new PIN and the code', async () => {
+      const parent = await family();
+      expect((await resetPin(parent, { code: '123456', pin: '12' })).status).toBe(422);
+      expect((await resetPin(parent, { code: 'abc', pin: '9753' })).status).toBe(422);
+    });
+  });
 });

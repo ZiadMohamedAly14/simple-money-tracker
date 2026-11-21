@@ -99,7 +99,7 @@ export {
   pinRetryAfterSeconds,
   verifyParentPin,
 } from './pin/parentPin';
-export type { ParentPinData, ParentPinErrorData, SetParentPinBody } from './pin/parentPin';
+export type { ParentPinData, ParentPinErrorData, RequestPinResetBody, ResetParentPinBody, SetParentPinBody } from './pin/parentPin';
 export type {
   ElevateBody,
   ElevateErrorData,
