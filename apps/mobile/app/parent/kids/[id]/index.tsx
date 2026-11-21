@@ -1,20 +1,21 @@
-import { useMemo } from 'react';
 import { View } from 'react-native';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { formatMoneyParts, intlLocale } from '@money-tracker/shared';
+import { formatMoneyParts } from '@money-tracker/shared';
 import { useAccountSettings } from '@/data/useAccountSettings';
 import { useLanguage } from '@/i18n/useLanguage';
 import { KidAvatar } from '@/kid/KidAvatar';
 import { jarStyle, useKidWallet } from '@/kid/useKidWallet';
 import { ThemeProvider } from '@/theme/ThemeProvider';
-import { AmountDisplay, Card, IconButton, ListRow, ProgressRow, Screen, Text } from '@/ui';
+import { AmountDisplay, Card, IconButton, ListRow, Notice, ProgressRow, Screen, Text } from '@/ui';
 
 /**
- * A kid's wallet seen from the Parent Area, in the Kid theme (PDF page 1,
- * "Kid wallet"): the total, each Jar's balance (worked out by the shared
- * `jarBalances`), and the parent's actions: Top up, Manage jars, and the
- * Top-ups to edit or delete. Works offline.
+ * A kid's wallet seen from the Parent Area, in the Kid theme (PDF pages 1
+ * and 11): the total, each Jar's balance (worked out by the shared
+ * `jarBalances`), a notice for each Jar that went below zero after a sync,
+ * and the parent's actions: Top up, Move money, Manage jars, Full history.
+ * "Open … screens" shows the kid's own screens on this phone until Kid-Mode
+ * devices exist (ticket 14). Works offline.
  */
 export default function KidWalletScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -29,24 +30,20 @@ function KidWallet({ id }: { id: string }) {
   const { t } = useTranslation();
   const language = useLanguage();
   const { currency, numberingSystem } = useAccountSettings();
-  const { kid, wallet, transactions } = useKidWallet(id);
+  const { kid, wallet } = useKidWallet(id);
   const parts = (minor: number) => formatMoneyParts(minor, { language, currency, numberingSystem });
-  const dateLabel = useMemo(() => {
-    const format = new Intl.DateTimeFormat(intlLocale(language), { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
-    return (date: string) => format.format(new Date(`${date}T00:00:00Z`));
-  }, [language]);
 
   if (kid === undefined) return null;
   if (kid === null) return <Redirect href="/parent" />;
 
   const total = parts(wallet.total);
   const biggest = Math.max(1, ...wallet.jars.map((jar) => jar.balance));
-  const topUps = transactions.filter((tx) => tx.kind === 'topUp');
+  const negative = wallet.jars.filter((jar) => wallet.negativeJarIds.includes(jar.id));
 
   return (
     <Screen scroll>
       <View className="min-h-11 flex-row items-center gap-3 pt-2">
-        <IconButton icon="app:back" accessibilityLabel={t('common.back')} onPress={() => router.back()} />
+        <IconButton icon="app:back" directional accessibilityLabel={t('common.back')} onPress={() => router.back()} />
         <KidAvatar name={kid.name} avatar={kid.avatar} />
         <Text weight="bold" accessibilityRole="header" numberOfLines={1} className="flex-1 text-2xl">
           {kid.name}
@@ -80,34 +77,36 @@ function KidWallet({ id }: { id: string }) {
         })}
       </View>
 
+      {negative.map((jar) => (
+        <Notice key={jar.id} icon="app:gentle-warning" text={t('kid.wallet.belowZero', { jar: jar.name })} />
+      ))}
+
       <ListRow
         icon="app:income-money"
         title={t('kid.wallet.topUp')}
         onPress={() => router.push({ pathname: '/parent/kids/[id]/top-up', params: { id } })}
       />
       <ListRow
+        icon="app:move-money"
+        title={t('kid.wallet.moveMoney')}
+        onPress={() => router.push({ pathname: '/parent/kids/[id]/move', params: { id } })}
+      />
+      <ListRow
         icon="app:jar-save"
         title={t('kid.wallet.manageJars')}
         onPress={() => router.push({ pathname: '/parent/kids/[id]/jars', params: { id } })}
       />
+      <ListRow
+        icon="app:reorder-history"
+        title={t('kid.wallet.fullHistory')}
+        onPress={() => router.push({ pathname: '/parent/kids/[id]/history', params: { id } })}
+      />
       <ListRow icon="app:learn" title={t('learn.open')} onPress={() => router.push('/learn')} />
-
-      <Text weight="bold" accessibilityRole="header" className="pt-2 text-lg">
-        {t('kid.wallet.topUps')}
-      </Text>
-      {topUps.length === 0 ? (
-        <Text tone="muted">{t('kid.wallet.noTopUps')}</Text>
-      ) : (
-        topUps.map((topUp) => (
-          <ListRow
-            key={topUp.id}
-            icon="app:income-money"
-            title={t('kid.wallet.topUpRow', { amount: parts(topUp.amount).amount })}
-            subtitle={topUp.note ? `${dateLabel(topUp.date)} · ${topUp.note}` : dateLabel(topUp.date)}
-            onPress={() => router.push({ pathname: '/parent/kids/[id]/top-up', params: { id, topUpId: topUp.id } })}
-          />
-        ))
-      )}
+      <ListRow
+        icon="app:kids"
+        title={t('kid.wallet.kidView', { name: kid.name })}
+        onPress={() => router.push({ pathname: '/kid/[id]', params: { id } })}
+      />
     </Screen>
   );
 }

@@ -10,7 +10,7 @@ import { useLanguage } from '@/i18n/useLanguage';
 import { KidAvatar } from '@/kid/KidAvatar';
 import { jarStyle } from '@/kid/useKidWallet';
 import { parentArea } from '@/pin/appPinGate';
-import { AppIcon, Button, Card, Glyph, Screen, ScreenHeader, Text } from '@/ui';
+import { AppIcon, Button, Card, Glyph, Notice, Screen, ScreenHeader, Text } from '@/ui';
 import { useTheme } from '@/theme/ThemeProvider';
 
 /**
@@ -81,6 +81,11 @@ export default function ParentAreaScreen() {
                 </View>
               ))}
             </View>
+            {wallet.jars
+              .filter((jar) => wallet.negativeJarIds.includes(jar.id))
+              .map((jar) => (
+                <Notice key={jar.id} icon="app:gentle-warning" text={t('kid.wallet.belowZero', { jar: jar.name })} />
+              ))}
           </Card>
         );
       })}
