@@ -40,6 +40,8 @@ export { DEFAULT_CATEGORY_KEYS } from './budget/defaultCategories';
 export type { DefaultCategoryKey } from './budget/defaultCategories';
 export { monthFigures } from './budget/monthFigures';
 export type { MonthFigures, MonthFiguresInput } from './budget/monthFigures';
+export { categoryBreakdown } from './budget/categoryBreakdown';
+export type { CategoryBreakdownInput, CategoryFigures } from './budget/categoryBreakdown';
 export { DEFAULT_JAR_KEYS } from './kid/defaultJars';
 export type { DefaultJarKey } from './kid/defaultJars';
 export { jarBalances } from './kid/jarBalances';
@@ -57,7 +59,7 @@ export {
   uuidv7,
 } from './sync/ids';
 export type { RandomBytes } from './sync/ids';
-export { MAX_PULLED_CHANGES, MAX_PUSHED_CHANGES, OTHER_CATEGORY, SYNC_ENTITIES, parsePushedChange } from './sync/records';
+export { CATEGORY_NAME_MAX_LENGTH, MAX_PULLED_CHANGES, MAX_PUSHED_CHANGES, OTHER_CATEGORY, SYNC_ENTITIES, parsePushedChange } from './sync/records';
 export type {
   AccountSettingsFields,
   CategoryBudgetFields,
