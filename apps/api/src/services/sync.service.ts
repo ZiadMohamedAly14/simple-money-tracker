@@ -16,7 +16,7 @@ import {
   type SyncResponseData,
 } from '@money-tracker/shared';
 import { committedServerVersion, writeWithServerVersion } from '../models/counter.model';
-import { Category, SYNCED_MODELS } from '../models/synced.model';
+import { Category, Jar, SYNCED_MODELS } from '../models/synced.model';
 import type { AuthContext } from './token.service';
 import { ForbiddenError, ValidationError } from '../utils/AppError';
 import type { Clock } from '../utils/clock';
@@ -39,6 +39,8 @@ interface EntityRules {
   references(change: PushedChange): Reference[];
   /** For records with a deterministic ID (spec, Data model): the only ID the record may have. */
   requiredId?(accountId: string, change: PushedChange): string;
+  /** Jars the change uses, which must all belong to the given Kid Profile's wallet (spec, Data model). */
+  walletJars?(change: PushedChange): { kidProfileId: string; jarIds: string[]; field: string } | null;
 }
 
 /**
@@ -69,6 +71,25 @@ const RULES: { [E in SyncEntity]: EntityRules } = {
       change.entity === 'transaction' && change.record.categoryId
         ? [{ entity: 'category', id: change.record.categoryId, field: 'categoryId' }]
         : [],
+  },
+  kidProfile: { kidCanRead: false, kidCanWrite: false, references: () => [] },
+  jar: {
+    kidCanRead: false,
+    kidCanWrite: false,
+    references: (change) =>
+      change.entity === 'jar' ? [{ entity: 'kidProfile', id: change.record.kidProfileId, field: 'kidProfileId' }] : [],
+  },
+  kidTransaction: {
+    kidCanRead: false,
+    kidCanWrite: false,
+    references: (change) =>
+      change.entity === 'kidTransaction'
+        ? [{ entity: 'kidProfile', id: change.record.kidProfileId, field: 'kidProfileId' }]
+        : [],
+    walletJars: (change) =>
+      change.entity === 'kidTransaction'
+        ? { kidProfileId: change.record.kidProfileId, jarIds: change.record.splits.map((s) => s.jarId), field: 'splits' }
+        : null,
   },
 };
 
@@ -151,6 +172,27 @@ export function createSyncService({ now }: { now: Clock }) {
   }
 
   /**
+   * Jars a Kid Transaction uses must be this Account's Jars of the same Kid
+   * Profile, stored already or pushed in the same sync (the pushed copy wins).
+   */
+  async function checkWallets(accountId: string, changes: PushedChange[]): Promise<void> {
+    const pushedJars = new Map<string, string>();
+    for (const change of changes) if (change.entity === 'jar') pushedJars.set(change.record.id, change.record.kidProfileId);
+    const problems: SyncProblem[] = [];
+    for (const [index, change] of changes.entries()) {
+      const wallet = RULES[change.entity].walletJars?.(change);
+      if (!wallet) continue;
+      const unknown = wallet.jarIds.filter((id) => !pushedJars.has(id));
+      const stored = await Jar.find({ _id: { $in: unknown }, accountId }).lean<{ _id: string; kidProfileId: string }[]>();
+      const owners = new Map([...stored.map((j) => [String(j._id), j.kidProfileId] as const), ...pushedJars]);
+      if (wallet.jarIds.some((id) => owners.get(id) !== wallet.kidProfileId)) {
+        problems.push({ field: fieldOf(index, wallet.field), message: "must name Jars of this Kid Profile's wallet" });
+      }
+    }
+    if (problems.length > 0) throw new ValidationError(problems);
+  }
+
+  /**
    * Stores one change by last edit wins (ADR-0001). Returns null when the
    * change was stored, or the stored copy when the push lost, so the device
    * can be handed the winner. A deletion marker always wins: once stored it is
@@ -227,6 +269,7 @@ export function createSyncService({ now }: { now: Clock }) {
       checkDerivedIds(auth.accountId, changes);
       await checkOwnership(auth.accountId, ordered);
       await checkReferences(auth.accountId, changes);
+      await checkWallets(auth.accountId, changes);
       const lost: PulledChange[] = [];
       for (const change of ordered) {
         const winner = await apply(auth.accountId, change);
