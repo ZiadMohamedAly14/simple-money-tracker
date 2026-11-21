@@ -178,10 +178,17 @@ export function createParentPinGate({ request, accountId, store, biometrics, now
 
 export type ParentPinGate = ReturnType<typeof createParentPinGate>;
 
-/** Wires the gate to the auth session: forget the PIN copy on sign-out. Returns an unsubscribe function. */
-export function forgetPinOnSignOut(auth: Pick<AuthSession, 'subscribe' | 'status'>, gate: ParentPinGate): () => void {
+/**
+ * Wires the gate to the auth session: forget the PIN copy on sign-out, and
+ * when the device becomes a Kid-Mode device, which must never hold the hash
+ * (ADR-0002). Returns an unsubscribe function.
+ */
+export function forgetPinOnSignOutOrKidMode(
+  auth: Pick<AuthSession, 'subscribe' | 'status' | 'kidProfileId'>,
+  gate: ParentPinGate,
+): () => void {
   return auth.subscribe(() => {
-    if (auth.status() === 'signedOut') void gate.forget();
+    if (auth.status() === 'signedOut' || auth.kidProfileId()) void gate.forget();
   });
 }
 

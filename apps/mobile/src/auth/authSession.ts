@@ -1,5 +1,13 @@
 import type { AxiosInstance, AxiosRequestConfig } from 'axios';
-import { isApiEnvelope, type RefreshBody, type TokenPair, type VerifyCodeData } from '@money-tracker/shared';
+import {
+  isApiEnvelope,
+  type KidSessionData,
+  type KidSessionErrorData,
+  type RefreshBody,
+  type StartKidSessionBody,
+  type TokenPair,
+  type VerifyCodeData,
+} from '@money-tracker/shared';
 import type { SessionStore, StoredSession } from './tokenStore';
 
 /**
@@ -19,6 +27,13 @@ export type AuthedResult =
 
 type RefreshOutcome = 'refreshed' | 'unreachable' | 'session_ended';
 
+/** How swapping this device's full session for a Kid Session ended (`becomeKidDevice`). */
+export type KidSessionResult =
+  | { status: 'ok' }
+  | { status: 'wrong_pin'; attemptsRemaining: number }
+  | { status: 'pin_locked'; retryAfterSeconds: number }
+  | { status: 'no_pin' | 'kid_not_found' | 'unreachable' | 'session_ended' | 'failed' };
+
 const reasonOf = (body: unknown): unknown =>
   isApiEnvelope(body) && typeof body.data === 'object' && body.data !== null
     ? (body.data as { reason?: unknown }).reason
@@ -36,7 +51,8 @@ const reasonOf = (body: unknown): unknown =>
  */
 export interface LocalAccountData {
   /** `onboardingCompleted`: the server says the Account has finished onboarding. */
-  claimAccount(accountId: string, options?: { onboardingCompleted?: boolean }): void;
+  /** `kidProfileId`: the device is in Kid Mode for this Kid Profile and holds only its records. */
+  claimAccount(accountId: string, options?: { onboardingCompleted?: boolean; kidProfileId?: string | null }): void;
   wipe(): void;
 }
 
@@ -52,15 +68,17 @@ export function createAuthSession({ client, store, localData }: AuthSessionDeps)
   let refreshing: Promise<RefreshOutcome> | null = null;
   const listeners = new Set<() => void>();
 
+  const notify = (): void => listeners.forEach((listener) => listener());
+
   function setStatus(next: AuthStatus): void {
     if (next === status) return;
     status = next;
-    listeners.forEach((listener) => listener());
+    notify();
   }
 
   async function sessionEnded(): Promise<void> {
     if (!current) return;
-    current = { account: current.account, tokens: null };
+    current = { ...current, tokens: null };
     await store.save(current);
     setStatus('needsSignIn');
   }
@@ -79,7 +97,7 @@ export function createAuthSession({ client, store, localData }: AuthSessionDeps)
       return 'session_ended';
     }
     if (!isApiEnvelope(body) || !body.success || !current) return 'unreachable'; // a server hiccup: try again later
-    current = { account: current.account, tokens: body.data as TokenPair };
+    current = { ...current, tokens: body.data as TokenPair };
     await store.save(current);
     return 'refreshed';
   }
@@ -113,7 +131,7 @@ export function createAuthSession({ client, store, localData }: AuthSessionDeps)
     /** Reads the stored session. Call once at app start, before rendering signed-in screens. */
     async start(): Promise<void> {
       current = await store.load();
-      if (current) localData.claimAccount(current.account.id);
+      if (current) localData.claimAccount(current.account.id, { kidProfileId: current.kidProfileId ?? null });
       else localData.wipe();
       setStatus(current === null ? 'signedOut' : current.tokens ? 'signedIn' : 'needsSignIn');
     },
@@ -123,7 +141,10 @@ export function createAuthSession({ client, store, localData }: AuthSessionDeps)
     /** The signed-in (or waiting-for-a-code) Account, or null when signed out. */
     account: (): StoredSession['account'] | null => current?.account ?? null,
 
-    /** Calls `listener` whenever `status()` changes. Returns an unsubscribe function. */
+    /** The Kid Profile a Kid-Mode device is for, or null on a Personal-Mode device. */
+    kidProfileId: (): string | null => current?.kidProfileId ?? null,
+
+    /** Calls `listener` whenever `status()` or `kidProfileId()` changes. Returns an unsubscribe function. */
     subscribe(listener: () => void): () => void {
       listeners.add(listener);
       return () => listeners.delete(listener);
@@ -131,8 +152,8 @@ export function createAuthSession({ client, store, localData }: AuthSessionDeps)
 
     /** Stores the tokens from a verified email code. */
     async signedIn({ accessToken, refreshToken, account, onboardingCompleted }: VerifyCodeData): Promise<void> {
-      localData.claimAccount(account.id, { onboardingCompleted });
-      current = { account, tokens: { accessToken, refreshToken } };
+      localData.claimAccount(account.id, { onboardingCompleted, kidProfileId: null });
+      current = { account, tokens: { accessToken, refreshToken }, kidProfileId: null };
       await store.save(current);
       setStatus('signedIn');
     },
@@ -156,6 +177,40 @@ export function createAuthSession({ client, store, localData }: AuthSessionDeps)
       if (outcome !== 'refreshed') return { status: outcome };
       const fresh = current?.tokens;
       return fresh ? send(config, fresh.accessToken) : { status: 'session_ended' };
+    },
+
+    /**
+     * Turns this device into a Kid-Mode device (ADR-0002): the server checks
+     * the Parent PIN and swaps the full session for a Kid Session. The full
+     * tokens are then replaced by the Kid Session's, and the local records the
+     * full session downloaded are deleted, so the device holds only what the
+     * Kid Session pulls. Anything else leaves the device as it was.
+     */
+    async becomeKidDevice(body: StartKidSessionBody): Promise<KidSessionResult> {
+      if (!current?.tokens || current.kidProfileId) return { status: 'session_ended' };
+      const result = await this.request({ method: 'POST', url: '/kid-devices', data: body });
+      if (result.status !== 'ok') return { status: result.status };
+      if (!isApiEnvelope(result.body)) return { status: 'failed' };
+      if (!result.body.success) {
+        const data = (result.body.data ?? {}) as Partial<KidSessionErrorData>;
+        switch (data.reason) {
+          case 'wrong_pin':
+            return { status: 'wrong_pin', attemptsRemaining: data.attemptsRemaining ?? 0 };
+          case 'pin_locked':
+            return { status: 'pin_locked', retryAfterSeconds: data.retryAfterSeconds ?? 0 };
+          case 'no_pin':
+          case 'kid_not_found':
+            return { status: data.reason };
+          default:
+            return { status: 'failed' };
+        }
+      }
+      const { accessToken, refreshToken, kidProfileId } = result.body.data as KidSessionData;
+      current = { account: current.account, tokens: { accessToken, refreshToken }, kidProfileId };
+      await store.save(current);
+      localData.claimAccount(current.account.id, { kidProfileId });
+      notify();
+      return { status: 'ok' };
     },
 
     /**

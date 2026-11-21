@@ -75,20 +75,21 @@ import {
 } from '@/data/categories';
 import { createLocalStore } from '@/db/localStore';
 import { migrate } from '@/db/migrations';
-import { schema } from '@/db/schema';
+import { SYNCED_TABLES, schema } from '@/db/schema';
+import { setUpKidDevice, type KidDeviceChoice } from '@/kid/kidDeviceSetup';
 import type { LocalDb } from '@/db/types';
 import { isSyncOverdue } from '@/sync/pendingSync';
 import { createSyncEngine, type SyncOutcome } from '@/sync/syncEngine';
 import { createSyncTriggers } from '@/sync/syncTriggers';
 import {
   createParentPinGate,
-  forgetPinOnSignOut,
+  forgetPinOnSignOutOrKidMode,
   type Biometrics,
   type ParentPinGate,
   type PinGateState,
   type PinGateStore,
 } from '@/pin/parentPinGate';
-import { defaultJarId } from '@money-tracker/shared';
+import { SYNC_ENTITIES, defaultJarId, type SyncEntity } from '@money-tracker/shared';
 import type { AxiosRequestConfig } from 'axios';
 import type { TestServer } from './testServer';
 
@@ -155,7 +156,8 @@ export async function createTestDevice(
     return session;
   }
 
-  let auth = await startAuth(memorySessionStore());
+  let sessionStore = memorySessionStore();
+  let auth = await startAuth(sessionStore);
   const request = (config: AxiosRequestConfig): Promise<AuthedResult> =>
     online ? auth.request(config) : Promise.resolve({ status: 'unreachable' });
   const engine = createSyncEngine({ store, request, pullLimit });
@@ -178,7 +180,7 @@ export async function createTestDevice(
       biometrics: fakeBiometrics,
       now: () => clock,
     });
-    forgetPinOnSignOut(auth, gate);
+    forgetPinOnSignOutOrKidMode(auth, gate);
     return gate;
   };
   let pinGate = startPinGate();
@@ -202,8 +204,32 @@ export async function createTestDevice(
 
     /** The app restarting with `account` in SecureStore (e.g. changed while the local DB was kept). */
     async restartAs(account: StoredSession['account']): Promise<void> {
-      auth = await startAuth(memorySessionStore({ account, tokens: null }));
+      sessionStore = memorySessionStore({ account, tokens: null });
+      auth = await startAuth(sessionStore);
     },
+
+    /** The app restarting: the same SecureStore and local database. */
+    async restartApp(): Promise<void> {
+      auth = await startAuth(sessionStore);
+      pinGate = startPinGate();
+    },
+
+    /** An authenticated API call, the way any part of the app makes one. */
+    request,
+
+    /** The kid's phone setup step (after sign-in and picking a Kid Profile). */
+    setUpKidDevice: (choice: KidDeviceChoice) => setUpKidDevice({ auth, sync: engine.sync }, choice),
+    /** The Kid Profile this device is in Kid Mode for (from the stored session), or null. */
+    kidProfileId: () => auth.kidProfileId(),
+    /** Every record in the local database, live or deleted, with its Kid Profile where it has one. */
+    heldRecords: (): { entity: SyncEntity; id: string; kidProfileId?: string }[] =>
+      SYNC_ENTITIES.flatMap((entity) =>
+        (db.select().from(SYNCED_TABLES[entity]).all() as { id: string; kidProfileId?: string }[]).map((row) => ({
+          entity,
+          id: row.id,
+          ...(entity === 'kidProfile' ? { kidProfileId: row.id } : row.kidProfileId ? { kidProfileId: row.kidProfileId } : {}),
+        })),
+      ),
 
     goOffline: () => {
       online = false;
