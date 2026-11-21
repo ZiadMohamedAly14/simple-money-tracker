@@ -19,7 +19,7 @@ export default function ExpectedIncomeScreen() {
   const currency = params.currency ?? FALLBACK_CURRENCY;
   const entry = useAmountEntry(currency);
   // Expected Income may be 0 (unlike a Transaction), but not negative or an unfinished sum.
-  const amount = entry.typed ? entry.allocation : null;
+  const amount = entry.typed ? entry.nonNegative : null;
 
   function next() {
     if (amount === null) return;

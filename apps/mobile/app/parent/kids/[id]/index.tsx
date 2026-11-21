@@ -15,7 +15,7 @@ import { AmountDisplay, Card, IconButton, ListRow, Notice, ProgressRow, Screen, 
  * A kid's wallet seen from the Parent Area, in the Kid theme (PDF pages 1
  * and 11): the total, each Jar's balance (worked out by the shared
  * `jarBalances`), a notice for each Jar that went below zero after a sync,
- * and the parent's actions: Top up, Move money, Manage jars, Full history,
+ * and the parent's actions: Top up, Jar Transfer, Manage jars, Full history,
  * and Archive. An archived kid shows only the wallet, its history and Restore.
  * "Open … screens" shows the kid's own screens on this phone until Kid-Mode
  * devices exist (ticket 14). Works offline.
@@ -133,8 +133,8 @@ function LiveKidActions({ id, name, onArchive }: { id: string; name: string; onA
       />
       <ListRow
         icon="app:move-money"
-        title={t('kid.wallet.moveMoney')}
-        onPress={() => router.push({ pathname: '/parent/kids/[id]/move', params: { id } })}
+        title={t('kid.wallet.transfer')}
+        onPress={() => router.push({ pathname: '/parent/kids/[id]/transfer', params: { id } })}
       />
       <ListRow
         icon="app:jar-save"

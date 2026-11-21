@@ -7,7 +7,7 @@ import {
   applyKeypadKey,
   currencyMinorDigits,
   currentMonth,
-  evaluateAllocation,
+  evaluateNonNegativeAmount,
   monthFigures,
   type KeypadKey,
 } from '@money-tracker/shared';
@@ -45,7 +45,7 @@ export default function SplitScreen() {
 
   // Each Category's budget: the result of its sum. Null while a sum is unfinished or negative.
   const results = useMemo(
-    () => Object.fromEntries(Object.entries(typed).map(([id, text]) => [id, evaluateAllocation(text, currency)])),
+    () => Object.fromEntries(Object.entries(typed).map(([id, text]) => [id, evaluateNonNegativeAmount(text, currency)])),
     [typed, currency],
   );
   const amounts = Object.fromEntries(

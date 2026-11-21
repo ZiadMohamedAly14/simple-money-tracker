@@ -101,7 +101,7 @@ export function evaluateAmountExpression(expression: string, currency: CurrencyC
  * Income, a Top-up's Jar share): nothing typed is 0. Null while the result
  * is negative, the sum is unfinished, or it divides by zero.
  */
-export function evaluateAllocation(expression: string, currency: CurrencyCode): number | null {
+export function evaluateNonNegativeAmount(expression: string, currency: CurrencyCode): number | null {
   if (expression === '') return 0;
   const result = evaluateAmountExpression(expression, currency);
   return result.status === 'ok' && result.amount >= 0 ? result.amount : null;

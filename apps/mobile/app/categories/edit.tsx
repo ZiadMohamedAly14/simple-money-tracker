@@ -50,7 +50,7 @@ export default function EditCategoryScreen() {
   const isOther = existing?.isOther ?? false;
   const validName = isOther ? existing!.name : categoryNameOf(name);
   // Nothing typed is 0; a negative result or an unfinished sum can't be saved.
-  const budget = budgetEntry.allocation;
+  const budget = budgetEntry.nonNegative;
   const canSave = validName !== null && budget !== null;
   // Archived or not, from the live list: it's the last one if no other active Category but Other is left.
   const isLast = useMemo(
