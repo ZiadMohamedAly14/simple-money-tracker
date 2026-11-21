@@ -3,7 +3,7 @@ import { Pressable, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/theme/ThemeProvider';
-import { IconCircle, type GlyphName, type IconCircleTone, type IconName } from './icons';
+import { Glyph, IconCircle, type GlyphName, type IconCircleTone, type IconName } from './icons';
 import { Text, type TextTone } from './Text';
 
 export interface CardProps {
@@ -79,23 +79,27 @@ export interface ChipProps {
   label: string;
   selected?: boolean;
   onPress?: () => void;
+  /** Leading icon, e.g. the Category's (`categoryIconFor`). */
+  icon?: GlyphName;
 }
 
 /**
  * Pill: selected = primary, unselected = chip token (tint, white in Kid).
  * Shows the full name and truncates (design flaw 12).
  */
-export function Chip({ label, selected, onPress }: ChipProps) {
+export function Chip({ label, selected, onPress, icon }: ChipProps) {
+  const theme = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected: !!selected }}
       onPress={onPress}
-      className={`min-h-10 max-w-48 items-center justify-center rounded-full px-4 active:opacity-80 ${
+      className={`min-h-10 max-w-48 flex-row items-center justify-center gap-1.5 rounded-full px-4 active:opacity-80 ${
         selected ? 'bg-primary' : 'bg-chip'
       }`}
     >
-      <Text weight="semibold" tone={selected ? 'on-primary' : 'text'} numberOfLines={1} className="text-sm">
+      {icon ? <Glyph name={icon} size={16} color={selected ? theme.colors['on-primary'] : theme.colors.text} /> : null}
+      <Text weight="semibold" tone={selected ? 'on-primary' : 'text'} numberOfLines={1} className="shrink text-sm">
         {label}
       </Text>
     </Pressable>

@@ -3,9 +3,10 @@ import { ScrollView, View } from 'react-native';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useTranslation } from 'react-i18next';
 import { toLocalDate, type TransactionKind } from '@money-tracker/shared';
+import { categoryIconFor } from '@/data/categoryIcons';
 import { categoriesQuery, categoryChoicesQuery } from '@/data/transactions';
 import { useAccountSettings } from '@/data/useAccountSettings';
-import { localDb } from '@/db/appDatabase';
+import { localDb, localStore } from '@/db/appDatabase';
 import {
   AmountEntryDisplay,
   AmountKeypad,
@@ -62,6 +63,7 @@ export function TransactionForm({ kind, title, initial, onSave, onClose, onDelet
     return current ? [current, ...choices] : choices;
   }, [choices, allCategories, categoryId]);
 
+  const iconFor = useMemo(() => categoryIconFor(localStore.accountId()), []);
   const isExpense = kind === 'expense';
   const canSave = entry.amount !== null && (!isExpense || categoryId !== null);
 
@@ -76,7 +78,7 @@ export function TransactionForm({ kind, title, initial, onSave, onClose, onDelet
         <>
           <AmountKeypad entry={entry} numberingSystem={numberingSystem} />
           <Button label={t('transactions.save')} disabled={!canSave} onPress={save} />
-          {onDelete ? <Button label={t('transactions.delete')} variant="danger" icon="trash-outline" onPress={onDelete} /> : null}
+          {onDelete ? <Button label={t('transactions.delete')} variant="danger" icon="app:delete" onPress={onDelete} /> : null}
         </>
       }
     >
@@ -100,6 +102,7 @@ export function TransactionForm({ kind, title, initial, onSave, onClose, onDelet
               <Chip
                 key={category.id}
                 label={category.isOther ? t('categories.other') : category.name}
+                icon={iconFor(category)}
                 selected={category.id === categoryId}
                 onPress={() => setCategoryId(category.id)}
               />

@@ -16,7 +16,7 @@ import { useLanguage } from '@/i18n/useLanguage';
 import { syncTriggers } from '@/sync/appSync';
 import { useSyncOverdue } from '@/sync/useSyncOverdue';
 import { useTheme } from '@/theme/ThemeProvider';
-import { Button, Fab, ListRow, PendingSyncLabel, ScreenHeader, Text, type IconName } from '@/ui';
+import { Button, Fab, ListRow, PendingSyncLabel, ScreenHeader, Text, type GlyphName } from '@/ui';
 
 /**
  * This Month's Transactions, newest first (PDF pages 7–8), read live from the
@@ -53,8 +53,8 @@ function TransactionList() {
     const byId = new Map(
       categories.map((c) => [c.id, { name: c.isOther ? t('categories.other') : c.name, icon: iconFor(c) }]),
     );
-    return (id: string | null): { name: string; icon: IconName } =>
-      (id ? byId.get(id) : undefined) ?? { name: '', icon: 'pricetag-outline' };
+    return (id: string | null): { name: string; icon: GlyphName } =>
+      (id ? byId.get(id) : undefined) ?? { name: '', icon: 'app:other' };
   }, [categories, t]);
 
   return (
@@ -68,7 +68,7 @@ function TransactionList() {
         <Button
           label={t('transactions.addIncome')}
           variant="secondary"
-          icon="cash-outline"
+          icon="app:income-money"
           onPress={() => router.push({ pathname: '/transactions/new', params: { kind: 'income' } })}
         />
       </View>
@@ -95,7 +95,7 @@ function TransactionList() {
             return (
               <ListRow
                 key={transaction.id}
-                icon={isIncome ? 'cash-outline' : category!.icon}
+                icon={isIncome ? 'app:income-money' : category!.icon}
                 title={title}
                 subtitle={subtitle}
                 onPress={() => router.push({ pathname: '/transactions/[id]', params: { id: transaction.id } })}
@@ -114,7 +114,7 @@ function TransactionList() {
           })
         )}
       </ScrollView>
-      <Fab accessibilityLabel={t('transactions.addExpense')} onPress={() => router.push('/transactions/new')} />
+      <Fab icon="app:add" accessibilityLabel={t('transactions.addExpense')} onPress={() => router.push('/transactions/new')} />
     </SafeAreaView>
   );
 }
