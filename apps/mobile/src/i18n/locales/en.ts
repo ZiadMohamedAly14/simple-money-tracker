@@ -6,6 +6,8 @@ export const en = {
     cancel: 'Cancel',
     back: 'Back',
     close: 'Close',
+    // Joins the pieces a screen reader reads for one row (title, subtitle, amount).
+    listSeparator: ', ',
   },
   keypad: {
     backspace: 'Delete',
@@ -118,6 +120,7 @@ export const en = {
     noExpectedIncome: 'No expected income set for this month',
     figure: '{{label}}, {{amount}}',
     addExpenseTo: 'Add expense to {{name}}',
+    spentOfBudget: '{{spent}} spent of {{budget}}',
     aboutFigure: 'What is {{label}}?',
     incomeInfo: 'All the money you recorded as received this month, like a salary or freelance work. The bar above compares it with your Expected Income.',
     spendingInfo: "All the Expenses you recorded this month, across every category. A category budget doesn't count as spending until you record an Expense in it.",
@@ -379,7 +382,7 @@ export const en = {
       editTitle: 'Edit top-up',
       amountLabel: 'Top-up amount',
       splitLabel: 'Split across jars',
-      shareLabel: '{{jar}}: {{amount}}, {{percent}}%',
+      shareLabel: '{{jar}}: {{amount}}, {{percent}}',
       sameAsLast: 'Same split as last time',
       allTo: 'All to {{jar}}',
       editHint: 'Tap a jar to change its share.',

@@ -131,7 +131,13 @@ function SpendForm({ kidProfileId, editing }: { kidProfileId: string; editing?: 
         ))}
       </View>
       {notice ? <Notice icon="app:gentle-warning" text={notice} /> : null}
-      <TextField value={note} onChangeText={setNote} placeholder={t('kid.spend.notePlaceholder')} maxLength={500} />
+      <TextField
+        value={note}
+        onChangeText={setNote}
+        placeholder={t('kid.spend.notePlaceholder')}
+        accessibilityLabel={t('kid.spend.notePlaceholder')}
+        maxLength={500}
+      />
     </Screen>
   );
 }

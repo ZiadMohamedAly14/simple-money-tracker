@@ -15,7 +15,7 @@ import { useLanguage } from '@/i18n/useLanguage';
 import { syncTriggers } from '@/sync/appSync';
 import { useSyncOverdue } from '@/sync/useSyncOverdue';
 import { useTheme } from '@/theme/ThemeProvider';
-import { Button, Card, Fab, Glyph, IconButton, IconCircle, Notice, PendingSyncLabel, ProgressBar, ProgressRow, Text } from '@/ui';
+import { Button, Card, Fab, Glyph, IconButton, IconCircle, joinSpoken, Notice, PendingSyncLabel, ProgressBar, ProgressRow, Text } from '@/ui';
 import type { GlyphName } from '@/ui';
 import { showDialog } from '@/ui/dialogStore';
 
@@ -144,12 +144,18 @@ function MonthOverview() {
             {rows.map((row) => {
               const over = row.remaining < 0;
               const name = row.category.isOther ? t('categories.other') : row.category.name;
+              const status = t(over ? 'categories.over' : 'categories.left', { amount: number(Math.abs(row.remaining)) });
               // Tapping a Category opens Add expense with that Category picked (the + button is the other way in).
+              // The row reads its figures; what a tap does is the hint.
               return (
                 <Pressable
                   key={row.categoryId}
                   accessibilityRole="button"
-                  accessibilityLabel={t('home.addExpenseTo', { name })}
+                  accessibilityLabel={joinSpoken(
+                    [name, status, t('home.spentOfBudget', { spent: number(row.spent), budget: number(row.budget) })],
+                    t('common.listSeparator'),
+                  )}
+                  accessibilityHint={t('home.addExpenseTo', { name })}
                   onPress={() => router.push({ pathname: '/transactions/new', params: { month, categoryId: row.categoryId } })}
                   className="active:opacity-60"
                 >
@@ -158,7 +164,7 @@ function MonthOverview() {
                     title={name}
                     progress={row.budget > 0 ? row.spent / row.budget : row.spent > 0 ? 1 : 0}
                     barTone={over ? 'negative' : 'primary'}
-                    end={t(over ? 'categories.over' : 'categories.left', { amount: number(Math.abs(row.remaining)) })}
+                    end={status}
                     endTone={over ? 'negative' : 'positive'}
                     caption={ltrIsolate(`${number(row.spent)} / ${number(row.budget)}`)}
                   />
@@ -318,7 +324,8 @@ function InfoButton({ label, info, color }: InfoButtonProps) {
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={t('home.aboutFigure', { label })}
-      hitSlop={12}
+      // A 16 icon; the slop makes the touch target 44.
+      hitSlop={14}
       onPress={() => showDialog(label, info, [{ text: t('common.ok') }])}
       className="active:opacity-60"
     >

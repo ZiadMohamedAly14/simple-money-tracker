@@ -27,7 +27,7 @@ export function CategoryIconPicker({ value, onChange }: CategoryIconPickerProps)
             <Pressable
               key={icon}
               accessibilityRole="radio"
-              accessibilityState={{ selected }}
+              accessibilityState={{ selected, checked: selected }}
               accessibilityLabel={t(`categories.icons.${icon}`)}
               onPress={() => onChange(icon)}
               className={`h-12 w-12 items-center justify-center rounded-full active:opacity-80 ${selected ? 'bg-primary' : 'bg-tint'}`}

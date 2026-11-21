@@ -1,6 +1,6 @@
 import { Fragment } from 'react';
 import { useTranslation } from 'react-i18next';
-import { formatMoneyParts } from '@money-tracker/shared';
+import { formatMoneyParts, ltrIsolate } from '@money-tracker/shared';
 import { useAccountSettings } from '@/data/useAccountSettings';
 import type { WalletJar } from '@/data/kidWallet';
 import type { JarRow, KidTransactionRow } from '@/db/schema';
@@ -48,7 +48,8 @@ export function KidHistoryList({ transactions, jarRows, walletJars, viewer, onPr
           icon: 'app:income-money',
           title: viewer === 'kid' ? t('kid.history.topUpKid', { amount: amount(tx.amount) }) : t('kid.wallet.topUpRow', { amount: amount(tx.amount) }),
           subtitle: tx.note ?? t('kid.history.topUpSub'),
-          end: `+${amount(tx.amount)}`,
+          // Isolated so the plus stays before the number in Arabic, as on the Transactions list.
+          end: ltrIsolate(`+${amount(tx.amount)}`),
           endTone: 'primary',
         };
       case 'jarTransfer':

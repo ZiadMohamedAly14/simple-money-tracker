@@ -1,4 +1,5 @@
 import { View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { IconCircle, type GlyphName, type IconCircleTone } from './icons';
 import { Text, type TextTone } from './Text';
 
@@ -17,17 +18,19 @@ export interface AmountDisplayProps {
   align?: 'start' | 'center';
   /** on-primary on the kid's green wallet card. */
   tone?: TextTone;
-  /** Screen-reader text, e.g. the full formatMoney string. */
+  /** What the amount is ("Amount", "Top-up amount"); read before it as "label, amount". */
   accessibilityLabel?: string;
 }
 
 /** Big amount with the currency smaller beside it ("1,250 EGP"); currency sits at the end side. */
 export function AmountDisplay({ amount, currency, size = 'lg', align = 'center', tone = 'text', accessibilityLabel }: AmountDisplayProps) {
+  const { t } = useTranslation();
   const sizes = AMOUNT_SIZE[size];
+  const spokenAmount = `${amount} ${currency}`;
   return (
     <View
       accessible
-      accessibilityLabel={accessibilityLabel ?? `${amount} ${currency}`}
+      accessibilityLabel={accessibilityLabel ? t('home.figure', { label: accessibilityLabel, amount: spokenAmount }) : spokenAmount}
       className={`flex-row items-baseline gap-2 ${align === 'center' ? 'justify-center' : 'justify-start'}`}
     >
       <Text weight="bold" tone={tone} numberOfLines={1} adjustsFontSizeToFit className={sizes.amount}>

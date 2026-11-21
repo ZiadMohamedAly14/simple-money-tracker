@@ -8,13 +8,14 @@ import { allJarsQuery, allKidTransactionsQuery, archivedKidProfilesQuery, kidPro
 import { authSession, useKidModeProfileId } from '@/auth/appSession';
 import { useAccountSettings } from '@/data/useAccountSettings';
 import { localDb, localStore } from '@/db/appDatabase';
+import { useFormatMoney } from '@/i18n/useFormatMoney';
 import { useLanguage } from '@/i18n/useLanguage';
 import { KidAvatar } from '@/kid/KidAvatar';
 import { leaveKidMode } from '@/kid/kidDeviceSetup';
 import { syncEngine } from '@/sync/appSync';
 import { jarStyle } from '@/kid/useKidWallet';
 import { parentArea } from '@/pin/appPinGate';
-import { AppIcon, Button, Card, Glyph, ListRow, Notice, Screen, ScreenHeader, Text } from '@/ui';
+import { AppIcon, Button, Card, Glyph, joinSpoken, ListRow, Notice, Screen, ScreenHeader, Text } from '@/ui';
 import { useTheme } from '@/theme/ThemeProvider';
 import { showDialog } from '@/ui/dialogStore';
 
@@ -37,6 +38,7 @@ export default function ParentAreaScreen() {
   const { data: transactions } = useLiveQuery(allKidTransactionsQuery(localDb));
   const accountId = localStore.accountId();
   const parts = (minor: number) => formatMoneyParts(minor, { language, currency, numberingSystem });
+  const formatMoney = useFormatMoney(numberingSystem);
 
   function lock() {
     parentArea.lock();
@@ -82,11 +84,18 @@ export default function ParentAreaScreen() {
           transactions.filter((tx) => tx.kidProfileId === kid.id),
         );
         const total = parts(wallet.total);
+        const spoken = joinSpoken(
+          [
+            t('home.figure', { label: kid.name, amount: formatMoney(wallet.total, currency) }),
+            ...wallet.jars.map((jar) => t('home.figure', { label: jar.name, amount: formatMoney(jar.balance, currency) })),
+          ],
+          t('common.listSeparator'),
+        );
         return (
           <Card
             key={kid.id}
             onPress={() => router.push({ pathname: '/parent/kids/[id]', params: { id: kid.id } })}
-            accessibilityLabel={`${kid.name}: ${total.amount} ${total.currency}`}
+            accessibilityLabel={spoken}
             className="gap-3 p-4"
           >
             <View className="flex-row items-center gap-3">

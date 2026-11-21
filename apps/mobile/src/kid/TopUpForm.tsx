@@ -6,8 +6,10 @@ import {
   currencyMinorDigits,
   evaluateNonNegativeAmount,
   evaluateAmountExpression,
+  formatMoney,
   formatMoneyParts,
   fromMinorUnits,
+  intlLocale,
   toLocalDate,
   topUpSplitProblem,
   type JarSplit,
@@ -87,6 +89,11 @@ export function TopUpForm({ kidProfileId, editing, header, onSaved, footerExtra 
 
   const parts = (minor: number) => formatMoneyParts(minor, { language, currency, numberingSystem });
   const typedNumber = useTypedAmountText(numberingSystem);
+  // Display only (design flaw 8), in the language's digits and percent sign.
+  const percentFormat = useMemo(
+    () => new Intl.NumberFormat(intlLocale(language, numberingSystem), { style: 'percent', maximumFractionDigits: 0 }),
+    [language, numberingSystem],
+  );
   const jarName = (id: string) => jars.find((j) => j.id === id)?.name ?? '';
   const spendJar = suggestion.length === 1 ? suggestion[0]!.jarId : null;
   const hasLastSplit = others.some((tx) => tx.kind === 'topUp');
@@ -140,7 +147,10 @@ export function TopUpForm({ kidProfileId, editing, header, onSaved, footerExtra 
       <Card
         selected={target === 'total'}
         onPress={() => setTarget('total')}
-        accessibilityLabel={t('kid.topUp.amountLabel')}
+        accessibilityLabel={t('home.figure', {
+          label: t('kid.topUp.amountLabel'),
+          amount: totalResult === null ? typedNumber(totalTyped) : formatMoney(total, { language, currency, numberingSystem }),
+        })}
         className="py-2"
       >
         <AmountEntryDisplay
@@ -161,7 +171,7 @@ export function TopUpForm({ kidProfileId, editing, header, onSaved, footerExtra 
       <View className="gap-2">
         {jars.map((jar) => {
           const share = shares[jar.id] ?? 0;
-          const percent = total > 0 ? Math.round((share / total) * 100) : 0;
+          const percent = percentFormat.format(total > 0 ? Math.round((share / total) * 100) / 100 : 0);
           const style = jarStyle(keys.get(jar.id) ?? null);
           const shown = target === jar.id && sharesTyped ? typedNumber(sharesTyped[jar.id] ?? '') : parts(share).amount;
           return (
@@ -180,7 +190,7 @@ export function TopUpForm({ kidProfileId, editing, header, onSaved, footerExtra 
                 <ProgressBar progress={total > 0 ? share / total : 0} tone="primary" />
               </View>
               <Text weight="bold" className="text-base">
-                {`${percent}% · ${shown}`}
+                {`${percent} · ${shown}`}
               </Text>
             </Card>
           );

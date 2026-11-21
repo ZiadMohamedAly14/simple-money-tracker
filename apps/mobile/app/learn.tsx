@@ -27,7 +27,10 @@ function Learn() {
   const lesson = lessonOfTheDay(toLocalDate(new Date()));
 
   return (
+    // Scrolls so a long lesson (bigger Arabic type, small phones) is never cut off; grow keeps the card filling the screen.
     <Screen
+      scroll
+      className="grow"
       footer={
         <>
           <Text tone="muted" align="center" className="pb-2 text-sm">
