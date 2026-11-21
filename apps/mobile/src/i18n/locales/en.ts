@@ -405,11 +405,9 @@ export const en = {
     },
   },
   learn: {
-    title: 'Learn',
-    open: 'Learn about money',
-    next: 'Next',
+    today: "Today's lesson",
     done: 'Done',
-    progress: 'Lesson {{current}} of {{count}}',
+    comeBack: 'Come back tomorrow for a new lesson.',
     // Placeholder copy until the final lesson text arrives.
     lessons: {
       saving: {

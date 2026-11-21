@@ -8,6 +8,7 @@ import { useAccountSettings } from '@/data/useAccountSettings';
 import { localDb, localStore } from '@/db/appDatabase';
 import { useLanguage } from '@/i18n/useLanguage';
 import { KidAvatar } from '@/kid/KidAvatar';
+import { LearnRow } from '@/learn/LearnRow';
 import { jarStyle, useKidWallet } from '@/kid/useKidWallet';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 import { AmountDisplay, Card, IconButton, ListRow, Notice, ProgressRow, Screen, Text } from '@/ui';
@@ -150,7 +151,7 @@ function LiveKidActions({ id, name, onArchive }: { id: string; name: string; onA
         title={t('kid.wallet.fullHistory')}
         onPress={() => router.push({ pathname: '/parent/kids/[id]/history', params: { id } })}
       />
-      <ListRow icon="app:learn" title={t('learn.open')} onPress={() => router.push('/learn')} />
+      <LearnRow />
       <ListRow
         icon="app:kids"
         title={t('kid.wallet.kidView', { name })}

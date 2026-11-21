@@ -1,7 +1,7 @@
 import { ar } from '@/i18n/locales/ar';
 import { en } from '@/i18n/locales/en';
 import { APP_ICONS } from '@/ui/appIcons';
-import { LESSONS, LESSON_ILLUSTRATIONS, illustrationForScheme, lessonIllustration } from './lessons';
+import { LESSONS, LESSON_ILLUSTRATIONS, illustrationForScheme, lessonIllustration, lessonOfTheDay } from './lessons';
 
 const ARABIC_SCRIPT = /[؀-ۿ]/;
 
@@ -72,5 +72,25 @@ describe('lesson illustrations', () => {
       expect(lesson.illustration).toMatch(/^learn-illustration-/);
       expect(APP_ICONS).toHaveProperty([lesson.illustration]);
     }
+  });
+});
+
+describe('lesson of the day', () => {
+  it('gives the same lesson all day, and the next lesson the next day', () => {
+    const today = LESSONS.indexOf(lessonOfTheDay('2026-11-21'));
+    expect(lessonOfTheDay('2026-11-21')).toBe(LESSONS[today]);
+    expect(lessonOfTheDay('2026-11-22')).toBe(LESSONS[(today + 1) % LESSONS.length]);
+  });
+
+  it('goes through every lesson once before repeating', () => {
+    const days = Array.from({ length: LESSONS.length }, (_, i) => `2026-12-${String(i + 1).padStart(2, '0')}`);
+    expect(new Set(days.map(lessonOfTheDay)).size).toBe(LESSONS.length);
+    expect(lessonOfTheDay(`2026-12-${String(LESSONS.length + 1).padStart(2, '0')}`)).toBe(lessonOfTheDay('2026-12-01'));
+  });
+
+  it('carries on across month and year ends', () => {
+    const next = (date: string) => LESSONS[(LESSONS.indexOf(lessonOfTheDay(date)) + 1) % LESSONS.length];
+    expect(lessonOfTheDay('2026-12-01')).toBe(next('2026-11-30'));
+    expect(lessonOfTheDay('2027-01-01')).toBe(next('2026-12-31'));
   });
 });

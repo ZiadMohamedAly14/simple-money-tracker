@@ -7,6 +7,7 @@ import { useKidModeProfileId } from '@/auth/appSession';
 import { useAccountSettings } from '@/data/useAccountSettings';
 import { useLanguage } from '@/i18n/useLanguage';
 import { KidAvatar } from '@/kid/KidAvatar';
+import { LearnRow } from '@/learn/LearnRow';
 import { jarStyle, useKidWallet } from '@/kid/useKidWallet';
 import { syncTriggers } from '@/sync/appSync';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
@@ -123,7 +124,7 @@ function KidHome({ id }: { id: string }) {
         title={t('kid.home.history')}
         onPress={() => router.push({ pathname: '/kid/[id]/history', params: { id } })}
       />
-      <ListRow icon="app:learn" title={t('learn.open')} onPress={() => router.push('/learn')} />
+      <LearnRow />
     </Screen>
   );
 }

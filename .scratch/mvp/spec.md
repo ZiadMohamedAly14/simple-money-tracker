@@ -100,7 +100,7 @@ All money is virtual. Everything works offline, and changes sync between devices
 54. As a child, I want to be told kindly when I don't have enough in a Jar, so that I learn to live within my money.
 55. As a child, I want to edit or delete my own Kid Expenses, so that I can fix my mistakes.
 56. As a child, I want my history to show Top-ups, Jar Transfers and my Kid Expenses, newest first, so that I can see money coming in as well as going out.
-57. As a child, I want a Learn section with short lessons about saving, needs and wants, and giving, so that I understand why the Jars matter.
+57. As a child, I want a new short Learn lesson each day about saving, needs and wants, giving and more, so that I understand why the Jars matter.
 58. As a child, I want my screens to look friendlier than my parent's (bigger buttons, brighter colors), so that the app feels like mine.
 
 ### Kid-Mode device
@@ -217,7 +217,7 @@ All money is virtual. Everything works offline, and changes sync between devices
 - English and Arabic are both present in every milestone. Switching direction shows a notice and restarts the app.
 - All layout uses start/end, and direction-sensitive icons are mirrored.
 - Numbers, dates and currency are formatted with the platform's `Intl` APIs, using the chosen numbering system, with Western digits by default.
-- Learn lessons ship with the app in both languages.
+- Learn lessons ship with the app in both languages. Learn shows one lesson a day, picked from the date, so every device shows the same lesson and nothing is stored or tracked; after the last lesson they start over.
 
 ### Delivery order
 

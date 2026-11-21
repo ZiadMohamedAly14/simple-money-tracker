@@ -407,11 +407,9 @@ export const ar: Translations = {
     },
   },
   learn: {
-    title: 'تعلّم',
-    open: 'تعلّم عن المال',
-    next: 'التالي',
+    today: 'درس اليوم',
     done: 'تم',
-    progress: 'الدرس {{current}} من {{count}}',
+    comeBack: 'ارجع غدًا لدرس جديد.',
     // نص مؤقت إلى أن يصل النص النهائي للدروس.
     lessons: {
       saving: {

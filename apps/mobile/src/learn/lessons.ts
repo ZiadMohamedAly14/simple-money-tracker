@@ -5,7 +5,7 @@ import { APP_ICONS, type AppIconName } from '@/ui/appIcons';
  * The Learn lessons, bundled with the app (no server content, no progress
  * tracking). Each lesson is a topic; its title and body live in the locale
  * files under `learn.lessons.<topic>`, so both languages ship together.
- * Order here is the order the child pages through them.
+ * Order here is the order they come up, one a day (`lessonOfTheDay`).
  */
 export const LESSON_TOPICS = [
   'saving',
@@ -72,3 +72,16 @@ export interface Lesson {
 }
 
 export const LESSONS: readonly Lesson[] = LESSON_TOPICS.map((topic) => ({ topic, illustration: lessonIllustration(topic) }));
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * The lesson for a local date (`YYYY-MM-DD`): one a day, in LESSONS order,
+ * starting over after the last. It depends only on the date, so every device
+ * shows the same lesson that day, offline, with nothing stored or tracked.
+ */
+export function lessonOfTheDay(date: string): Lesson {
+  const [year, month, day] = date.split('-').map(Number) as [number, number, number];
+  const dayNumber = Math.floor(Date.UTC(year, month - 1, day) / DAY_MS);
+  return LESSONS[dayNumber % LESSONS.length]!;
+}
