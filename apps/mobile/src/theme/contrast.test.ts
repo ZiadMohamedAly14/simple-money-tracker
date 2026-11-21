@@ -1,6 +1,7 @@
 import { contrastRatio } from './contrast';
 import { themes, type ColorToken, type ThemeName } from './themes';
 import type { ColorScheme } from './appearance';
+import { ICON_CIRCLE_TONES } from '@/ui/iconCircleTones';
 
 describe('contrastRatio', () => {
   it('matches known WCAG ratios', () => {
@@ -55,5 +56,15 @@ describe('palette contrast', () => {
     const colors = themes[name][scheme].colors;
     // Non-text UI needs 3:1 (WCAG 1.4.11).
     expect(contrastRatio(colors.dark, colors.background)).toBeGreaterThanOrEqual(3);
+  });
+
+  it.each(VARIANTS)('%s %s icons stand out on every icon-circle fill', (name, scheme) => {
+    const colors = themes[name][scheme].colors;
+    // Icons are non-text UI: 3:1 (WCAG 1.4.11).
+    const failing = Object.entries(ICON_CIRCLE_TONES)
+      .map(([tone, { fill, icon }]) => ({ tone, ratio: contrastRatio(colors[icon], colors[fill]) }))
+      .filter(({ ratio }) => ratio < 3)
+      .map(({ tone, ratio }) => `${tone}: ${ratio.toFixed(2)}`);
+    expect(failing).toEqual([]);
   });
 });

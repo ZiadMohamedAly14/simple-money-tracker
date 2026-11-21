@@ -7,6 +7,7 @@ import { authSession } from '@/auth/appSession';
 import { useAccountSettings } from '@/data/useAccountSettings';
 import { useDateLabel } from '@/i18n/useDateLabel';
 import { listKidDevices, revokeKidDevice, type KidDevicesResult } from '@/kid/kidDevices';
+import { useTheme } from '@/theme/ThemeProvider';
 import { AppIcon, Button, Card, IconButton, ListRow, Notice, Screen, ScreenHeader, Text } from '@/ui';
 
 const request = authSession.request.bind(authSession);
@@ -19,6 +20,7 @@ const request = authSession.request.bind(authSession);
  * Needs the internet: the list lives on the server.
  */
 export default function KidDevicesScreen() {
+  const theme = useTheme();
   const { t } = useTranslation();
   const { numberingSystem } = useAccountSettings();
   const dateLabel = useDateLabel(numberingSystem);
@@ -52,7 +54,17 @@ export default function KidDevicesScreen() {
   }
 
   return (
-    <Screen scroll refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void load()} />}>
+    <Screen
+      scroll
+      refreshControl={
+        <RefreshControl
+          refreshing={loading}
+          onRefresh={() => void load()}
+          colors={[theme.colors.primary]}
+          progressBackgroundColor={theme.colors.surface}
+        />
+      }
+    >
       <ScreenHeader title={t('parentAccess.devices')} onBack={() => router.back()} />
       <Text tone="muted">{t('parentAccess.devicesIntro')}</Text>
 

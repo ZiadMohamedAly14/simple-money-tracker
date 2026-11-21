@@ -38,7 +38,7 @@ export const COLOR_TOKENS = [
   'negative-surface',
   /** Orange highlight (kid avatar). */
   'accent',
-  /** Letter on the accent circle. */
+  /** Ink (letters, icons) on the orange accent and the Jar colours. */
   'on-accent',
   'border',
   /** Dimmed backdrop behind dialogs; use at reduced opacity (bg-scrim/40). */

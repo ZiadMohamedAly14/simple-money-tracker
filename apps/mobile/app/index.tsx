@@ -69,7 +69,7 @@ function MonthOverview() {
         className="flex-1"
         contentContainerClassName="gap-4 px-5 pb-28 pt-2"
         refreshControl={
-          <RefreshControl refreshing={syncing} onRefresh={() => void refresh()} colors={[theme.colors.primary]} />
+          <RefreshControl refreshing={syncing} onRefresh={() => void refresh()} colors={[theme.colors.primary]} progressBackgroundColor={theme.colors.surface} />
         }
       >
         <View className="min-h-11 flex-row items-center gap-2">

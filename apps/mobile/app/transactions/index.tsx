@@ -81,7 +81,7 @@ function TransactionList() {
         className="flex-1"
         contentContainerClassName="gap-3 px-5 pb-28 pt-4"
         refreshControl={
-          <RefreshControl refreshing={syncing} onRefresh={() => void refresh()} colors={[theme.colors.primary]} />
+          <RefreshControl refreshing={syncing} onRefresh={() => void refresh()} colors={[theme.colors.primary]} progressBackgroundColor={theme.colors.surface} />
         }
       >
         {transactions.length === 0 ? (

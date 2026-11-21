@@ -33,6 +33,7 @@ function KidHome({ id }: { id: string }) {
   const language = useLanguage();
   const { currency, numberingSystem } = useAccountSettings();
   const { kid, wallet } = useKidWallet(id);
+  const theme = useTheme();
   const isKidModeHome = useKidModeProfileId() === id;
   const [syncing, setSyncing] = useState(false);
   const refresh = useCallback(async () => {
@@ -52,7 +53,17 @@ function KidHome({ id }: { id: string }) {
   const negative = wallet.jars.filter((jar) => wallet.negativeJarIds.includes(jar.id));
 
   return (
-    <Screen scroll refreshControl={<RefreshControl refreshing={syncing} onRefresh={() => void refresh()} />}>
+    <Screen
+      scroll
+      refreshControl={
+        <RefreshControl
+          refreshing={syncing}
+          onRefresh={() => void refresh()}
+          colors={[theme.colors.primary]}
+          progressBackgroundColor={theme.colors.surface}
+        />
+      }
+    >
       <View className="min-h-11 flex-row items-center gap-3 pt-2">
         {isKidModeHome ? null : (
           <IconButton icon="app:back" directional accessibilityLabel={t('common.back')} onPress={() => router.back()} />

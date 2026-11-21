@@ -5,6 +5,7 @@ import { DirectionalIcon } from '@/theme/DirectionalIcon';
 import { useTheme } from '@/theme/ThemeProvider';
 import { AppIcon } from './AppIcon';
 import type { AppIconName } from './appIcons';
+import { ICON_CIRCLE_TONES, type IconCircleTone } from './iconCircleTones';
 
 /** Any Ionicons name. Use the outline variants to match the design. */
 export type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -37,16 +38,7 @@ export function Glyph({ name, size, color, directional, reversed }: GlyphProps) 
   return <Icon name={name as IconName} size={size} color={color} />;
 }
 
-export type IconCircleTone = 'tint' | 'primary' | 'accent' | 'jar-save' | 'jar-spend' | 'jar-give';
-
-const CIRCLE_CLASS: Record<IconCircleTone, string> = {
-  tint: 'bg-tint',
-  primary: 'bg-primary',
-  accent: 'bg-accent',
-  'jar-save': 'bg-jar-save',
-  'jar-spend': 'bg-jar-spend',
-  'jar-give': 'bg-jar-give',
-};
+export type { IconCircleTone };
 
 const CIRCLE_SIZE = {
   sm: { className: 'h-8 w-8', icon: 16 },
@@ -67,11 +59,11 @@ export interface IconCircleProps {
 /** An icon in a filled circle: list rows, category rows, Jar rows, empty states. */
 export function IconCircle({ icon, tone = 'tint', size = 'md', directional }: IconCircleProps) {
   const theme = useTheme();
-  const color = tone === 'tint' ? theme.colors.primary : tone === 'primary' ? theme.colors['on-primary'] : theme.colors.text;
+  const { className: fillClass, icon: iconToken } = ICON_CIRCLE_TONES[tone];
   const { className, icon: iconSize } = CIRCLE_SIZE[size];
   return (
-    <View className={`items-center justify-center rounded-full ${CIRCLE_CLASS[tone]} ${className}`}>
-      <Glyph name={icon} size={iconSize} color={color} directional={directional} />
+    <View className={`items-center justify-center rounded-full ${fillClass} ${className}`}>
+      <Glyph name={icon} size={iconSize} color={theme.colors[iconToken]} directional={directional} />
     </View>
   );
 }
