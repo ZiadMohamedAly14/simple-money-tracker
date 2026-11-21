@@ -3,6 +3,8 @@ import type { Express } from 'express';
 import { otherCategoryId, type PushedChange, type SyncResponseData } from '@money-tracker/shared';
 import { MINUTE, buildTestApp, createTestClock, createTestMailer, type TestClock, type TestMailer } from './helpers/testApp';
 import { useTestDatabase } from './helpers/testDatabase';
+import { writeWithServerVersion } from '../src/models/counter.model';
+import { Transaction } from '../src/models/synced.model';
 
 interface SignedIn {
   accessToken: string;
@@ -251,6 +253,55 @@ describe('POST /sync', () => {
       await pushed(phone, { updatedAt: T + 1000, deletedAt: T + 1000 });
 
       expect(await storedCopy(phone)).toMatchObject({ deletedAt: T + 1000 });
+    });
+  });
+
+  describe('syncs of one Account running at the same time', () => {
+    /** Starts a write the way another sync request would, held open until `finish` is called. */
+    function slowWrite(who: SignedIn, id: string) {
+      let open!: () => void;
+      const gate = new Promise<void>((resolve) => {
+        open = resolve;
+      });
+      const done = writeWithServerVersion(clock().getTime(), async (serverVersion) => {
+        await gate;
+        const { record } = expense(otherCategoryId(who.accountId), { id });
+        await Transaction.create({ ...record, _id: id, accountId: who.accountId, serverVersion });
+      });
+      return {
+        async finish() {
+          open();
+          await done;
+        },
+      };
+    }
+
+    it("never moves a device's cursor past a change that is still being written", async () => {
+      const phone = await signIn();
+      const tablet = await signIn();
+      await sync(phone, 0);
+      const SLOW_ID = '019ca8a0-3e80-7000-8000-00000000005a';
+      const slow = slowWrite(phone, SLOW_ID);
+
+      const meanwhile = await sync(tablet, 0, [expense(otherCategoryId(tablet.accountId))]);
+      expect(meanwhile.status).toBe(200);
+      await slow.finish();
+
+      const after = await sync(tablet, data(meanwhile).cursor);
+      const seen = [...data(meanwhile).changes, ...data(after).changes].map((c) => c.record.id);
+      expect(seen).toEqual(expect.arrayContaining([SLOW_ID, EXPENSE_ID]));
+    });
+
+    it('stops waiting for a write that was abandoned more than a minute ago', async () => {
+      const phone = await signIn();
+      await sync(phone, 0);
+      slowWrite(phone, '019ca8a0-3e80-7000-8000-00000000005b'); // never finishes, like a crashed request
+      await sync(phone, 0, [expense(otherCategoryId(phone.accountId))]);
+
+      clock.advance(2 * MINUTE);
+
+      const res = await sync(phone, 0);
+      expect(data(res).changes.map((c) => c.record.id)).toContain(EXPENSE_ID);
     });
   });
 });

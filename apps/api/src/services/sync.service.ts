@@ -11,7 +11,7 @@ import {
   type SyncRequestBody,
   type SyncResponseData,
 } from '@money-tracker/shared';
-import { nextServerVersion } from '../models/counter.model';
+import { committedServerVersion, writeWithServerVersion } from '../models/counter.model';
 import { Category, SYNCED_MODELS } from '../models/synced.model';
 import type { AuthContext } from './token.service';
 import { ForbiddenError, ValidationError } from '../utils/AppError';
@@ -62,15 +62,11 @@ export function createSyncService({ now }: { now: Clock }) {
   async function ensureOtherCategory(accountId: string): Promise<void> {
     const id = otherCategoryId(accountId);
     if (await Category.exists({ _id: id })) return;
+    const nowMs = now().getTime();
     try {
-      await Category.create({
-        _id: id,
-        accountId,
-        ...OTHER_CATEGORY,
-        updatedAt: now().getTime(),
-        deletedAt: null,
-        serverVersion: await nextServerVersion(),
-      });
+      await writeWithServerVersion(nowMs, (serverVersion) =>
+        Category.create({ _id: id, accountId, ...OTHER_CATEGORY, updatedAt: nowMs, deletedAt: null, serverVersion }),
+      );
     } catch (error) {
       if (!isDuplicateKey(error)) throw error; // another device's sync created it first
     }
@@ -134,17 +130,19 @@ export function createSyncService({ now }: { now: Clock }) {
       else if (stored.deletedAt == null && record.deletedAt != null) update = { deletedAt: record.deletedAt };
       else return stored;
 
-      const serverVersion = await nextServerVersion();
       try {
-        if (!stored) {
-          await model.create({ ...update, _id: id, accountId, serverVersion });
-          return null;
-        }
-        const result = await model.updateOne(
-          { _id: id, accountId, serverVersion: stored.serverVersion },
-          { $set: { ...update, serverVersion } },
-        );
-        if (result.matchedCount === 1) return null;
+        const written = await writeWithServerVersion(now().getTime(), async (serverVersion) => {
+          if (!stored) {
+            await model.create({ ...update, _id: id, accountId, serverVersion });
+            return true;
+          }
+          const result = await model.updateOne(
+            { _id: id, accountId, serverVersion: stored.serverVersion },
+            { $set: { ...update, serverVersion } },
+          );
+          return result.matchedCount === 1;
+        });
+        if (written) return null;
       } catch (error) {
         if (!isDuplicateKey(error)) throw error;
         // Created meanwhile, by this Account's other device or (ownership check races) another Account.
@@ -156,17 +154,19 @@ export function createSyncService({ now }: { now: Clock }) {
   }
 
   async function pull(auth: AuthContext, cursor: number): Promise<SyncResponseData> {
+    // Stop below any version still being written, or a late commit would fall behind the cursor.
+    const committed = await committedServerVersion(now().getTime());
     const readable = SYNC_ENTITIES.filter((entity) => auth.scope === 'full' || RULES[entity].kidCanRead);
     const batches = await Promise.all(
       readable.map(async (entity) => {
         const stored = await modelOf(entity)
-          .find({ accountId: auth.accountId, serverVersion: { $gt: cursor } })
+          .find({ accountId: auth.accountId, serverVersion: { $gt: cursor, $lte: committed } })
           .lean<StoredRecord[]>();
         return stored.map((record) => toPulled(entity, record));
       }),
     );
     const changes = batches.flat().sort((a, b) => a.record.serverVersion - b.record.serverVersion);
-    return { cursor: changes.at(-1)?.record.serverVersion ?? cursor, changes };
+    return { cursor: Math.max(cursor, committed), changes };
   }
 
   return {
