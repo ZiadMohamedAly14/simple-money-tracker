@@ -60,6 +60,12 @@
         "projectId": "ce4f34bf-57e6-4189-b2ca-31507a4941e6"
       }
     },
-    "owner": "ziadmhmd"
+    "owner": "ziadmhmd",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/ce4f34bf-57e6-4189-b2ca-31507a4941e6"
+    }
   }
 }
