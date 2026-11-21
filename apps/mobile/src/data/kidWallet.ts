@@ -274,6 +274,28 @@ export function addJarTransfer(
   return { status: 'ok', id };
 }
 
+export type JarTransferChanges = Partial<Pick<NewJarTransfer, 'fromJarId' | 'toJarId' | 'amount' | 'date' | 'note'>>;
+
+/** Changes a Jar Transfer (parents only). The money it already moved counts as available again. */
+export function editJarTransfer(
+  store: LocalStore,
+  db: LocalDb,
+  id: string,
+  { fromJarId, ...changes }: JarTransferChanges,
+): JarTransferResult | { status: 'deleted' } | { status: 'not_a_jar_transfer' } {
+  const current = liveKidTransaction(db, id);
+  if (!current) return { status: 'deleted' };
+  if (current.kind !== 'jarTransfer') return { status: 'not_a_jar_transfer' };
+  const jarId = fromJarId ?? current.jarId!;
+  const toJarId = changes.toJarId ?? current.toJarId!;
+  const amount = changes.amount ?? current.amount;
+  if (jarId === toJarId) return { status: 'same_jar' };
+  const available = spendableFrom(balancesNow(db, current.kidProfileId), jarId, current);
+  if (amount > available) return { status: 'not_enough', available };
+  const saved = store.update('kidTransaction', id, { ...changes, jarId, toJarId, amount });
+  return saved ? { status: 'ok', id } : { status: 'deleted' };
+}
+
 /** Deletes a Jar Transfer (parents only), putting the money back. */
 export function deleteJarTransfer(store: LocalStore, db: LocalDb, id: string): boolean {
   if (liveKidTransaction(db, id)?.kind !== 'jarTransfer') return false;

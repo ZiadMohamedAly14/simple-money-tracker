@@ -40,15 +40,16 @@ export function jarBalances(jarIds: readonly string[], kidTransactions: readonly
 /**
  * The most a Kid Expense from `jarId` may be: the Jar's balance, never below
  * zero, so a Jar that went negative after a sync blocks further spending
- * (spec). When editing a Kid Expense, pass it as `editing`: its old amount
- * counts as available again if it came out of the same Jar.
+ * (spec). When editing a Kid Expense or Jar Transfer, pass it as `editing`:
+ * its old amount counts as available again if it came out of the same Jar.
+ * Jar Transfers use the same rule for their source Jar.
  */
 export function spendableFrom(
   balances: JarBalances,
   jarId: string,
   editing?: Pick<KidTransactionFields, 'kind' | 'amount' | 'jarId'> | null,
 ): number {
-  const giveBack = editing && editing.kind === 'kidExpense' && editing.jarId === jarId ? editing.amount : 0;
+  const giveBack = editing && editing.kind !== 'topUp' && editing.jarId === jarId ? editing.amount : 0;
   return Math.max(0, (balances[jarId] ?? 0) + giveBack);
 }
 

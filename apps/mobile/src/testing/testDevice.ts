@@ -41,6 +41,7 @@ import {
   deleteJarTransfer,
   deleteKidExpense,
   deleteTopUp,
+  editJarTransfer,
   editKidExpense,
   editTopUp,
   jarsQuery,
@@ -50,6 +51,7 @@ import {
   suggestedSplitOf,
   topUpJarsOf,
   walletOf,
+  type JarTransferChanges,
   type KidExpenseChanges,
   type KidOnboarding,
   type NewJarTransfer,
@@ -261,6 +263,7 @@ export async function createTestDevice(
     editKidExpense: (id: string, changes: KidExpenseChanges) => editKidExpense(store, db, id, changes),
     deleteKidExpense: (id: string) => deleteKidExpense(store, db, id),
     addJarTransfer: (transfer: NewJarTransfer) => addJarTransfer(store, db, transfer),
+    editJarTransfer: (id: string, changes: JarTransferChanges) => editJarTransfer(store, db, id, changes),
     deleteJarTransfer: (id: string) => deleteJarTransfer(store, db, id),
     /** The Kid Wallet's history: every live Kid Transaction, newest first. */
     history: (kidProfileId: string) => kidTransactionsQuery(db, kidProfileId).all(),

@@ -72,6 +72,14 @@ describe('spendableFrom', () => {
     expect(spendableFrom({ [SPEND]: 500 }, SPEND, kidExpense(1500, SPEND))).toBe(2000);
   });
 
+  it('when editing a Jar Transfer from the same Jar, counts the money it moved as available again', () => {
+    expect(spendableFrom({ [SAVE]: 0 }, SAVE, jarTransfer(2000, SAVE, SPEND))).toBe(2000);
+  });
+
+  it('never counts a Top-up as money to give back', () => {
+    expect(spendableFrom({ [SPEND]: 0 }, SPEND, { kind: 'topUp', amount: 500, jarId: null })).toBe(0);
+  });
+
   it("when editing a Kid Expense into another Jar, only that Jar's balance counts", () => {
     expect(spendableFrom({ [SPEND]: 500, [SAVE]: 300 }, SAVE, kidExpense(1500, SPEND))).toBe(300);
   });

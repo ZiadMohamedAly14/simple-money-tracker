@@ -153,6 +153,23 @@ describe('Kid Expenses, Jar Transfers and history (Seam B)', () => {
     expect(balancesOf(tablet, kid)).toEqual(balancesOf(phone, kid));
   });
 
+  it('a parent edits a Jar Transfer; the money it already moved counts as available again', async () => {
+    const { phone, kid, jars, clock } = await phoneWithKid();
+    const moved = phone.addJarTransfer({ kidProfileId: kid, fromJarId: jars.save, toJarId: jars.spend, amount: 1500, date: '2026-03-02' });
+    if (moved.status !== 'ok') throw new Error('not saved');
+    clock.advance(1000);
+
+    expect(phone.editJarTransfer(moved.id, { amount: 2001 })).toEqual({ status: 'not_enough', available: 2000 });
+    expect(phone.editJarTransfer(moved.id, { toJarId: jars.save })).toEqual({ status: 'same_jar' });
+    expect(phone.editJarTransfer(moved.id, { amount: 2000, toJarId: jars.give })).toEqual({ status: 'ok', id: moved.id });
+    expect(balancesOf(phone, kid)).toEqual([
+      ['Save', 0],
+      ['Spend', 5000],
+      ['Give', 2000],
+    ]);
+    expect(phone.editJarTransfer(phone.history(kid).at(-1)!.id, { amount: 1 })).toEqual({ status: 'not_a_jar_transfer' });
+  });
+
   it('a parent can delete a Jar Transfer, which puts the money back', async () => {
     const { phone, kid, jars } = await phoneWithKid();
     const moved = phone.addJarTransfer({ kidProfileId: kid, fromJarId: jars.save, toJarId: jars.spend, amount: 1500, date: '2026-03-02' });
