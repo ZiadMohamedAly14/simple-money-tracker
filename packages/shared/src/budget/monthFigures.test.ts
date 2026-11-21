@@ -14,7 +14,7 @@ describe('monthFigures', () => {
     });
   });
 
-  it('sums Income and Spending from the Transactions dated in the Month, and Remaining is Expected Income minus Spending', () => {
+  it('sums Income and Spending from the Transactions dated in the Month, and Remaining counts Income once it is above Expected Income', () => {
     const figures = monthFigures({
       month: '2026-03',
       expectedIncome: 800000,
@@ -28,15 +28,25 @@ describe('monthFigures', () => {
     });
     expect(figures.income).toBe(1000000);
     expect(figures.spending).toBe(20000);
-    expect(figures.remaining).toBe(780000);
+    expect(figures.remaining).toBe(980000);
   });
 
-  it('Remaining ignores recorded Income: Income above or below the plan does not change it', () => {
+  it('Remaining counts Expected Income while recorded Income is below it, so Income still to come does not lower it', () => {
     const plan = { month: '2026-03', expectedIncome: 800000, budgets: [] };
     const none = monthFigures({ ...plan, transactions: [expense(5000, '2026-03-02')] });
-    const extra = monthFigures({ ...plan, transactions: [income(1200000, '2026-03-01'), expense(5000, '2026-03-02')] });
+    const some = monthFigures({ ...plan, transactions: [income(200000, '2026-03-01'), expense(5000, '2026-03-02')] });
     expect(none.remaining).toBe(795000);
-    expect(extra.remaining).toBe(795000);
+    expect(some.remaining).toBe(795000);
+  });
+
+  it('Remaining counts recorded Income once it is above Expected Income', () => {
+    const figures = monthFigures({
+      month: '2026-11',
+      expectedIncome: 800000,
+      budgets: [],
+      transactions: [income(850000, '2026-11-01'), expense(850000, '2026-11-02')],
+    });
+    expect(figures.remaining).toBe(0);
   });
 
   it('Category Budgets do not count as spent', () => {
@@ -59,14 +69,14 @@ describe('monthFigures', () => {
     expect(figures).toMatchObject({ income: 0, spending: 100, remaining: -100 });
   });
 
-  it('Remaining goes negative when Spending is more than Expected Income', () => {
+  it('Remaining goes negative only when Spending is more than both Expected Income and recorded Income', () => {
     const figures = monthFigures({
       month: '2026-03',
       expectedIncome: 1000,
       budgets: [],
-      transactions: [income(5000, '2026-03-01'), expense(2500, '2026-03-02')],
+      transactions: [income(2000, '2026-03-01'), expense(2500, '2026-03-02')],
     });
-    expect(figures.remaining).toBe(-1500);
+    expect(figures.remaining).toBe(-500);
   });
 
   it('Unallocated is Expected Income minus the Category Budgets of the Month', () => {

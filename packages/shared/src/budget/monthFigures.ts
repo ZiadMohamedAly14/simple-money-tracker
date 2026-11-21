@@ -9,7 +9,11 @@ export interface MonthFigures {
   income: number;
   /** Sum of the Month's Expense Transactions. */
   spending: number;
-  /** Expected Income minus Spending: what the plan leaves to spend. Recorded Income and Category Budgets don't change it. May be negative. */
+  /**
+   * The larger of Expected Income and Income, minus Spending: what is left to spend.
+   * Income still to come doesn't lower it, and Income above the plan raises it.
+   * Category Budgets don't count as spent. May be negative.
+   */
   remaining: number;
   /** Expected Income minus the Month's Category Budgets. May be negative. */
   unallocated: number;
@@ -38,5 +42,5 @@ export function monthFigures({ month, expectedIncome, budgets, transactions }: M
     else spending += transaction.amount;
   }
   const budgeted = budgets.reduce((sum, budget) => (budget.month === month ? sum + budget.amount : sum), 0);
-  return { expectedIncome, income, spending, remaining: expectedIncome - spending, unallocated: expectedIncome - budgeted };
+  return { expectedIncome, income, spending, remaining: Math.max(expectedIncome, income) - spending, unallocated: expectedIncome - budgeted };
 }
