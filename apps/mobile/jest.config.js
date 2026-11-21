@@ -18,5 +18,7 @@ module.exports = {
   moduleNameMapper: {
     '^@money-tracker/shared$': '<rootDir>/../../packages/shared/src/index.ts',
     '^@/(.*)$': '<rootDir>/src/$1',
+    // SVG icons are react-native-svg components under Metro; Node Jest gets a stub.
+    '\\.svg$': '<rootDir>/src/testing/svgMock.ts',
   },
 };

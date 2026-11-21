@@ -3,7 +3,7 @@ import { Pressable, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/theme/ThemeProvider';
-import { IconCircle, type IconCircleTone, type IconName } from './icons';
+import { IconCircle, type GlyphName, type IconCircleTone, type IconName } from './icons';
 import { Text, type TextTone } from './Text';
 
 export interface CardProps {
@@ -35,7 +35,7 @@ export function Card({ children, onPress, selected, accessibilityLabel, classNam
 }
 
 export interface ListRowProps {
-  icon: IconName;
+  icon: GlyphName;
   iconTone?: IconCircleTone;
   title: string;
   subtitle?: string;
