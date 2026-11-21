@@ -4,7 +4,7 @@
 
 **Blocked by:** 07 (Personal onboarding and Month overview), 11 (Parent PIN and Parent Area gate).
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] Kid onboarding path: currency, create a Kid Profile (name, optional avatar), set the Parent PIN, then an optional first Top-up.
 - [x] Several Kid Profiles can be added from the Personal experience's Parent Area.
