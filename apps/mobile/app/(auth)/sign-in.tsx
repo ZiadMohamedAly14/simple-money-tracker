@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { normalizeEmail, type Language } from '@money-tracker/shared';
@@ -10,7 +9,7 @@ import { authSession } from '@/auth/appSession';
 import { authErrorMessage } from '@/auth/authErrorMessage';
 import { API_URL } from '@/config';
 import { useTheme } from '@/theme/ThemeProvider';
-import { Button, Screen, Text, TextField } from '@/ui';
+import { AppIcon, Button, Screen, Text, TextField } from '@/ui';
 
 const LOOKS_LIKE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -45,7 +44,7 @@ export default function SignInScreen() {
   return (
     <Screen className="justify-center">
       <View className="h-16 w-16 items-center justify-center rounded-2xl bg-primary">
-        <Ionicons name="wallet-outline" size={32} color={theme.colors['on-primary']} />
+        <AppIcon name="wallet" size={32} color={theme.colors['on-primary']} />
       </View>
       <Text weight="bold" accessibilityRole="header" className="text-3xl">
         {t('auth.signInTitle')}

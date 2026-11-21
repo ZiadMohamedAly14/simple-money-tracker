@@ -21,7 +21,7 @@ export default function ParentAreaScreen() {
       </Card>
       <View className="gap-3">
         <Button label={t('pin.change')} variant="secondary" onPress={() => router.push('/pin/set')} />
-        <Button label={t('parentArea.lock')} variant="secondary" icon="lock-closed-outline" onPress={lock} />
+        <Button label={t('parentArea.lock')} variant="secondary" icon="app:lock-pin" onPress={lock} />
       </View>
     </Screen>
   );
