@@ -41,6 +41,21 @@ const topUp = (amount: number, splits: { jarId: string; amount: number }[], patc
     record: { id: TOP_UP_ID, ...meta, kidProfileId: KID_ID, kind: 'topUp', amount, splits, date: '2026-03-01', note: null, ...patch },
   }) as PushedChange;
 
+const EXPENSE_ID = '019ca8a0-3e80-7000-8000-0000000000b2';
+const TRANSFER_ID = '019ca8a0-3e80-7000-8000-0000000000b3';
+
+const kidExpense = (amount: number, jarId: string, patch: object = {}): PushedChange =>
+  ({
+    entity: 'kidTransaction',
+    record: { id: EXPENSE_ID, ...meta, kidProfileId: KID_ID, kind: 'kidExpense', amount, splits: [], jarId, toJarId: null, date: '2026-03-02', note: null, ...patch },
+  }) as PushedChange;
+
+const jarTransfer = (amount: number, jarId: string, toJarId: string): PushedChange =>
+  ({
+    entity: 'kidTransaction',
+    record: { id: TRANSFER_ID, ...meta, kidProfileId: KID_ID, kind: 'jarTransfer', amount, splits: [], jarId, toJarId, date: '2026-03-02', note: null },
+  }) as PushedChange;
+
 describe('Kid Wallet sync (Seam A)', () => {
   useTestDatabase();
 
@@ -162,6 +177,50 @@ describe('Kid Wallet sync (Seam A)', () => {
     expect((await sync(phone, 0, [deleted])).status).toBe(200);
     const afterDelete = data(await sync(tablet, 0)).changes.find((c) => c.entity === 'kidTransaction');
     expect(afterDelete?.record.deletedAt).toBe(meta.updatedAt + 2000);
+  });
+
+  it('stores a Kid Expense and a Jar Transfer, and the other device pulls them', async () => {
+    const phone = await signIn();
+    const tablet = await signIn();
+    const { ids, changes } = defaultJars(phone.accountId);
+    const res = await sync(phone, 0, [
+      kidProfile(),
+      ...changes,
+      topUp(10000, [{ jarId: ids.save, amount: 10000 }]),
+      jarTransfer(3000, ids.save, ids.spend),
+      kidExpense(1500, ids.spend),
+    ]);
+    expect(res.status).toBe(200);
+
+    const pulled = data(await sync(tablet, 0)).changes.filter((c) => c.entity === 'kidTransaction').map((c) => c.record);
+    expect(pulled).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: TRANSFER_ID, kind: 'jarTransfer', amount: 3000, jarId: ids.save, toJarId: ids.spend, splits: [] }),
+        expect.objectContaining({ id: EXPENSE_ID, kind: 'kidExpense', amount: 1500, jarId: ids.spend, toJarId: null, splits: [] }),
+      ]),
+    );
+  });
+
+  it('never rejects a Kid Expense larger than its Jar, so a Jar can go negative after sync (spec)', async () => {
+    const sara = await signIn();
+    const { ids, changes } = defaultJars(sara.accountId);
+    await sync(sara, 0, [kidProfile(), ...changes, topUp(1000, [{ jarId: ids.spend, amount: 1000 }])]);
+    expect((await sync(sara, 0, [kidExpense(5000, ids.spend)])).status).toBe(200);
+  });
+
+  it("rejects a Kid Expense or Jar Transfer that uses another Kid Profile's Jar", async () => {
+    const sara = await signIn();
+    const omar = defaultJars(sara.accountId, KID_ID);
+    const lina = defaultJars(sara.accountId, SECOND_KID_ID);
+    await sync(sara, 0, [kidProfile(), kidProfile(SECOND_KID_ID, { name: 'Lina' }), ...omar.changes, ...lina.changes]);
+
+    const expenseRes = await sync(sara, 0, [kidExpense(100, lina.ids.spend)]);
+    expect(expenseRes.status).toBe(422);
+    expect(expenseRes.body.data).toEqual([{ field: 'changes[0].record.jarId', message: expect.stringContaining('Jar') }]);
+
+    const transferRes = await sync(sara, 0, [jarTransfer(100, omar.ids.save, lina.ids.save)]);
+    expect(transferRes.status).toBe(422);
+    expect(transferRes.body.data).toEqual([{ field: 'changes[0].record.toJarId', message: expect.stringContaining('Jar') }]);
   });
 
   it('a Kid Session cannot create Kid Profiles, Jars or Top-ups (ADR-0002)', async () => {

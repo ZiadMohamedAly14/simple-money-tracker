@@ -8,6 +8,7 @@ import {
   monthPlanId,
   otherCategoryId,
   parsePushedChange,
+  type KidTransactionFields,
   type PulledChange,
   type PushedChange,
   type SyncEntity,
@@ -40,7 +41,7 @@ interface EntityRules {
   /** For records with a deterministic ID (spec, Data model): the only ID the record may have. */
   requiredId?(accountId: string, change: PushedChange): string;
   /** Jars the change uses, which must all belong to the given Kid Profile's wallet (spec, Data model). */
-  walletJars?(change: PushedChange): { kidProfileId: string; jarIds: string[]; field: string } | null;
+  walletJars?(change: PushedChange): { kidProfileId: string; jars: { id: string; field: string }[] } | null;
 }
 
 /**
@@ -88,10 +89,19 @@ const RULES: { [E in SyncEntity]: EntityRules } = {
         : [],
     walletJars: (change) =>
       change.entity === 'kidTransaction'
-        ? { kidProfileId: change.record.kidProfileId, jarIds: change.record.splits.map((s) => s.jarId), field: 'splits' }
+        ? { kidProfileId: change.record.kidProfileId, jars: kidTransactionJars(change.record) }
         : null,
   },
 };
+
+/** The Jars a Kid Transaction uses, each with the field that names it. */
+function kidTransactionJars(record: KidTransactionFields): { id: string; field: string }[] {
+  if (record.kind === 'topUp') return record.splits.map((split) => ({ id: split.jarId, field: 'splits' }));
+  const jars: { id: string; field: string }[] = [];
+  if (record.jarId) jars.push({ id: record.jarId, field: 'jarId' });
+  if (record.toJarId) jars.push({ id: record.toJarId, field: 'toJarId' });
+  return jars;
+}
 
 const isDuplicateKey = (error: unknown): boolean => (error as { code?: unknown }).code === 11000;
 
@@ -203,12 +213,11 @@ export function createSyncService({ now }: { now: Clock }) {
     for (const [index, change] of changes.entries()) {
       const wallet = RULES[change.entity].walletJars?.(change);
       if (!wallet) continue;
-      const unknown = wallet.jarIds.filter((id) => !pushedJars.has(id));
+      const unknown = wallet.jars.map((jar) => jar.id).filter((id) => !pushedJars.has(id));
       const stored = await Jar.find({ _id: { $in: unknown }, accountId }).lean<{ _id: string; kidProfileId: string }[]>();
       const owners = new Map([...stored.map((j) => [String(j._id), j.kidProfileId] as const), ...pushedJars]);
-      if (wallet.jarIds.some((id) => owners.get(id) !== wallet.kidProfileId)) {
-        problems.push({ field: fieldOf(index, wallet.field), message: "must name Jars of this Kid Profile's wallet" });
-      }
+      const wrong = wallet.jars.find((jar) => owners.get(jar.id) !== wallet.kidProfileId);
+      if (wrong) problems.push({ field: fieldOf(index, wrong.field), message: "must name Jars of this Kid Profile's wallet" });
     }
     if (problems.length > 0) throw new ValidationError(problems);
   }

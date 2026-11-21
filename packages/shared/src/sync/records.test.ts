@@ -174,8 +174,13 @@ describe('parsePushedChange', () => {
       const withExtra = { ...topUp, splits: topUp.splits.map((s) => ({ ...s, percent: 50 })) };
       expect(parsePushedChange({ entity: 'kidTransaction', record: withExtra })).toEqual({
         ok: true,
-        change: { entity: 'kidTransaction', record: topUp },
+        change: { entity: 'kidTransaction', record: { ...topUp, jarId: null, toJarId: null } },
       });
+    });
+
+    it('ignores Jar fields on a Top-up (its Jars are in the split)', () => {
+      const result = parsePushedChange({ entity: 'kidTransaction', record: { ...topUp, jarId: jarA, toJarId: jarB } });
+      expect(result).toEqual({ ok: true, change: { entity: 'kidTransaction', record: { ...topUp, jarId: null, toJarId: null } } });
     });
 
     it.each([
@@ -190,6 +195,83 @@ describe('parsePushedChange', () => {
       const result = parsePushedChange({ entity: 'kidTransaction', record: { ...topUp, ...patch } });
       expect(result.ok).toBe(false);
       if (!result.ok) expect(result.problems.map((p) => p.field)).toContain(field);
+    });
+  });
+
+  describe('Kid Expense', () => {
+    const jarA = '019ca8a0-3e80-7000-8000-00000000000a';
+    const kidExpense = {
+      id,
+      updatedAt: 1,
+      deletedAt: null,
+      kidProfileId: categoryId,
+      kind: 'kidExpense',
+      amount: 1500,
+      splits: [],
+      jarId: jarA,
+      toJarId: null,
+      date: '2026-03-01',
+      note: 'Ice cream',
+    };
+
+    it('accepts an amount from one Jar', () => {
+      expect(parsePushedChange({ entity: 'kidTransaction', record: kidExpense })).toEqual({
+        ok: true,
+        change: { entity: 'kidTransaction', record: kidExpense },
+      });
+    });
+
+    it('drops a split or target Jar it does not use', () => {
+      const result = parsePushedChange({
+        entity: 'kidTransaction',
+        record: { ...kidExpense, splits: [{ jarId: jarA, amount: 1500 }], toJarId: jarA },
+      });
+      expect(result).toEqual({ ok: true, change: { entity: 'kidTransaction', record: kidExpense } });
+    });
+
+    it.each([
+      ['no Jar', { jarId: null }, 'jarId'],
+      ['a bad Jar', { jarId: 'spend' }, 'jarId'],
+      ['a zero amount', { amount: 0 }, 'amount'],
+    ])('rejects %s', (_label, patch, field) => {
+      const result = parsePushedChange({ entity: 'kidTransaction', record: { ...kidExpense, ...patch } });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.problems.map((p) => p.field)).toEqual([field]);
+    });
+  });
+
+  describe('Jar Transfer', () => {
+    const jarA = '019ca8a0-3e80-7000-8000-00000000000a';
+    const jarB = '019ca8a0-3e80-7000-8000-00000000000b';
+    const jarTransfer = {
+      id,
+      updatedAt: 1,
+      deletedAt: null,
+      kidProfileId: categoryId,
+      kind: 'jarTransfer',
+      amount: 1000,
+      splits: [],
+      jarId: jarA,
+      toJarId: jarB,
+      date: '2026-03-01',
+      note: null,
+    };
+
+    it('accepts an amount moved from one Jar to another', () => {
+      expect(parsePushedChange({ entity: 'kidTransaction', record: jarTransfer })).toEqual({
+        ok: true,
+        change: { entity: 'kidTransaction', record: jarTransfer },
+      });
+    });
+
+    it.each([
+      ['no source Jar', { jarId: null }, 'jarId'],
+      ['no target Jar', { toJarId: undefined }, 'toJarId'],
+      ['the same Jar twice', { toJarId: jarA }, 'toJarId'],
+    ])('rejects %s', (_label, patch, field) => {
+      const result = parsePushedChange({ entity: 'kidTransaction', record: { ...jarTransfer, ...patch } });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.problems.map((p) => p.field)).toEqual([field]);
     });
   });
 

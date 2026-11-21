@@ -1,5 +1,5 @@
 import { Schema, model, type SchemaDefinition } from 'mongoose';
-import type { SyncEntity } from '@money-tracker/shared';
+import { KID_TRANSACTION_KINDS, type SyncEntity } from '@money-tracker/shared';
 
 /**
  * A synced record (spec "Data model"): a device-made UUID `_id` (ADR-0006), the
@@ -93,12 +93,15 @@ export const KidTransaction = model(
   'KidTransaction',
   syncedSchema({
     kidProfileId: { type: String, required: true },
-    kind: { type: String, enum: ['topUp'], required: true },
+    kind: { type: String, enum: KID_TRANSACTION_KINDS, required: true },
     amount: { type: Number, required: true },
     splits: {
       type: [new Schema({ jarId: { type: String, required: true }, amount: { type: Number, required: true } }, { _id: false })],
       default: [],
     },
+    // Top-ups stored before ticket 13 have neither; they read back as null.
+    jarId: { type: String, default: null },
+    toJarId: { type: String, default: null },
     date: { type: String, required: true },
     note: { type: String, default: null },
   }),
