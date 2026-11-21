@@ -48,3 +48,34 @@ After the fixes: typecheck + `npm test` green → `git push origin mvp` (user as
 21. **Minimum-Category rule across devices:** stays device-side. If sync leaves only Other, the Categories screen shows a gentle "add a category" prompt.
 22. Fix ticket 14's checklist wording: a Kid session can read its own Top-ups and Jar Transfers; it can't write them or read other kids'.
 23. **Elevated Kid-Mode session:** limit its pushes to Kid Wallet entities (Kid Profiles, Jars, Kid Transactions). No Personal Transactions or Categories.
+
+## Applied
+
+On branch `fix/code-review` (2026-11-21). Checks: `npm run typecheck` and `npm test` pass in every workspace (shared 284, api 166, mobile 382), and `npx expo export --platform android` bundles. `mvp` had no new commits to merge.
+
+1. Done. After sign-in, an onboarded Account with a Parent PIN sees "Whose phone is this? [Mine] [For a kid]" (`app/whose-phone.tsx`, rule in `src/kid/whosePhone.ts`). Ticket 14's setup screens moved from the PIN-gated `/parent/kid-device` to `/kid-device` (with its own "Create a new kid" step), so this path asks for the PIN once. The Parent Area button still opens them; that path asks at the gate and again at the confirm step, as before.
+2. Done. The Category edit screen hides the keypad while the system keyboard is open; tapping the budget closes the keyboard.
+3. Done. `changeAccountSettings` returns `not_ready` and writes nothing until the device holds the Account settings; Settings shows a short notice.
+4. Done. `GlyphName` takes only `app:` names, `DirectionalIcon` is deleted, and `@expo/vector-icons` is out of `apps/mobile/package.json`.
+5. Done, with a new reason. Ticket 15 only wiped Kid-Mode devices, and wiping a Personal device on any 401 would break spec story 5 (keep data after an expired sign-in). So the server now answers 401 `account_deleted` when a token's Account no longer exists (calls and refresh), and the app wipes and returns to sign-in on that reason only.
+6. Done. Archive is hidden on the kid wallet screen on a Kid-Mode phone.
+7. Done. The sync engine holds back everything but Kid Expenses while a Kid-Mode phone syncs as its Kid Session (`kidSessionHoldsBack`). Those entries stay queued and go out on the next unlock.
+8. Done. Chip order counts a deleted Category's Expenses as uses of Other.
+9. Done. Sign out uses the `danger` button (Danger tint fill, red text).
+10. (superseded) Skipped.
+10. (Learn illustrations) Done. The nine `-dark` drawings are registered, and Learn shows them in dark mode, falling back to the light drawing.
+11. Done. Remaining = Expected Income − Spending in `monthFigures`, the tests, the glossary, the spec (stories 24 and 30, home-screen rule) and the design note.
+12. Done. ADR-0006 is amended.
+13. Done.
+14. Done. The glossary's Kid Expense entry is updated.
+15. Done. The parent screens say Transfer / Jar transfer (EN) and تحويل (AR), with keys `kid.transfer.*` and route `parent/kids/[id]/transfer`. The kid's neutral "10 moved to Save" history line is unchanged (design flaw 4). `evaluateAllocation` is now `evaluateNonNegativeAmount`, and `AmountEntry.allocation` is now `nonNegative`.
+16. Done. Account deletion uses auth's `requestCode`/`useCode` with a `deleteAccount` purpose. One-time codes are now kept per email and purpose, and the purpose is part of the hash, so a PIN-reset or deletion code never signs in. The `AccountDeletionCode` collection is gone, and the server runs `SignInCode.syncIndexes()` at start to replace the old unique `email` index. One shared `secondsUntil`, shared route validators in `routes/fields.ts`, and `sync/sha256.ts` is replaced by `@noble/hashes` (same IDs).
+17. Done. `ScopeErrorReason`/`ScopeErrorData`. `ids.ts` takes `Month` (an alias of string, so this is documentation only).
+18. Done. A copied plan's edit time is `copiedPlanEditTime(sourceMonth)`, a small number per source Month, so the copy from the newer source wins and a real edit still beats any copy. The copy also writes 0 for every live Category it leaves out, so an older copy can't bring back an Archived Category's budget. Budgets of deleted Categories that come back this way are ignored by `categoryBudgetsQuery`, as before.
+19. Done. `spendableFrom` lets an edit keep what it already took and checks only an increase.
+20. Done. Sync checks the Account before it starts and before each write. The check and the write aren't atomic, so a millisecond window remains, much smaller than before.
+21. Done. The Categories screen shows a notice when only Other is active.
+22. Done.
+23. Done. An elevated Kid-Mode session may push only Kid Profiles, Jars and Kid Transactions (other entities get 403 `kid_session`).
+
+Human follow-up: deploy the API together with the app (`account_deleted`, per-purpose codes and the index change, the elevated-scope rule). No new native modules. Check by hand: the "Whose phone is this?" flow in EN/AR, the Category edit keyboard, the Learn dark drawings, and the Transfer wording in RTL.
