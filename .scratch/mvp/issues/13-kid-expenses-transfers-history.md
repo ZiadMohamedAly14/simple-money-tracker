@@ -4,7 +4,7 @@
 
 **Blocked by:** 12 (Kid Profiles, Jars and Top-ups).
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] Three-tap Kid Expense with Jar chips. It's blocked with a kind, bilingual message when the Jar can't cover it.
 - [x] Kids can edit and delete their own Kid Expenses.
