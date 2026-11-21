@@ -4,7 +4,7 @@
 
 **Blocked by:** 05 (Sync tracer bullet).
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] Onboarding asks for purpose (personal or kid; the kid branch can stay a stub until 12), currency and Expected Income, then marks onboarding complete on the server.
 - [x] Default Categories are created with translated names and a budget of 0: Housing, Food & Groceries, Transport, Bills & Utilities, Health, Shopping, Entertainment, Kids, Other.
