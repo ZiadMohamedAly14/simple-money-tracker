@@ -39,6 +39,8 @@ export interface AuthContext {
   accountId: string;
   sessionId: string;
   scope: SessionScope;
+  /** The one Kid Profile a Kid Session covers (ADR-0002); null for a full session. */
+  kidProfileId: string | null;
 }
 
 /** 401 with a reason the app acts on: `token_invalid` = refresh and retry; `session_ended` = sign in again. */
@@ -72,6 +74,22 @@ export function createTokenService(env: Pick<Env, 'jwtAccessSecret' | 'jwtRefres
     });
   }
 
+  async function start(
+    accountId: string,
+    fields: { scope: SessionScope; kidProfileId: string | null; deviceLabel: string | null },
+  ): Promise<IssuedTokens> {
+    const sessionId = new Types.ObjectId();
+    const refreshToken = signRefresh(accountId, sessionId.toString());
+    await Session.create({
+      _id: sessionId,
+      accountId,
+      ...fields,
+      refreshTokenHash: hashRefreshToken(refreshToken),
+      expiresAt: refreshExpiry(),
+    });
+    return { accessToken: signAccess(accountId, sessionId.toString(), fields.scope), refreshToken };
+  }
+
   const refreshExpiry = (): Date => new Date(now().getTime() + REFRESH_TOKEN_TTL_SECONDS * 1000);
 
   /** Checks signature, expiry (against the injected clock) and the `typ` marker. */
@@ -99,9 +117,18 @@ export function createTokenService(env: Pick<Env, 'jwtAccessSecret' | 'jwtRefres
     async authenticate(accessToken: string): Promise<AuthContext> {
       const claims = verify<AccessTokenClaims>(accessToken, env.jwtAccessSecret, 'access');
       if (!claims || !Types.ObjectId.isValid(claims.sid)) throw authFailure('token_invalid');
-      const live = await Session.exists({ _id: claims.sid, accountId: claims.sub, expiresAt: { $gt: now() } });
+      // The scope comes from the stored Session, not the token, so it can't be widened by a token claim.
+      const live = await Session.findOne({ _id: claims.sid, accountId: claims.sub, expiresAt: { $gt: now() } })
+        .select({ scope: 1, kidProfileId: 1 })
+        .lean();
       if (!live) throw authFailure('session_ended');
-      return { accountId: claims.sub, sessionId: claims.sid, scope: claims.scope };
+      if (live.scope === 'kid' && !live.kidProfileId) throw authFailure('session_ended');
+      return {
+        accountId: claims.sub,
+        sessionId: claims.sid,
+        scope: live.scope,
+        kidProfileId: live.scope === 'kid' ? live.kidProfileId! : null,
+      };
     },
 
     /**
@@ -138,18 +165,13 @@ export function createTokenService(env: Pick<Env, 'jwtAccessSecret' | 'jwtRefres
     },
 
     /** Starts a new full-scope Session for the Account and returns its first token pair. */
-    async startSession(accountId: string, deviceLabel: string | null): Promise<IssuedTokens> {
-      const sessionId = new Types.ObjectId();
-      const refreshToken = signRefresh(accountId, sessionId.toString());
-      await Session.create({
-        _id: sessionId,
-        accountId,
-        scope: 'full',
-        deviceLabel,
-        refreshTokenHash: hashRefreshToken(refreshToken),
-        expiresAt: refreshExpiry(),
-      });
-      return { accessToken: signAccess(accountId, sessionId.toString(), 'full'), refreshToken };
+    startSession(accountId: string, deviceLabel: string | null): Promise<IssuedTokens> {
+      return start(accountId, { scope: 'full', kidProfileId: null, deviceLabel });
+    },
+
+    /** Starts a Kid Session limited to one Kid Profile (ADR-0002) and returns its first token pair. */
+    startKidSession(accountId: string, kidProfileId: string, deviceLabel: string | null): Promise<IssuedTokens> {
+      return start(accountId, { scope: 'kid', kidProfileId, deviceLabel });
     },
   };
 }

@@ -66,6 +66,8 @@ export function createParentPinService({ now }: Deps) {
   }
 
   return {
+    checkPin,
+
     async get(accountId: string): Promise<ParentPinData> {
       const account = await Account.findById(accountId).lean();
       return { pinHash: account?.parentPinHash ?? null };
