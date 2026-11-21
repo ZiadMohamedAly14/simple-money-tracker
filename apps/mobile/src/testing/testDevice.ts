@@ -88,7 +88,7 @@ import { leaveKidMode, setUpKidDevice, type KidDeviceChoice } from '@/kid/kidDev
 import { listKidDevices, revokeKidDevice } from '@/kid/kidDevices';
 import type { LocalDb } from '@/db/types';
 import { isSyncOverdue } from '@/sync/pendingSync';
-import { createSyncEngine, type SyncOutcome } from '@/sync/syncEngine';
+import { createSyncEngine, kidSessionHoldsBack, type SyncOutcome } from '@/sync/syncEngine';
 import { createSyncTriggers } from '@/sync/syncTriggers';
 import {
   createParentPinGate,
@@ -171,7 +171,12 @@ export async function createTestDevice(
   let auth = await startAuth(sessionStore);
   const request = (config: AxiosRequestConfig): Promise<AuthedResult> =>
     online ? auth.request(config) : Promise.resolve({ status: 'unreachable' });
-  const engine = createSyncEngine({ store, request, pullLimit });
+  const engine = createSyncEngine({
+    store,
+    request,
+    pullLimit,
+    holdBack: (change) => auth.kidProfileId() !== null && !auth.elevated() && kidSessionHoldsBack(change),
+  });
   // The Parent PIN gate: its store outlives app restarts, like SecureStore.
   const triggers = createSyncTriggers({ sync: engine.sync });
   const stopListening = autoSync ? store.onWrite(triggers.localWrite) : () => undefined;
