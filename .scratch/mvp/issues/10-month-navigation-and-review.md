@@ -4,7 +4,7 @@
 
 **Blocked by:** 09 (Categories and Category Budgets).
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] A Month switcher on the home screen goes to previous Months and back.
 - [x] A Month is created lazily, on first open or first Transaction, by copying the previous Month's Expected Income and Category Budgets (Seam C tests). Nothing carries over.
