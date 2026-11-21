@@ -76,6 +76,11 @@ describe('spendableFrom', () => {
     expect(spendableFrom({ [SAVE]: 0 }, SAVE, jarTransfer(2000, SAVE, SPEND))).toBe(2000);
   });
 
+  it('when editing on a Jar that went below zero, still allows up to the old amount (no increase), and nothing more', () => {
+    expect(spendableFrom({ [SPEND]: -3000 }, SPEND, kidExpense(4000, SPEND))).toBe(4000);
+    expect(spendableFrom({ [SAVE]: -500 }, SAVE, jarTransfer(2000, SAVE, SPEND))).toBe(2000);
+  });
+
   it('never counts a Top-up as money to give back', () => {
     expect(spendableFrom({ [SPEND]: 0 }, SPEND, { kind: 'topUp', amount: 500, jarId: null })).toBe(0);
   });
