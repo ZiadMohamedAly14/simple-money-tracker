@@ -13,6 +13,8 @@ import { createParentPinService } from '../services/parentPin.service';
 import { parentPinRoutes } from './parentPin.routes';
 import { createKidDeviceService } from '../services/kidDevice.service';
 import { kidDeviceRoutes } from './kidDevice.routes';
+import { createAccountDeletionService } from '../services/accountDeletion.service';
+import { accountDeletionRoutes } from './accountDeletion.routes';
 
 /** Mounts every feature router. Add new feature routers here. */
 export function apiRoutes(env: Env, { mailer, now }: AppDeps): Router {
@@ -22,10 +24,11 @@ export function apiRoutes(env: Env, { mailer, now }: AppDeps): Router {
   const router = Router();
   router.use('/health', healthRoutes());
   router.use('/auth', authRoutes(auth, tokens));
-  router.use('/sync', syncRoutes(createSyncService({ now }), tokens));
+  router.use('/sync', syncRoutes(createSyncService({ now, tokens }), tokens));
   router.use('/account/onboarding', onboardingRoutes(createOnboardingService({ now }), tokens));
   const pins = createParentPinService({ now });
   router.use('/account/pin', parentPinRoutes(pins, tokens));
   router.use('/kid-devices', kidDeviceRoutes(createKidDeviceService({ tokens, pins }), tokens));
+  router.use('/account/deletion', accountDeletionRoutes(createAccountDeletionService({ env, mailer, now }), tokens));
   return router;
 }

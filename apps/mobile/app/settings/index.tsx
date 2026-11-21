@@ -16,7 +16,7 @@ import { AppIcon, Button, Card, ListRow, Screen, ScreenHeader, SegmentedControl,
 /**
  * Settings (PDF pages 7–8): language (this device), digits and currency label
  * (Account settings, synced), Parent Area biometrics (this device, once a
- * Parent PIN exists) and sign-out.
+ * Parent PIN exists), sign-out and Delete account.
  */
 export default function SettingsRoute() {
   const status = useAuthStatus();
@@ -147,7 +147,17 @@ function SettingsScreen() {
         onPress={() => router.push('/health')}
       />
 
-      <Button label={t('session.signOut')} variant="danger" icon="app:exit" onPress={confirmSignOut} />
+      <Button label={t('session.signOut')} variant="secondary" icon="app:exit" onPress={confirmSignOut} />
+
+      {/* Deleting needs a live session (an emailed code is checked on the server). */}
+      {needsSignIn ? null : (
+        <Button
+          label={t('settings.deleteAccount')}
+          variant="danger"
+          icon="app:delete"
+          onPress={() => router.push('/settings/delete-account')}
+        />
+      )}
     </Screen>
   );
 }

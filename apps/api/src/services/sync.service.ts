@@ -19,7 +19,7 @@ import {
 } from '@money-tracker/shared';
 import { committedServerVersion, writeWithServerVersion } from '../models/counter.model';
 import { Category, Jar, SYNCED_MODELS } from '../models/synced.model';
-import type { AuthContext } from './token.service';
+import type { AuthContext, TokenService } from './token.service';
 import { ForbiddenError, ValidationError } from '../utils/AppError';
 import type { Clock } from '../utils/clock';
 
@@ -126,7 +126,7 @@ function toPulled(entity: SyncEntity, stored: StoredRecord): PulledChange {
  * every change after its cursor. Writes are stamped with the next value of an
  * atomic counter, and that server version is the cursor.
  */
-export function createSyncService({ now }: { now: Clock }) {
+export function createSyncService({ now, tokens }: { now: Clock; tokens: Pick<TokenService, 'endKidSessions'> }) {
   /** The Other Category exists for every Account (spec); created on the Account's first sync. */
   async function ensureOtherCategory(accountId: string): Promise<void> {
     const id = otherCategoryId(accountId);
@@ -294,6 +294,21 @@ export function createSyncService({ now }: { now: Clock }) {
     throw new Error(`Sync could not store ${entity} ${id}: other syncs kept changing it`);
   }
 
+  /**
+   * A Kid Profile that is archived or deleted once the push is stored signs
+   * out its Kid-Mode devices. The stored copy decides, so an archive that lost
+   * to a later edit signs no one out.
+   */
+  async function endSessionsOfRetiredKids(accountId: string, changes: PushedChange[]): Promise<void> {
+    const ids = changes.filter((c) => c.entity === 'kidProfile').map((c) => c.record.id);
+    if (ids.length === 0) return;
+    const retired = await modelOf('kidProfile')
+      .find({ _id: { $in: ids }, accountId, $or: [{ archivedAt: { $ne: null } }, { deletedAt: { $ne: null } }] })
+      .select({ _id: 1 })
+      .lean<{ _id: string }[]>();
+    for (const kid of retired) await tokens.endKidSessions(accountId, kid._id);
+  }
+
   /** Up to `limit` changes after `cursor`, oldest first. */
   async function pull(auth: AuthContext, cursor: number, limit: number): Promise<SyncResponseData> {
     // Stop below any version still being written, or a late commit would fall behind the cursor.
@@ -338,6 +353,8 @@ export function createSyncService({ now }: { now: Clock }) {
         const winner = await apply(auth.accountId, change);
         if (winner) lost.push(toPulled(change.entity, winner));
       }
+
+      await endSessionsOfRetiredKids(auth.accountId, changes);
 
       const pulled = await pull(auth, body.cursor, body.limit ?? MAX_PULLED_CHANGES);
       // A device whose push lost may already be past the winner's version; hand it over anyway.

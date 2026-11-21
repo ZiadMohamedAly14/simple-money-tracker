@@ -7,6 +7,7 @@ import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { createApiClient } from '@/api/client';
 import { requestCode, verifyCode } from '@/api/auth';
+import { createAccountDeletion } from '@/auth/accountDeletion';
 import { createAuthSession, type AuthSession, type AuthedResult } from '@/auth/authSession';
 import type { SessionStore, StoredSession } from '@/auth/tokenStore';
 import {
@@ -42,6 +43,8 @@ import {
   addKidExpense,
   addTopUp,
   archiveJar,
+  archiveKidProfile,
+  archivedKidProfilesQuery,
   completeKidOnboarding,
   createKidProfile,
   deleteJarTransfer,
@@ -54,6 +57,7 @@ import {
   kidProfilesQuery,
   kidTransactionsQuery,
   renameJar,
+  restoreKidProfile,
   suggestedSplitOf,
   topUpJarsOf,
   walletOf,
@@ -185,6 +189,7 @@ export async function createTestDevice(
   };
   let pinGate = startPinGate();
   const categoryActionsOf = categoryActions(store, db);
+  const accountDeletion = createAccountDeletion({ request, auth: { forget: () => auth.forget() } });
 
   return {
     store,
@@ -201,6 +206,11 @@ export async function createTestDevice(
     },
 
     signOut: () => auth.signOut(),
+    /** Whether the device is signed in, out, or waiting for a new code. */
+    authStatus: () => auth.status(),
+    /** Settings → Delete account: email a code, then confirm with it. */
+    requestDeletionCode: () => accountDeletion.requestCode('en'),
+    deleteAccount: (code: string) => accountDeletion.confirm(code),
 
     /** The app restarting with `account` in SecureStore (e.g. changed while the local DB was kept). */
     async restartAs(account: StoredSession['account']): Promise<void> {
@@ -279,6 +289,9 @@ export async function createTestDevice(
     onboardKid: (choices: KidOnboarding) => completeKidOnboarding(store, choices),
     createKidProfile: (kid: NewKidProfile) => createKidProfile(store, kid),
     kidProfiles: () => kidProfilesQuery(db).all(),
+    archiveKidProfile: (id: string) => archiveKidProfile(store, db, id),
+    restoreKidProfile: (id: string) => restoreKidProfile(store, db, id),
+    archivedKidProfiles: () => archivedKidProfilesQuery(db).all(),
     /** The default Jars' IDs for a Kid Profile. */
     jarIds: (kidProfileId: string) => {
       const accountId = store.accountId()!;

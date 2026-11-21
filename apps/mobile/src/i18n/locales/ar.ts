@@ -387,6 +387,15 @@ export const ar: Translations = {
       },
     },
   },
+  kidArchive: {
+    archive: 'أرشفة {{name}}',
+    archiveTitle: 'أرشفة {{name}}؟',
+    archiveBody:
+      'سيُخفى {{name}} من منطقة الوالدين. تبقى المحفظة وسجلّها محفوظين، ويمكنك استعادتهما لاحقًا. سيُسجَّل خروج هواتف الأطفال المُعدّة لـ{{name}} بعد مزامنة هذا الهاتف.',
+    archivedNotice: '{{name}} في الأرشيف. المحفظة وسجلّها محفوظان.',
+    restore: 'استعادة {{name}}',
+    archivedKids: 'الأطفال في الأرشيف',
+  },
   settings: {
     title: 'الإعدادات',
     numberingLabel: 'الأرقام',
@@ -401,6 +410,14 @@ export const ar: Translations = {
     signOutTitle: 'تسجيل الخروج؟',
     signOutBody: 'ستُحذف بياناتك من هذا الهاتف، وتبقى محفوظة في حسابك.',
     signOutPendingBody: 'بعض التغييرات لم تُزامَن بعد وستضيع. باقي بياناتك يبقى في حسابك.',
+    deleteAccount: 'حذف الحساب',
+    deleteTitle: 'حذف حسابك؟',
+    deleteBody:
+      'سيُحذف نهائيًا ميزانيتك ومحافظ أطفالك وكل سجلّها، على كل الأجهزة، وسيُسجَّل خروج هواتف الأطفال. لا يمكن التراجع عن ذلك.',
+    deleteSendCode: 'أرسل لي رمزًا',
+    deleteCodeIntro: 'أدخل الرمز الذي أرسلناه إلى {{email}} لحذف حسابك.',
+    deleteConfirm: 'احذف حسابي',
+    deleteOffline: 'حذف الحساب يحتاج إلى الإنترنت. اتصل وحاول مجددًا.',
   },
   language: {
     label: 'اللغة',

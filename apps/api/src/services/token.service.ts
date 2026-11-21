@@ -164,6 +164,11 @@ export function createTokenService(env: Pick<Env, 'jwtAccessSecret' | 'jwtRefres
       await Session.deleteOne({ _id: sessionId });
     },
 
+    /** Signs out every Kid-Mode device of a Kid Profile: deletes its Kid Sessions (archiving or deleting the profile). */
+    async endKidSessions(accountId: string, kidProfileId: string): Promise<void> {
+      await Session.deleteMany({ accountId, scope: 'kid', kidProfileId });
+    },
+
     /** Starts a new full-scope Session for the Account and returns its first token pair. */
     startSession(accountId: string, deviceLabel: string | null): Promise<IssuedTokens> {
       return start(accountId, { scope: 'full', kidProfileId: null, deviceLabel });

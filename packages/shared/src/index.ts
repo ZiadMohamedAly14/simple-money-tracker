@@ -13,6 +13,7 @@ export type {
   VerifyCodeBody,
   VerifyCodeData,
 } from './auth/signIn';
+export type { ConfirmDeletionBody, RequestDeletionCodeBody } from './account/deletion';
 export { ltrIsolate } from './i18n/bidi';
 export { formatCountdown } from './i18n/countdown';
 export type { CountdownOptions } from './i18n/countdown';
