@@ -95,3 +95,14 @@ export function evaluateAmountExpression(expression: string, currency: CurrencyC
   const amount = Number(minor);
   return Number.isSafeInteger(amount) ? { status: 'ok', amount } : { status: 'tooLarge' };
 }
+
+/**
+ * A keypad sum for an amount that may be 0 (Category Budget, Expected
+ * Income, a Top-up's Jar share): nothing typed is 0. Null while the result
+ * is negative, the sum is unfinished, or it divides by zero.
+ */
+export function evaluateAllocation(expression: string, currency: CurrencyCode): number | null {
+  if (expression === '') return 0;
+  const result = evaluateAmountExpression(expression, currency);
+  return result.status === 'ok' && result.amount >= 0 ? result.amount : null;
+}

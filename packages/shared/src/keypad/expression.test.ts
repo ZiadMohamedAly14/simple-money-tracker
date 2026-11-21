@@ -1,4 +1,23 @@
-import { evaluateAmountExpression } from './expression';
+import { evaluateAmountExpression, evaluateAllocation } from './expression';
+
+describe('evaluateAllocation (a budget, share or Expected Income: 0 or more)', () => {
+  it('counts nothing typed as 0', () => {
+    expect(evaluateAllocation('', 'EGP')).toBe(0);
+  });
+
+  it('takes the result of a sum, zero included', () => {
+    expect(evaluateAllocation('1200+300', 'EGP')).toBe(150000);
+    expect(evaluateAllocation('100/3', 'EGP')).toBe(3333);
+    expect(evaluateAllocation('5-5', 'EGP')).toBe(0);
+  });
+
+  it('has no amount while the sum is negative, unfinished, divides by zero or is too large', () => {
+    expect(evaluateAllocation('5-8', 'EGP')).toBeNull();
+    expect(evaluateAllocation('120+', 'EGP')).toBeNull();
+    expect(evaluateAllocation('120/0', 'EGP')).toBeNull();
+    expect(evaluateAllocation('9999999999999*9999', 'EGP')).toBeNull();
+  });
+});
 
 describe('evaluateAmountExpression', () => {
   const egp = 'EGP'; // 2 minor digits
