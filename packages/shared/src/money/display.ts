@@ -3,6 +3,7 @@
  * currency smaller beside it). Everything goes through Intl so digits,
  * grouping and sign position follow the language and numbering system.
  */
+import { ltrIsolate } from '../i18n/bidi';
 import { intlLocale, type Language, type NumberingSystem } from '../i18n/language';
 import { currencyMinorDigits, type MoneyFormatOptions } from './money';
 
@@ -47,4 +48,21 @@ export function formatAmountInput(value: string, { language, numberingSystem }: 
   const separator = plain.formatToParts(1.5).find((part) => part.type === 'decimal')?.value ?? '.';
   const fractionText = [...fraction].map((digit) => plain.format(Number(digit))).join('');
   return wholeText + separator + fractionText;
+}
+
+const OPERATOR_SYMBOL: Record<string, string> = { '+': '+', '-': '−', '*': '×', '/': '÷' };
+
+/**
+ * A keypad expression (applyKeypadKey in `expression` mode: "1200+35*2") as
+ * the amount line shows it: "1,200 + 35 × 2", numbers formatted like
+ * formatAmountInput. Always wrapped in a left-to-right isolate, so a sum
+ * reads the same way in Arabic.
+ */
+export function formatAmountExpression(expression: string, options: AmountInputOptions): string {
+  const parts = expression.split(/([+\-*/])/);
+  if (parts.length > 1 && parts.at(-1) === '') parts.pop(); // "120+" ends in an operator
+  const text = parts
+    .map((part, index) => (index % 2 === 1 ? OPERATOR_SYMBOL[part] : formatAmountInput(part, options)))
+    .join(' ');
+  return ltrIsolate(text);
 }

@@ -3,6 +3,8 @@
  * styling from scratch; see notes in each file for props.
  */
 export { AmountDisplay, ProgressBar, ProgressRow } from './Amount';
+export { AmountEntryDisplay, AmountKeypad, isSum, useAmountEntry, useTypedAmountText } from './AmountEntry';
+export type { AmountEntry, AmountEntryDisplayProps, AmountKeypadProps } from './AmountEntry';
 export type { AmountDisplayProps, ProgressBarProps, ProgressRowProps, ProgressTone } from './Amount';
 export { Button, Fab, IconButton } from './Button';
 export type { ButtonProps, ButtonVariant, FabProps, IconButtonProps } from './Button';
@@ -10,6 +12,8 @@ export { Card, Chip, ListRow, Notice, PendingSyncLabel, SegmentedControl } from 
 export type { CardProps, ChipProps, ListRowProps, NoticeProps, SegmentedControlProps, SegmentedOption } from './Card';
 export { AppIcon } from './AppIcon';
 export type { AppIconProps } from './AppIcon';
+export { DateField } from './DateField';
+export type { DateFieldProps } from './DateField';
 export type { AppIconName } from './appIcons';
 export { Glyph, IconCircle } from './icons';
 export type { AppIconRef, GlyphName, GlyphProps, IconCircleProps, IconCircleTone, IconName } from './icons';

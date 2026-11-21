@@ -63,3 +63,50 @@ describe('applyKeypadKey: amount', () => {
     expect(toMinorUnits(value, 'EGP')).toBe(999_999_999_999_900);
   });
 });
+
+describe('applyKeypadKey: adult amount with + − × ÷', () => {
+  const egp: KeypadMode = { kind: 'expression', fractionDigits: 2 };
+  const jpy: KeypadMode = { kind: 'expression', fractionDigits: 0 };
+
+  it('builds an expression from numbers and operators', () => {
+    expect(press(egp, ['1', '2', '0', 'plus', '3', '5'])).toBe('120+35');
+    expect(press(egp, ['3', '0', '0', 'divide', '3'])).toBe('300/3');
+    expect(press(egp, ['9', 'minus', '2', 'times', '4'])).toBe('9-2*4');
+  });
+
+  it('applies the amount rules to each number on its own', () => {
+    expect(press(egp, ['1', 'decimal', '2', '5', '9', 'plus', '0', '0', '7', 'decimal', '5'])).toBe('1.25+7.5');
+    expect(press(egp, ['5', 'plus', 'decimal', '5'])).toBe('5+0.5');
+    expect(press(jpy, ['5', 'decimal', 'plus', '2', 'decimal'])).toBe('5+2');
+  });
+
+  it('ignores an operator before any number (no leading minus)', () => {
+    expect(press(egp, ['minus', 'plus', '5'])).toBe('5');
+  });
+
+  it('replaces the last operator when another is pressed', () => {
+    expect(press(egp, ['5', 'plus', 'times', '3'])).toBe('5*3');
+  });
+
+  it('drops a dangling decimal point when an operator follows', () => {
+    expect(press(egp, ['1', '2', 'decimal', 'plus', '3'])).toBe('12+3');
+  });
+
+  it('backspace removes operators like any other character', () => {
+    expect(press(egp, ['1', 'plus', 'backspace', '2'])).toBe('12');
+  });
+
+  it('caps each number at a size that can be stored exactly', () => {
+    expect(press(egp, [...Array<KeypadKey>(20).fill('9'), 'plus', '1'])).toBe(`${'9'.repeat(13)}+1`);
+  });
+});
+
+describe('applyKeypadKey: operators off the adult keypad', () => {
+  it('a kid amount ignores operator keys', () => {
+    expect(press({ kind: 'amount', fractionDigits: 2 }, ['5', 'plus', '3', 'times', 'minus', 'divide'])).toBe('53');
+  });
+
+  it('a PIN or code ignores operator keys', () => {
+    expect(press({ kind: 'digits', length: 6 }, ['1', 'plus', '2', 'divide'])).toBe('12');
+  });
+});

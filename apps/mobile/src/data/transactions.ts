@@ -1,5 +1,5 @@
-import { and, asc, desc, eq, isNull } from 'drizzle-orm';
-import { monthOf, otherCategoryId } from '@money-tracker/shared';
+import { and, asc, desc, eq, isNull, like } from 'drizzle-orm';
+import { monthOf, otherCategoryId, type Month } from '@money-tracker/shared';
 import { openMonth } from './budget';
 import type { LocalStore } from '@/db/localStore';
 import { categories, transactions } from '@/db/schema';
@@ -33,6 +33,24 @@ export function recordExpense(store: LocalStore, db: LocalDb, { amount, date, no
   });
 }
 
+export interface NewIncome {
+  /** Positive, in minor units. */
+  amount: number;
+  /** Local calendar date `YYYY-MM-DD`. */
+  date: string;
+  note?: string | null;
+}
+
+/**
+ * Saves Income locally (no Category) and queues it for sync. Works offline.
+ * Like an Expense, a Month with no plan yet is created first. Returns its ID.
+ */
+export function recordIncome(store: LocalStore, db: LocalDb, { amount, date, note = null }: NewIncome): string {
+  if (!store.accountId()) throw new Error('No Account is signed in on this device');
+  openMonth(store, db, monthOf(date));
+  return store.create('transaction', { kind: 'income', amount, date, note, categoryId: null });
+}
+
 /** The parts of an Expense an adult can change. */
 export type ExpenseChanges = Partial<Pick<NewExpense, 'amount' | 'date' | 'note' | 'categoryId'>>;
 
@@ -47,8 +65,26 @@ export function editExpense(store: LocalStore, db: LocalDb, id: string, changes:
   return edited;
 }
 
-/** Deletes an Expense: it stays as a deletion marker so the deletion syncs (ADR-0001). */
-export function deleteExpense(store: LocalStore, id: string): boolean {
+/** The parts of an Income an adult can change. Income never has a Category. */
+export type IncomeChanges = Partial<Pick<NewIncome, 'amount' | 'date' | 'note'>>;
+
+/**
+ * Changes an Income locally and queues it for sync. A new date may move it
+ * into another Month, which is created first if it has no plan. False if it's
+ * gone (deleted, maybe on another device).
+ */
+export function editIncome(store: LocalStore, db: LocalDb, id: string, { amount, date, note }: IncomeChanges): boolean {
+  const changes: IncomeChanges = {};
+  if (amount !== undefined) changes.amount = amount;
+  if (date !== undefined) changes.date = date;
+  if (note !== undefined) changes.note = note;
+  const edited = store.update('transaction', id, changes);
+  if (edited && date) openMonth(store, db, monthOf(date));
+  return edited;
+}
+
+/** Deletes an Income or Expense: it stays as a deletion marker so the deletion syncs (ADR-0001). */
+export function deleteTransaction(store: LocalStore, id: string): boolean {
   return store.remove('transaction', id);
 }
 
@@ -59,6 +95,24 @@ export function expensesQuery(db: LocalDb) {
     .from(transactions)
     .where(and(eq(transactions.kind, 'expense'), isNull(transactions.deletedAt)))
     .orderBy(desc(transactions.date), desc(transactions.id));
+}
+
+/** Live-queryable: a Month's Transactions (Income and Expenses), newest date first, then newest recorded. */
+export function monthTransactionListQuery(db: LocalDb, month: Month) {
+  return db
+    .select()
+    .from(transactions)
+    .where(and(isNull(transactions.deletedAt), like(transactions.date, `${month}-%`)))
+    .orderBy(desc(transactions.date), desc(transactions.id));
+}
+
+/** Live-queryable: one Transaction, unless deleted (`.get()`, or `useLiveQuery` and take the first row). */
+export function transactionQuery(db: LocalDb, id: string) {
+  return db
+    .select()
+    .from(transactions)
+    .where(and(eq(transactions.id, id), isNull(transactions.deletedAt)))
+    .limit(1);
 }
 
 /** Live-queryable: Categories in display order. */

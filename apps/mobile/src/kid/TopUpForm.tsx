@@ -4,11 +4,11 @@ import { useTranslation } from 'react-i18next';
 import {
   applyKeypadKey,
   currencyMinorDigits,
-  formatAmountInput,
+  evaluateAllocation,
+  evaluateAmountExpression,
   formatMoneyParts,
   fromMinorUnits,
   toLocalDate,
-  toMinorUnits,
   topUpSplitProblem,
   type JarSplit,
   type KeypadKey,
@@ -18,7 +18,7 @@ import { useAccountSettings } from '@/data/useAccountSettings';
 import { localDb, localStore } from '@/db/appDatabase';
 import type { KidTransactionRow } from '@/db/schema';
 import { useLanguage } from '@/i18n/useLanguage';
-import { AmountDisplay, Button, Card, IconCircle, NumericKeypad, ProgressBar, Screen, Text } from '@/ui';
+import { AmountEntryDisplay, AmountKeypad, Button, Card, IconCircle, ProgressBar, Screen, Text, useTypedAmountText } from '@/ui';
 import { jarStyle, useKidWallet } from './useKidWallet';
 
 export interface TopUpFormProps {
@@ -40,6 +40,10 @@ type Target = 'total' | string;
  * split follows the suggestion (the last split, or all Spend) for the total.
  * Percentages are for display only; shares are whole minor units that must
  * add up exactly (design flaw 8), checked here and by the server.
+ *
+ * The keypad takes sums (`+ − × ÷`, ticket 08) for the total and each share.
+ * Every sum is evaluated to whole minor units first, so the split check and
+ * the suggestion only ever see results; Save waits while any sum is unfinished.
  */
 export function TopUpForm({ kidProfileId, editing, header, onSaved, footerExtra }: TopUpFormProps) {
   const { t } = useTranslation();
@@ -55,7 +59,9 @@ export function TopUpForm({ kidProfileId, editing, header, onSaved, footerExtra 
   );
   const [target, setTarget] = useState<Target>('total');
 
-  const total = toMinorUnits(totalTyped || '0', currency) ?? 0;
+  // Null while the typed sum is unfinished, negative or divides by zero.
+  const totalResult = evaluateAllocation(totalTyped, currency);
+  const total = totalResult ?? 0;
   // A Top-up being edited may still name a Jar archived since; keep showing it.
   const jars = useMemo(() => {
     const live = topUpJarsOf(jarRows);
@@ -66,21 +72,27 @@ export function TopUpForm({ kidProfileId, editing, header, onSaved, footerExtra 
 
   const others = transactions.filter((tx) => tx.id !== editing?.id);
   const suggestion = suggestedSplitOf(accountId, kidProfileId, jarRows, others, total);
-  const shares: Record<string, number> = sharesTyped
-    ? Object.fromEntries(Object.entries(sharesTyped).map(([id, text]) => [id, toMinorUnits(text || '0', currency) ?? 0]))
+  const shareResults: Record<string, number | null> | null = sharesTyped
+    ? Object.fromEntries(Object.entries(sharesTyped).map(([id, text]) => [id, evaluateAllocation(text, currency)]))
+    : null;
+  const sharesValid = !shareResults || Object.values(shareResults).every((amount) => amount !== null);
+  const shares: Record<string, number> = shareResults
+    ? Object.fromEntries(Object.entries(shareResults).map(([id, amount]) => [id, amount ?? 0]))
     : Object.fromEntries(suggestion.map((s) => [s.jarId, s.amount]));
   const splits: JarSplit[] = jars.map((jar) => ({ jarId: jar.id, amount: shares[jar.id] ?? 0 })).filter((s) => s.amount > 0);
   const sum = splits.reduce((acc, s) => acc + s.amount, 0);
+  const allValid = totalResult !== null && sharesValid;
   const problem = total > 0 ? topUpSplitProblem(total, splits) : 'empty';
+  const canSave = allValid && problem === null;
 
   const parts = (minor: number) => formatMoneyParts(minor, { language, currency, numberingSystem });
-  const typedNumber = (text: string) => formatAmountInput(text || '0', { language, numberingSystem });
+  const typedNumber = useTypedAmountText(numberingSystem);
   const jarName = (id: string) => jars.find((j) => j.id === id)?.name ?? '';
   const spendJar = suggestion.length === 1 ? suggestion[0]!.jarId : null;
   const hasLastSplit = others.some((tx) => tx.kind === 'topUp');
 
   function press(key: KeypadKey) {
-    const mode = { kind: 'amount', fractionDigits } as const;
+    const mode = { kind: 'expression', fractionDigits } as const;
     if (target === 'total') {
       setTotalTyped((current) => applyKeypadKey(current, key, mode));
       return;
@@ -91,7 +103,7 @@ export function TopUpForm({ kidProfileId, editing, header, onSaved, footerExtra 
   }
 
   function save() {
-    if (problem) return;
+    if (!canSave) return;
     const result = editing
       ? editTopUp(localStore, localDb, editing.id, { amount: total, splits })
       : addTopUp(localStore, { kidProfileId, amount: total, splits, date: toLocalDate(new Date()) });
@@ -99,7 +111,7 @@ export function TopUpForm({ kidProfileId, editing, header, onSaved, footerExtra 
   }
 
   let caption: { text: string; tone: 'muted' | 'negative' } | null = null;
-  if (sharesTyped && total > 0 && sum !== total) {
+  if (sharesTyped && allValid && total > 0 && sum !== total) {
     caption = { text: t('kid.topUp.mismatch', { sum: parts(sum).amount, total: parts(total).amount }), tone: 'negative' };
   } else if (!sharesTyped && total > 0) {
     caption = {
@@ -114,10 +126,10 @@ export function TopUpForm({ kidProfileId, editing, header, onSaved, footerExtra 
       scroll
       footer={
         <>
-          <NumericKeypad onKey={press} showDecimal={fractionDigits > 0} numberingSystem={numberingSystem} />
+          <AmountKeypad entry={{ press, showDecimal: fractionDigits > 0 }} numberingSystem={numberingSystem} />
           <Button
             label={editing ? t('kid.topUp.saveEdit') : t('kid.topUp.save', { amount: totalLabel.amount })}
-            disabled={problem !== null}
+            disabled={!canSave}
             onPress={save}
           />
           {footerExtra}
@@ -131,7 +143,11 @@ export function TopUpForm({ kidProfileId, editing, header, onSaved, footerExtra 
         accessibilityLabel={t('kid.topUp.amountLabel')}
         className="py-2"
       >
-        <AmountDisplay amount={typedNumber(totalTyped)} currency={totalLabel.currency} />
+        <AmountEntryDisplay
+          entry={{ typed: totalTyped, result: evaluateAmountExpression(totalTyped, currency) }}
+          currency={currency}
+          numberingSystem={numberingSystem}
+        />
       </Card>
 
       <View className="gap-1">
