@@ -1,3 +1,5 @@
+import { sha256Hex } from './sha256';
+
 /** `n` cryptographically random bytes. The device passes expo-crypto's; Node tests pass node:crypto's. */
 export type RandomBytes = (n: number) => Uint8Array;
 
@@ -32,7 +34,7 @@ export function isUuid(value: unknown): value is string {
 }
 
 /** Record kinds with one fixed ID per Account. Never renumber: the IDs are stored. */
-const FIXED_KIND = { otherCategory: '000001' } as const;
+const FIXED_KIND = { otherCategory: '000001', accountSettings: '000002' } as const;
 
 /**
  * A UUID (version 8, "custom") made from an Account's 24-hex ObjectId and a
@@ -51,4 +53,36 @@ function fixedId(accountId: string, kind: string): string {
  */
 export function otherCategoryId(accountId: string): string {
   return fixedId(accountId, FIXED_KIND.otherCategory);
+}
+
+/** The ID of an Account's settings record (currency, numbering system): one per Account. */
+export function accountSettingsId(accountId: string): string {
+  return fixedId(accountId, FIXED_KIND.accountSettings);
+}
+
+/**
+ * A UUID (version 8) from the SHA-256 of the given parts. Two devices that
+ * create "the same" record offline (the same Month, say) derive the same ID,
+ * so after sync there is one record, not two (spec, Data model).
+ */
+function derivedId(kind: string, accountId: string, ...parts: string[]): string {
+  if (!/^[0-9a-f]{24}$/.test(accountId)) throw new Error(`Not an Account id: ${accountId}`);
+  const h = sha256Hex([kind, accountId, ...parts].join('\n'));
+  const variant = ((parseInt(h[16]!, 16) & 0x3) | 0x8).toString(16);
+  return hyphenate(`${h.slice(0, 12)}8${h.slice(13, 16)}${variant}${h.slice(17, 32)}`);
+}
+
+/** The ID of an Account's plan for a Month (`YYYY-MM`). */
+export function monthPlanId(accountId: string, month: string): string {
+  return derivedId('monthPlan', accountId, month);
+}
+
+/** The ID of an Account's budget for one Category in one Month. */
+export function categoryBudgetId(accountId: string, month: string, categoryId: string): string {
+  return derivedId('categoryBudget', accountId, month, categoryId);
+}
+
+/** The ID of one of the default Categories made at onboarding (`key` from `DEFAULT_CATEGORY_KEYS`). */
+export function defaultCategoryId(accountId: string, key: string): string {
+  return derivedId('defaultCategory', accountId, key);
 }

@@ -1,3 +1,4 @@
+import type { NumberingSystem } from '../i18n/language';
 import { isUuid } from './ids';
 
 /**
@@ -7,7 +8,7 @@ import { isUuid } from './ids';
  * its name to `SYNC_ENTITIES` (in dependency order: referenced entities first),
  * and a field parser to `FIELD_PARSERS`.
  */
-export const SYNC_ENTITIES = ['category', 'transaction'] as const;
+export const SYNC_ENTITIES = ['accountSettings', 'category', 'monthPlan', 'categoryBudget', 'transaction'] as const;
 export type SyncEntity = (typeof SYNC_ENTITIES)[number];
 
 /** Set by the device. Times are Unix milliseconds from the device's clock. */
@@ -27,6 +28,13 @@ export interface ServerMeta {
   serverVersion: number;
 }
 
+/** One per Account, ID `accountSettingsId(accountId)`. Kid Wallets use the same currency. */
+export interface AccountSettingsFields {
+  /** ISO 4217 code. Changing it relabels amounts; nothing is converted (spec). */
+  currency: string;
+  numberingSystem: NumberingSystem;
+}
+
 export interface CategoryFields {
   name: string;
   order: number;
@@ -37,6 +45,22 @@ export interface CategoryFields {
 
 /** The Other Category's fields. Its ID is `otherCategoryId(accountId)`; it sorts last. */
 export const OTHER_CATEGORY: CategoryFields = { name: 'Other', order: 9999, isOther: true, archivedAt: null };
+
+/** One per Account and Month, ID `monthPlanId(accountId, month)`, so two offline devices make one record. */
+export interface MonthPlanFields {
+  /** `YYYY-MM`. */
+  month: string;
+  /** In minor units; 0 or more. */
+  expectedIncome: number;
+}
+
+/** One per Account, Month and Category, ID `categoryBudgetId(accountId, month, categoryId)`. No record means 0. */
+export interface CategoryBudgetFields {
+  month: string;
+  categoryId: string;
+  /** In minor units; 0 or more. */
+  amount: number;
+}
 
 export type TransactionKind = 'income' | 'expense';
 
@@ -52,7 +76,10 @@ export interface TransactionFields {
 }
 
 export interface SyncFieldsByEntity {
+  accountSettings: AccountSettingsFields;
   category: CategoryFields;
+  monthPlan: MonthPlanFields;
+  categoryBudget: CategoryBudgetFields;
   transaction: TransactionFields;
 }
 
@@ -124,6 +151,25 @@ class FieldReader {
       : this.fail(field, 'must be a positive whole number of minor units', 0);
   }
 
+  nonNegativeAmount(field: string): number {
+    const value = this.source[field];
+    return Number.isSafeInteger(value) && (value as number) >= 0
+      ? (value as number)
+      : this.fail(field, 'must be a whole number of minor units, 0 or more', 0);
+  }
+
+  month(field: string): string {
+    const value = this.source[field];
+    return typeof value === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(value)
+      ? value
+      : this.fail(field, 'must be a Month YYYY-MM', '');
+  }
+
+  currency(field: string): string {
+    const value = this.source[field];
+    return typeof value === 'string' && /^[A-Z]{3}$/.test(value) ? value : this.fail(field, 'must be an ISO 4217 code', '');
+  }
+
   text(field: string, maxLength: number): string {
     const value = this.source[field];
     return typeof value === 'string' && value.trim().length > 0 && value.length <= maxLength
@@ -167,6 +213,16 @@ function isLocalDate(value: unknown): value is string {
 }
 
 const FIELD_PARSERS: { [E in SyncEntity]: (read: FieldReader) => SyncFieldsByEntity[E] } = {
+  accountSettings: (read) => ({
+    currency: read.currency('currency'),
+    numberingSystem: read.oneOf('numberingSystem', ['western', 'arabic-indic'] as const),
+  }),
+  monthPlan: (read) => ({ month: read.month('month'), expectedIncome: read.nonNegativeAmount('expectedIncome') }),
+  categoryBudget: (read) => ({
+    month: read.month('month'),
+    categoryId: read.uuid('categoryId'),
+    amount: read.nonNegativeAmount('amount'),
+  }),
   category: (read) => ({
     name: read.text('name', 60),
     order: read.integer('order'),
