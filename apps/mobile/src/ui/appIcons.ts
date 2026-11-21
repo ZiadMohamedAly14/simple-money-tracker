@@ -36,14 +36,23 @@ import Kids from '../../assets/icon/kids.svg';
 import Language from '../../assets/icon/language.svg';
 import Learn from '../../assets/icon/learn.svg';
 import LearnIllustrationBudget from '../../assets/icon/learn-illustration-budget.svg';
+import LearnIllustrationBudgetDark from '../../assets/icon/learn-illustration-budget-dark.svg';
 import LearnIllustrationComparePrices from '../../assets/icon/learn-illustration-compare-prices.svg';
+import LearnIllustrationComparePricesDark from '../../assets/icon/learn-illustration-compare-prices-dark.svg';
 import LearnIllustrationEarning from '../../assets/icon/learn-illustration-earning.svg';
+import LearnIllustrationEarningDark from '../../assets/icon/learn-illustration-earning-dark.svg';
 import LearnIllustrationGiving from '../../assets/icon/learn-illustration-giving.svg';
+import LearnIllustrationGivingDark from '../../assets/icon/learn-illustration-giving-dark.svg';
 import LearnIllustrationJarCoins from '../../assets/icon/learn-illustration-jar-coins.svg';
+import LearnIllustrationJarCoinsDark from '../../assets/icon/learn-illustration-jar-coins-dark.svg';
 import LearnIllustrationNeedsWants from '../../assets/icon/learn-illustration-needs-wants.svg';
+import LearnIllustrationNeedsWantsDark from '../../assets/icon/learn-illustration-needs-wants-dark.svg';
 import LearnIllustrationPatience from '../../assets/icon/learn-illustration-patience.svg';
+import LearnIllustrationPatienceDark from '../../assets/icon/learn-illustration-patience-dark.svg';
 import LearnIllustrationSavingGoal from '../../assets/icon/learn-illustration-saving-goal.svg';
+import LearnIllustrationSavingGoalDark from '../../assets/icon/learn-illustration-saving-goal-dark.svg';
 import LearnIllustrationSpendingChoices from '../../assets/icon/learn-illustration-spending-choices.svg';
+import LearnIllustrationSpendingChoicesDark from '../../assets/icon/learn-illustration-spending-choices-dark.svg';
 import LockPin from '../../assets/icon/lock-pin.svg';
 import MonthlyBills from '../../assets/icon/monthly-bills.svg';
 import More from '../../assets/icon/more.svg';
@@ -110,14 +119,23 @@ export const APP_ICONS = {
   language: Language,
   learn: Learn,
   'learn-illustration-budget': LearnIllustrationBudget,
+  'learn-illustration-budget-dark': LearnIllustrationBudgetDark,
   'learn-illustration-compare-prices': LearnIllustrationComparePrices,
+  'learn-illustration-compare-prices-dark': LearnIllustrationComparePricesDark,
   'learn-illustration-earning': LearnIllustrationEarning,
+  'learn-illustration-earning-dark': LearnIllustrationEarningDark,
   'learn-illustration-giving': LearnIllustrationGiving,
+  'learn-illustration-giving-dark': LearnIllustrationGivingDark,
   'learn-illustration-jar-coins': LearnIllustrationJarCoins,
+  'learn-illustration-jar-coins-dark': LearnIllustrationJarCoinsDark,
   'learn-illustration-needs-wants': LearnIllustrationNeedsWants,
+  'learn-illustration-needs-wants-dark': LearnIllustrationNeedsWantsDark,
   'learn-illustration-patience': LearnIllustrationPatience,
+  'learn-illustration-patience-dark': LearnIllustrationPatienceDark,
   'learn-illustration-saving-goal': LearnIllustrationSavingGoal,
+  'learn-illustration-saving-goal-dark': LearnIllustrationSavingGoalDark,
   'learn-illustration-spending-choices': LearnIllustrationSpendingChoices,
+  'learn-illustration-spending-choices-dark': LearnIllustrationSpendingChoicesDark,
   'lock-pin': LockPin,
   'monthly-bills': MonthlyBills,
   more: More,
