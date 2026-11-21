@@ -18,4 +18,7 @@ The fix agent applies these on top of whatever `/code-review` finds.
 
 8. **Chip order after a Category delete** (ticket 21 gap): "most recently used" Category chip order should credit a deleted Category's Expenses to Other, consistent with display-time re-filing.
 
+9. **Sign out uses the Danger tint fill** (ticket 23, from the user's palette: "Danger tint: Delete and sign-out button fill").
+10. **Learn illustrations in dark mode** (ticket 23): only if the user agrees, put a light backdrop behind `learn-illustration-*` drawings in dark mode so their dark outlines stay visible.
+
 After the fixes: typecheck + `npm test` green → `git push origin mvp` (user asked: push after 15, 18 and the code review). Then ticket 19.

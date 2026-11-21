@@ -4,7 +4,7 @@
 
 **Blocked by:** 20 (Design foundation), 17 (Settings).
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 ## Palettes
 
