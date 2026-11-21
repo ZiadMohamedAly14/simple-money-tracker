@@ -4,7 +4,7 @@
 
 **Blocked by:** 07 (Month overview), 10 (Month navigation).
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] One bold card in the theme's primary green with rounded corners, showing:
   - a "Remaining" label with the `app:wallet` icon;
