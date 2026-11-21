@@ -158,7 +158,7 @@ export function Notice({ text, icon }: NoticeProps) {
 
 /**
  * "Pending sync": small muted text, no icon. Callers decide when to show it
- * (only after changes have waited more than a minute; ticket 06).
+ * (only after changes have waited more than a minute: `useSyncOverdue`).
  */
 export function PendingSyncLabel({ align = 'center' }: { align?: 'start' | 'center' | 'end' }) {
   const { t } = useTranslation();

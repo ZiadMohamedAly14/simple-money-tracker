@@ -22,7 +22,9 @@ import { createLocalStore } from '@/db/localStore';
 import { migrate } from '@/db/migrations';
 import { schema } from '@/db/schema';
 import type { LocalDb } from '@/db/types';
+import { isSyncOverdue } from '@/sync/pendingSync';
 import { createSyncEngine, type SyncOutcome } from '@/sync/syncEngine';
+import { createSyncTriggers } from '@/sync/syncTriggers';
 import type { TestServer } from './testServer';
 
 /** Holds the session in memory, the way SecureStore would on a device. */
@@ -55,9 +57,14 @@ export interface TestDeviceOptions {
   now?: () => number;
   /** Page size the device asks for when pulling; the server's default otherwise. */
   pullLimit?: number;
+  /** Sync after local writes on its own, the way the app does (real timers). */
+  autoSync?: boolean;
 }
 
-export async function createTestDevice(server: TestServer, { now = Date.now, pullLimit }: TestDeviceOptions = {}) {
+export async function createTestDevice(
+  server: TestServer,
+  { now = Date.now, pullLimit, autoSync = false }: TestDeviceOptions = {},
+) {
   const db: LocalDb = drizzle(new Database(':memory:'), { schema });
   migrate(db);
   const store = createLocalStore({ db, now, randomBytes: (n) => new Uint8Array(randomBytes(n)) });
@@ -77,6 +84,8 @@ export async function createTestDevice(server: TestServer, { now = Date.now, pul
     request: (config): Promise<AuthedResult> =>
       online ? auth.request(config) : Promise.resolve({ status: 'unreachable' }),
   });
+  const triggers = createSyncTriggers({ sync: engine.sync });
+  const stopListening = autoSync ? store.onWrite(triggers.localWrite) : () => undefined;
 
   return {
     store,
@@ -106,6 +115,12 @@ export async function createTestDevice(server: TestServer, { now = Date.now, pul
       online = true;
     },
     sync: (): Promise<SyncOutcome> => engine.sync(),
+    stopAutoSync: () => {
+      stopListening();
+      triggers.stop();
+    },
+    /** Whether the app would show the pending-sync indicator now. */
+    syncOverdue: () => isSyncOverdue(store.oldestPendingAt(), now()),
 
     recordExpense: (expense: NewExpense) => recordExpense(store, expense),
     editExpense: (id: string, changes: ExpenseChanges) => editExpense(store, id, changes),

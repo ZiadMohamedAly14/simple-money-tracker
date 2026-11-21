@@ -1,4 +1,4 @@
-import { and, count, countDistinct, eq, inArray, isNull, lte, sql } from 'drizzle-orm';
+import { and, count, countDistinct, eq, inArray, isNull, lte, min, sql } from 'drizzle-orm';
 import type { SQLiteColumn, SQLiteTable } from 'drizzle-orm/sqlite-core';
 import {
   OTHER_CATEGORY,
@@ -78,20 +78,25 @@ export function createLocalStore({ db, now, randomBytes }: LocalStoreDeps) {
     upsertRow(tx, 'category', { id, accountId, ...OTHER_CATEGORY, updatedAt: 0, deletedAt: null, serverVersion: 0 });
   }
 
-  function edit(entity: SyncEntity, id: string, changes: object): boolean {
+  const writeListeners = new Set<() => void>();
+  const announceWrite = (): void => writeListeners.forEach((listener) => listener());
+
+  function edit(entity: SyncEntity, id: string, changes: (updatedAt: number) => object): boolean {
     const updatedAt = now();
     const table = tableOf(entity);
-    return db.transaction((tx) => {
+    const edited = db.transaction((tx) => {
       const live = tx
         .select({ id: table.id })
         .from(table)
         .where(and(eq(table.id, id), isNull(table.deletedAt)))
         .get();
       if (!live) return false;
-      tx.update(table).set({ ...changes, updatedAt } as never).where(eq(table.id, id)).run();
+      tx.update(table).set({ ...changes(updatedAt), updatedAt } as never).where(eq(table.id, id)).run();
       tx.insert(outbox).values({ entity, recordId: id, queuedAt: updatedAt }).run();
       return true;
     });
+    if (edited) announceWrite();
+    return edited;
   }
 
   function requireAccount(tx: Db = db): string {
@@ -133,6 +138,7 @@ export function createLocalStore({ db, now, randomBytes }: LocalStoreDeps) {
         upsertRow(tx, entity, { ...fields, id, accountId, updatedAt, deletedAt: null, serverVersion: 0 });
         tx.insert(outbox).values({ entity, recordId: id, queuedAt: updatedAt }).run();
       });
+      announceWrite();
       return id;
     },
 
@@ -141,12 +147,23 @@ export function createLocalStore({ db, now, randomBytes }: LocalStoreDeps) {
      * changes nothing) if the record doesn't exist or has been deleted.
      */
     update<E extends SyncEntity>(entity: E, id: string, changes: Partial<SyncFieldsByEntity[E]>): boolean {
-      return edit(entity, id, changes);
+      return edit(entity, id, () => changes);
     },
 
     /** Marks a record deleted (ADR-0001) and queues it for sync. False if it doesn't exist or is already deleted. */
     remove(entity: SyncEntity, id: string): boolean {
-      return edit(entity, id, { deletedAt: now() });
+      return edit(entity, id, (updatedAt) => ({ deletedAt: updatedAt }));
+    },
+
+    /** Calls `listener` after each local write (create, update, remove) commits. Returns an unsubscribe. */
+    onWrite(listener: () => void): () => void {
+      writeListeners.add(listener);
+      return () => writeListeners.delete(listener);
+    },
+
+    /** When the oldest change not yet on the server was made (device ms), or null if none is waiting. */
+    oldestPendingAt(): number | null {
+      return db.select({ at: min(outbox.queuedAt) }).from(outbox).get()?.at ?? null;
     },
 
     /** The server version this device has pulled up to (0 = never synced). */

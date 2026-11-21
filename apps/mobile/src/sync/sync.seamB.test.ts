@@ -131,6 +131,44 @@ describe('sync between devices (Seam B)', () => {
     });
   });
 
+  describe('sync on its own', () => {
+    it('a write reaches the other device about 2 seconds later without anyone pressing sync', async () => {
+      const phone = await createTestDevice(server, { autoSync: true });
+      const tablet = await createTestDevice(server);
+      await phone.signIn('sara@example.com');
+      await tablet.signIn('sara@example.com');
+
+      phone.recordExpense({ amount: 500, date: '2026-03-02' });
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      expect(phone.pendingChanges()).toBe(1);
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      expect(phone.pendingChanges()).toBe(0);
+      await tablet.sync();
+      expect(tablet.expenses()).toHaveLength(1);
+      phone.stopAutoSync();
+    });
+
+    it('shows the pending-sync indicator only once changes have waited more than a minute', async () => {
+      const clock = createDeviceClock();
+      const phone = await createTestDevice(server, { now: clock.now });
+      await phone.signIn('sara@example.com');
+      expect(phone.syncOverdue()).toBe(false);
+
+      phone.goOffline();
+      phone.recordExpense({ amount: 500, date: '2026-03-02' });
+      await phone.sync();
+      clock.advance(60_000);
+      expect(phone.syncOverdue()).toBe(false);
+      clock.advance(1);
+      expect(phone.syncOverdue()).toBe(true);
+
+      phone.goOnline();
+      await phone.sync();
+      expect(phone.syncOverdue()).toBe(false);
+    });
+  });
+
   describe('messy cases (ADR-0001)', () => {
     /** Two devices of one Account with a lunch Expense both already hold, on clocks we control. */
     async function twoDevicesWithLunch() {
