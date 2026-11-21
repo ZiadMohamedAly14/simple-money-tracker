@@ -28,7 +28,13 @@
       ],
       "expo-secure-store",
       "expo-font",
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow Mizan to use Face ID to open the Parent Area."
+        }
+      ]
     ],
     "extra": {
       "router": {

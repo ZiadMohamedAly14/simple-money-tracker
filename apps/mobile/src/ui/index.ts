@@ -10,8 +10,8 @@ export { Card, Chip, ListRow, Notice, PendingSyncLabel, SegmentedControl } from 
 export type { CardProps, ChipProps, ListRowProps, NoticeProps, SegmentedControlProps, SegmentedOption } from './Card';
 export { IconCircle } from './icons';
 export type { IconCircleProps, IconCircleTone, IconName } from './icons';
-export { CodeBoxes, NumericKeypad } from './Keypad';
-export type { CodeBoxesProps, NumericKeypadProps } from './Keypad';
+export { CodeBoxes, NumericKeypad, PinDots } from './Keypad';
+export type { CodeBoxesProps, NumericKeypadProps, PinDotsProps } from './Keypad';
 export { Screen, ScreenHeader } from './Screen';
 export type { ScreenHeaderProps, ScreenProps } from './Screen';
 export { Text, TextField } from './Text';

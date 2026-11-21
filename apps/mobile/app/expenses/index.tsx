@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Redirect, router } from 'expo-router';
@@ -11,13 +11,15 @@ import { useAccountSettings } from '@/data/useAccountSettings';
 import { localDb } from '@/db/appDatabase';
 import { useFormatMoney } from '@/i18n/useFormatMoney';
 import { useLanguage } from '@/i18n/useLanguage';
-import { syncEngine } from '@/sync/appSync';
+import { syncTriggers } from '@/sync/appSync';
+import { useSyncOverdue } from '@/sync/useSyncOverdue';
 import { useTheme } from '@/theme/ThemeProvider';
-import { Fab, ListRow, ScreenHeader, Text } from '@/ui';
+import { Fab, ListRow, PendingSyncLabel, ScreenHeader, Text } from '@/ui';
 
 /**
  * Sync tracer bullet (ticket 05): the Expenses on this device, read live from
- * the local database. Pull to sync. The full Transactions screen is ticket 08.
+ * the local database. Pull to sync; "Pending sync" shows once changes have
+ * waited over a minute. The full Transactions screen is ticket 08.
  */
 export default function ExpensesScreen() {
   const status = useAuthStatus();
@@ -34,16 +36,13 @@ function ExpenseList() {
   const formatMoney = useFormatMoney(numberingSystem);
   const { data: expenses } = useLiveQuery(expensesQuery(localDb));
   const { data: categories } = useLiveQuery(categoriesQuery(localDb));
+  const syncOverdue = useSyncOverdue();
   const [syncing, setSyncing] = useState(false);
 
   const refresh = useCallback(async () => {
     setSyncing(true);
-    await syncEngine.sync();
+    await syncTriggers.refresh().catch(() => undefined);
     setSyncing(false);
-  }, []);
-
-  useEffect(() => {
-    void syncEngine.sync();
   }, []);
 
   const categoryName = useMemo(() => {
@@ -60,7 +59,11 @@ function ExpenseList() {
   return (
     <SafeAreaView className="flex-1" edges={['top', 'bottom']}>
       <View className="px-5">
-        <ScreenHeader title={t('expenses.title')} onBack={() => router.back()} />
+        <ScreenHeader
+          title={t('expenses.title')}
+          onBack={() => router.back()}
+          end={syncOverdue ? <PendingSyncLabel align="end" /> : undefined}
+        />
       </View>
       <ScrollView
         className="flex-1"

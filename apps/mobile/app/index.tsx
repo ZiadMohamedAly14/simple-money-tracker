@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { RefreshControl, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Redirect, router } from 'expo-router';
@@ -12,9 +12,10 @@ import { useAccountSettings, useOnboardingState } from '@/data/useAccountSetting
 import { localDb } from '@/db/appDatabase';
 import { useFormatMoney } from '@/i18n/useFormatMoney';
 import { useLanguage } from '@/i18n/useLanguage';
-import { syncEngine } from '@/sync/appSync';
+import { syncTriggers } from '@/sync/appSync';
+import { useSyncOverdue } from '@/sync/useSyncOverdue';
 import { useTheme } from '@/theme/ThemeProvider';
-import { AmountDisplay, Button, Card, Fab, IconButton, IconCircle, Notice, Text } from '@/ui';
+import { AmountDisplay, Button, Card, Fab, IconButton, IconCircle, Notice, PendingSyncLabel, Text } from '@/ui';
 import type { IconName } from '@/ui';
 
 /**
@@ -47,16 +48,13 @@ function MonthOverview() {
   const { data: budgets } = useLiveQuery(categoryBudgetsQuery(localDb, month), [month]);
   const { data: transactions } = useLiveQuery(monthTransactionsQuery(localDb, month), [month]);
   const figures = monthOverviewOf(month, plans, budgets, transactions);
+  const syncOverdue = useSyncOverdue();
   const [syncing, setSyncing] = useState(false);
 
   const refresh = useCallback(async () => {
     setSyncing(true);
-    await syncEngine.sync();
+    await syncTriggers.refresh().catch(() => undefined);
     setSyncing(false);
-  }, []);
-
-  useEffect(() => {
-    void syncEngine.sync();
   }, []);
 
   const parts = (minor: number) => formatMoneyParts(minor, { language, currency, numberingSystem });
@@ -76,6 +74,7 @@ function MonthOverview() {
           <Text weight="bold" accessibilityRole="header" numberOfLines={1} className="flex-1 text-xl">
             {formatMonth(month, { language, numberingSystem })}
           </Text>
+          {syncOverdue ? <PendingSyncLabel align="end" /> : null}
           <IconButton icon="settings-outline" accessibilityLabel={t('home.settings')} onPress={() => router.push('/health')} />
         </View>
 
@@ -135,6 +134,8 @@ function MonthOverview() {
 
         {/* Sync tracer bullet (ticket 05) until the Transactions screen (ticket 08). */}
         <Button label={t('expenses.open')} variant="secondary" onPress={() => router.push('/expenses')} />
+        {/* PIN-gated Parent Area (ticket 11); the kid wallet entry point (ticket 12) will lead here. */}
+        <Button label={t('parentArea.open')} variant="secondary" icon="lock-closed-outline" onPress={() => router.push('/parent')} />
       </ScrollView>
       <Fab accessibilityLabel={t('expenses.add')} onPress={() => router.push('/expenses/new')} />
     </SafeAreaView>

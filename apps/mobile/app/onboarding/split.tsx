@@ -11,7 +11,6 @@ import { categoriesQuery } from '@/data/transactions';
 import { useAccountSettings } from '@/data/useAccountSettings';
 import { localDb, localStore } from '@/db/appDatabase';
 import { useFormatMoney } from '@/i18n/useFormatMoney';
-import { syncEngine } from '@/sync/appSync';
 import { Button, Card, IconCircle, Screen, ScreenHeader, Text, TextField } from '@/ui';
 
 /**
@@ -50,7 +49,6 @@ export default function SplitScreen() {
 
   function done() {
     setCategoryBudgets(localStore, month, amounts);
-    void syncEngine.sync();
     router.replace('/');
   }
 

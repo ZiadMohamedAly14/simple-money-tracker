@@ -50,7 +50,7 @@ export {
   uuidv7,
 } from './sync/ids';
 export type { RandomBytes } from './sync/ids';
-export { MAX_PUSHED_CHANGES, OTHER_CATEGORY, SYNC_ENTITIES, parsePushedChange } from './sync/records';
+export { MAX_PULLED_CHANGES, MAX_PUSHED_CHANGES, OTHER_CATEGORY, SYNC_ENTITIES, parsePushedChange } from './sync/records';
 export type {
   AccountSettingsFields,
   CategoryBudgetFields,
@@ -71,3 +71,14 @@ export type {
   TransactionFields,
   TransactionKind,
 } from './sync/records';
+export {
+  PARENT_PIN_MAX_LENGTH,
+  PARENT_PIN_MIN_LENGTH,
+  PARENT_PIN_SALT_BYTES,
+  PIN_FREE_ATTEMPTS,
+  hashParentPin,
+  isValidParentPin,
+  pinRetryAfterSeconds,
+  verifyParentPin,
+} from './pin/parentPin';
+export type { ParentPinData, ParentPinErrorData, SetParentPinBody } from './pin/parentPin';

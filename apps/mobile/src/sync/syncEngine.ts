@@ -16,6 +16,8 @@ export interface SyncEngineDeps {
   store: LocalStore;
   /** An authenticated API call (`authSession.request`). */
   request: (config: AxiosRequestConfig) => Promise<AuthedResult>;
+  /** Page size to ask for when pulling; the server's default (`MAX_PULLED_CHANGES`) if unset. */
+  pullLimit?: number;
 }
 
 /**
@@ -24,7 +26,7 @@ export interface SyncEngineDeps {
  * then runs once more, so writes made meanwhile still go out. Ticket 06 adds
  * the triggers (debounced after writes, foreground, reconnect).
  */
-export function createSyncEngine({ store, request }: SyncEngineDeps) {
+export function createSyncEngine({ store, request, pullLimit }: SyncEngineDeps) {
   let running: Promise<SyncOutcome> | null = null;
   let queued: Promise<SyncOutcome> | null = null;
 
@@ -32,15 +34,17 @@ export function createSyncEngine({ store, request }: SyncEngineDeps) {
     const accountId = store.accountId();
     if (!accountId) return 'signed_out';
     const push = store.pendingPush(MAX_PUSHED_CHANGES);
-    const body: SyncRequestBody = { cursor: store.cursor(), changes: push.changes };
+    const body: SyncRequestBody = { cursor: store.cursor(), changes: push.changes, ...(pullLimit ? { limit: pullLimit } : {}) };
 
     const result = await request({ method: 'POST', url: '/sync', data: body });
     if (result.status === 'unreachable') return 'offline';
     if (result.status === 'session_ended') return 'needs_sign_in';
     if (result.httpStatus !== 200 || !isApiEnvelope(result.body) || !result.body.success) return 'failed';
 
-    if (!store.completeSync(accountId, push.upTo, result.body.data as SyncResponseData)) return 'signed_out';
-    return push.hasMore ? 'more' : 'synced';
+    const response = result.body.data as SyncResponseData;
+    if (!store.completeSync(accountId, push.upTo, response)) return 'signed_out';
+    // More to push, or more to pull (a device catching up gets its history a page at a time).
+    return push.hasMore || response.hasMore ? 'more' : 'synced';
   }
 
   /**

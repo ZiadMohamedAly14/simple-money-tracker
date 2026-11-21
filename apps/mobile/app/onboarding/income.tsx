@@ -17,7 +17,6 @@ import { completePersonalOnboarding } from '@/data/budget';
 import { FALLBACK_CURRENCY, PERSONAL_STEPS } from '@/data/currency';
 import { localStore } from '@/db/appDatabase';
 import { useLanguage } from '@/i18n/useLanguage';
-import { syncEngine } from '@/sync/appSync';
 import { AmountDisplay, Button, NumericKeypad, Screen, ScreenHeader, Text } from '@/ui';
 
 /**
@@ -46,7 +45,6 @@ export default function ExpectedIncomeScreen() {
       DEFAULT_CATEGORY_KEYS.map((key) => [key, t(`categories.defaults.${key}`)]),
     ) as Record<DefaultCategoryKey, string>;
     completePersonalOnboarding(localStore, { currency, expectedIncome: amount, month, categoryNames });
-    void syncEngine.sync(); // ticket 06 replaces this with a debounced trigger
     router.replace({ pathname: '/onboarding/split', params: { month } });
   }
 
