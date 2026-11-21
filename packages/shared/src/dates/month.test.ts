@@ -1,4 +1,21 @@
-import { currentMonth, monthOf } from './month';
+import { currentMonth, formatMonth, monthOf } from './month';
+
+describe('formatMonth', () => {
+  it('names the Month and year in the language', () => {
+    expect(formatMonth('2026-11', { language: 'en' })).toBe('November 2026');
+    expect(formatMonth('2026-01', { language: 'en' })).toBe('January 2026');
+  });
+
+  it('uses Arabic month names, with Western digits unless Arabic-Indic are chosen', () => {
+    expect(formatMonth('2026-11', { language: 'ar' })).toBe('نوفمبر 2026');
+    expect(formatMonth('2026-11', { language: 'ar', numberingSystem: 'arabic-indic' })).toBe('نوفمبر ٢٠٢٦');
+  });
+
+  it('is not moved into a neighbouring Month by the time zone', () => {
+    // The suite runs at UTC+14; midnight UTC on the 1st is still the same Month.
+    expect(formatMonth('2026-12', { language: 'en' })).toBe('December 2026');
+  });
+});
 
 // jest.config.js runs this suite at UTC+14 (Pacific/Kiritimati).
 

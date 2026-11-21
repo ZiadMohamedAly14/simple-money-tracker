@@ -34,7 +34,7 @@ export type { Language, NumberingSystem } from './i18n/language';
 export { currencyMinorDigits, formatMoney, fromMinorUnits, toMinorUnits } from './money/money';
 export type { CurrencyCode, MoneyFormatOptions } from './money/money';
 export { toLocalDate } from './dates/localDate';
-export { currentMonth, monthOf } from './dates/month';
+export { currentMonth, formatMonth, monthOf } from './dates/month';
 export type { Month } from './dates/month';
 export { DEFAULT_CATEGORY_KEYS } from './budget/defaultCategories';
 export type { DefaultCategoryKey } from './budget/defaultCategories';
