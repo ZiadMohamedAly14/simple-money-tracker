@@ -19,7 +19,8 @@ import {
 } from '@money-tracker/shared';
 import { committedServerVersion, writeWithServerVersion } from '../models/counter.model';
 import { Category, Jar, SYNCED_MODELS } from '../models/synced.model';
-import type { AuthContext, TokenService } from './token.service';
+import { Account } from '../models/account.model';
+import { authFailure, type AuthContext, type TokenService } from './token.service';
 import { ForbiddenError, ValidationError } from '../utils/AppError';
 import type { Clock } from '../utils/clock';
 
@@ -130,15 +131,25 @@ function toPulled(entity: SyncEntity, stored: StoredRecord): PulledChange {
  * atomic counter, and that server version is the cursor.
  */
 export function createSyncService({ now, tokens }: { now: Clock; tokens: Pick<TokenService, 'endKidSessions'> }) {
+  /**
+   * A sync authenticated just before its Account was deleted must not write
+   * afterwards, or it would leave records with no Account (ADR-0005). Checked
+   * before the sync starts and again right before each write.
+   */
+  async function requireLiveAccount(accountId: string): Promise<void> {
+    if (!(await Account.exists({ _id: accountId }))) throw authFailure('session_ended');
+  }
+
   /** The Other Category exists for every Account (spec); created on the Account's first sync. */
   async function ensureOtherCategory(accountId: string): Promise<void> {
     const id = otherCategoryId(accountId);
     if (await Category.exists({ _id: id })) return;
     const nowMs = now().getTime();
     try {
-      await writeWithServerVersion(nowMs, (serverVersion) =>
-        Category.create({ _id: id, accountId, ...OTHER_CATEGORY, updatedAt: nowMs, deletedAt: null, serverVersion }),
-      );
+      await writeWithServerVersion(nowMs, async (serverVersion) => {
+        await requireLiveAccount(accountId);
+        return Category.create({ _id: id, accountId, ...OTHER_CATEGORY, updatedAt: nowMs, deletedAt: null, serverVersion });
+      });
     } catch (error) {
       if (!isDuplicateKey(error)) throw error; // another device's sync created it first
     }
@@ -288,6 +299,7 @@ export function createSyncService({ now, tokens }: { now: Clock; tokens: Pick<To
 
       try {
         const written = await writeWithServerVersion(now().getTime(), async (serverVersion) => {
+          await requireLiveAccount(accountId);
           if (!stored) {
             await model.create({ ...update, _id: id, accountId, serverVersion });
             return true;
@@ -358,6 +370,7 @@ export function createSyncService({ now, tokens }: { now: Clock; tokens: Pick<To
   return {
     async sync(auth: AuthContext, body: SyncRequestBody): Promise<SyncResponseData> {
       const changes = parseAll(body.changes);
+      await requireLiveAccount(auth.accountId);
       if (auth.scope === 'kid') await checkKidScope(auth, changes);
       else if (auth.kidProfileId) checkElevatedScope(changes);
       else await ensureOtherCategory(auth.accountId);

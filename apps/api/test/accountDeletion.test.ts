@@ -10,6 +10,8 @@ import { accountSettingsId, categoryBudgetId, defaultJarId, monthPlanId, otherCa
 import { HOUR, MINUTE, buildTestApp, createTestClock, createTestMailer, type TestClock, type TestMailer } from './helpers/testApp';
 import { useTestDatabase } from './helpers/testDatabase';
 import { Counter } from '../src/models/counter.model';
+import { deleteAccountData } from '../src/services/accountDeletion.service';
+import { createSyncService } from '../src/services/sync.service';
 
 const OMAR = '019ca8a0-3e80-7000-8000-0000000000b1';
 const NOUR = '019ca8a0-3e80-7000-8000-0000000000b2';
@@ -168,6 +170,20 @@ describe('Account deletion (Seam A)', () => {
 
     expect(res.status).toBe(200);
     expect(await recordsMentioning(sara)).toEqual({});
+  });
+
+  it('a sync that was already past sign-in checks when deletion lands writes nothing afterwards', async () => {
+    const phone = await signIn();
+    expect((await sync(phone)).status).toBe(200);
+    // The request was authenticated just before the Account was deleted.
+    const auth = { accountId: phone.accountId, sessionId: 'gone', scope: 'full' as const, kidProfileId: null, elevatedFrom: null };
+    await deleteAccountData(phone.accountId);
+    const syncService = createSyncService({ now: clock, tokens: { endKidSessions: async () => {} } });
+
+    const late = syncService.sync(auth, { cursor: 0, changes: everyRecord(phone.accountId, OMAR) });
+
+    await expect(late).rejects.toMatchObject({ statusCode: 401 });
+    expect(await recordsMentioning({ accountId: phone.accountId, email: 'sara@example.com' })).toEqual({});
   });
 
   it('ends every session, the Kid-Mode device’s included, and leaves other Accounts alone', async () => {
