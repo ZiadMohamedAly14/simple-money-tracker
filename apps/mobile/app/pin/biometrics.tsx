@@ -7,7 +7,7 @@ import { Button, IconCircle, Screen, Text } from '@/ui';
 
 /**
  * Shown right after the first Parent PIN, only on a device with biometrics
- * enrolled. Skippable; the PIN always works. Settings can change it later (ticket 17).
+ * enrolled. Skippable; the PIN always works. Settings can change it later.
  */
 export default function BiometricsOfferScreen() {
   const { t } = useTranslation();

@@ -75,7 +75,7 @@ function MonthOverview() {
             {formatMonth(month, { language, numberingSystem })}
           </Text>
           {syncOverdue ? <PendingSyncLabel align="end" /> : null}
-          <IconButton icon="settings-outline" accessibilityLabel={t('home.settings')} onPress={() => router.push('/health')} />
+          <IconButton icon="settings-outline" accessibilityLabel={t('home.settings')} onPress={() => router.push('/settings')} />
         </View>
 
         {needsSignIn ? (
