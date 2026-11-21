@@ -1,12 +1,13 @@
 import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { IconCircle, type GlyphName, type IconCircleTone } from './icons';
+import { Caret } from './Caret';
 import { Text, type TextTone } from './Text';
 
 const AMOUNT_SIZE = {
-  lg: { amount: 'text-6xl', currency: 'text-xl' },
-  md: { amount: 'text-5xl', currency: 'text-lg' },
-  sm: { amount: 'text-3xl', currency: 'text-base' },
+  lg: { amount: 'text-6xl', currency: 'text-xl', caret: 'xl' },
+  md: { amount: 'text-5xl', currency: 'text-lg', caret: 'lg' },
+  sm: { amount: 'text-3xl', currency: 'text-base', caret: 'md' },
 } as const;
 
 export interface AmountDisplayProps {
@@ -20,10 +21,12 @@ export interface AmountDisplayProps {
   tone?: TextTone;
   /** What the amount is ("Amount", "Top-up amount"); read before it as "label, amount". */
   accessibilityLabel?: string;
+  /** A blinking cursor after the number: the amount being typed on the app's keypad. */
+  caret?: boolean;
 }
 
 /** Big amount with the currency smaller beside it ("1,250 EGP"); currency sits at the end side. */
-export function AmountDisplay({ amount, currency, size = 'lg', align = 'center', tone = 'text', accessibilityLabel }: AmountDisplayProps) {
+export function AmountDisplay({ amount, currency, size = 'lg', align = 'center', tone = 'text', accessibilityLabel, caret }: AmountDisplayProps) {
   const { t } = useTranslation();
   const sizes = AMOUNT_SIZE[size];
   const spokenAmount = `${amount} ${currency}`;
@@ -33,9 +36,13 @@ export function AmountDisplay({ amount, currency, size = 'lg', align = 'center',
       accessibilityLabel={accessibilityLabel ? t('home.figure', { label: accessibilityLabel, amount: spokenAmount }) : spokenAmount}
       className={`flex-row items-baseline gap-2 ${align === 'center' ? 'justify-center' : 'justify-start'}`}
     >
-      <Text weight="bold" tone={tone} numberOfLines={1} adjustsFontSizeToFit className={sizes.amount}>
-        {amount}
-      </Text>
+      {/* The number and its cursor stay left to right, so the cursor sits after the last digit in Arabic too. */}
+      <View style={{ flexDirection: 'row', direction: 'ltr' }} className="shrink">
+        <Text weight="bold" tone={tone} numberOfLines={1} adjustsFontSizeToFit className={`shrink ${sizes.amount}`}>
+          {amount}
+        </Text>
+        {caret ? <Caret size={sizes.caret} /> : null}
+      </View>
       <Text weight="semibold" tone={tone} className={sizes.currency}>
         {currency}
       </Text>

@@ -18,6 +18,7 @@ import {
 import { useLanguage } from '@/i18n/useLanguage';
 import { AmountDisplay } from './Amount';
 import { NumericKeypad } from './Keypad';
+import { Caret } from './Caret';
 import { Text } from './Text';
 
 export interface AmountEntry {
@@ -74,6 +75,7 @@ export function AmountEntryDisplay({ entry, currency, numberingSystem, accessibi
         amount={formatAmountInput(entry.typed || '0', { language, numberingSystem })}
         currency={currencyLabel}
         accessibilityLabel={accessibilityLabel}
+        caret
       />
     );
   }
@@ -90,9 +92,12 @@ export function AmountEntryDisplay({ entry, currency, numberingSystem, accessibi
   return (
     <View accessible accessibilityLabel={accessibilityLabel} accessibilityValue={{ text: below.text }} className="gap-1">
       <View className="flex-row items-baseline justify-center gap-2">
-        <Text weight="bold" align="center" numberOfLines={1} adjustsFontSizeToFit className="shrink text-4xl">
-          {formatAmountExpression(entry.typed, { language, numberingSystem })}
-        </Text>
+        <View style={{ flexDirection: 'row', direction: 'ltr' }} className="shrink">
+          <Text weight="bold" align="center" numberOfLines={1} adjustsFontSizeToFit className="shrink text-4xl">
+            {formatAmountExpression(entry.typed, { language, numberingSystem })}
+          </Text>
+          <Caret size="lg" />
+        </View>
         <Text weight="semibold" className="text-lg">
           {currencyLabel}
         </Text>

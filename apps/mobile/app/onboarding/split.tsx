@@ -19,6 +19,7 @@ import { useAccountSettings } from '@/data/useAccountSettings';
 import { localDb, localStore } from '@/db/appDatabase';
 import { useFormatMoney } from '@/i18n/useFormatMoney';
 import { AmountKeypad, Button, Card, IconCircle, Screen, ScreenHeader, Text, useTypedAmountText } from '@/ui';
+import { Caret } from '@/ui/Caret';
 
 /**
  * Step 4 (optional): split Expected Income across Categories (PDF page 5).
@@ -111,9 +112,12 @@ export default function SplitScreen() {
               <Text weight="semibold" numberOfLines={1} className="flex-1 text-base">
                 {name}
               </Text>
-              <Text weight="bold" tone={invalid ? 'negative' : text ? 'text' : 'muted'} numberOfLines={1} className="max-w-40 text-base">
-                {typedText(text)}
-              </Text>
+              <View style={{ flexDirection: 'row', direction: 'ltr' }} className="max-w-40">
+                <Text weight="bold" tone={invalid ? 'negative' : text ? 'text' : 'muted'} numberOfLines={1} className="shrink text-base">
+                  {typedText(text)}
+                </Text>
+                {category.id === selected ? <Caret size="sm" /> : null}
+              </View>
             </Card>
           );
         })}
