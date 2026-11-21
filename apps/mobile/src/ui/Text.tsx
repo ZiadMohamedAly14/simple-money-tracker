@@ -10,6 +10,7 @@ export type TextTone =
   | 'primary'
   | 'on-primary'
   | 'on-dark'
+  | 'on-accent'
   | 'on-warning'
   | 'positive'
   | 'negative';
@@ -21,6 +22,7 @@ const TONE_CLASS: Record<TextTone, string> = {
   primary: 'text-primary',
   'on-primary': 'text-on-primary',
   'on-dark': 'text-on-dark',
+  'on-accent': 'text-on-accent',
   'on-warning': 'text-on-warning',
   positive: 'text-positive',
   negative: 'text-negative',

@@ -34,6 +34,19 @@
         {
           "faceIDPermission": "Allow Mizan to use Face ID to open the Parent Area."
         }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/icon/icon.png",
+          "imageWidth": 120,
+          "resizeMode": "contain",
+          "backgroundColor": "#F5F3EC",
+          "dark": {
+            "image": "./assets/icon/icon.png",
+            "backgroundColor": "#0F1513"
+          }
+        }
       ]
     ],
     "extra": {

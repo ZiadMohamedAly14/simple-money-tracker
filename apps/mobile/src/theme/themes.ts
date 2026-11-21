@@ -1,83 +1,129 @@
+import type { ColorScheme } from './appearance';
+
 /**
- * Color tokens for the two experiences, from the Mizan design (docs/design).
- * Screens use token classes (bg-background, text-primary, bg-tint,
- * rounded-theme…) from tailwind.config.js, never raw colors, so branding
- * changes mean editing only this file.
+ * Color tokens for the two experiences (Personal, Kid), each in a light and a
+ * dark variant, from the Mizan palettes (docs/design/mockups/palette-light.png
+ * and palette-dark.png). Screens use token classes (bg-background,
+ * text-primary, bg-tint, rounded-theme…) from tailwind.config.js, never raw
+ * colors, so palette changes mean editing only this file. ThemeProvider
+ * passes the active variant to NativeWind as CSS variables.
  */
 export type ThemeName = 'personal' | 'kid';
 
-export type ColorToken =
-  | 'background'
-  | 'surface'
-  | 'text'
+export const COLOR_TOKENS = [
+  'background',
+  'surface',
+  'text',
   /** Secondary text (grey-green): captions, "Pending sync", labels. */
-  | 'muted'
+  'muted',
   /** Main buttons, selected chips/segments, FAB, progress fill, the kid "In my wallet" card. */
-  | 'primary'
-  | 'on-primary'
-  /** Pale green: icon circles, round header buttons, secondary buttons, progress track. */
-  | 'tint'
-  /** Unselected chip fill (tint in Personal, white in Kid). */
-  | 'chip'
-  /** Dark buttons (kid "I spent money"). */
-  | 'dark'
-  | 'on-dark'
+  'primary',
+  'on-primary',
+  /** Soft fill: icon circles, round header buttons, secondary buttons, progress track. */
+  'tint',
+  /** Unselected chip fill (soft fill, but white on the light Kid theme). */
+  'chip',
+  /** High-emphasis button (kid "I spent money"): near-black in light, near-white in dark. */
+  'dark',
+  'on-dark',
   /** Warning surface: negative Unallocated, over-plan banner, low Jar, "went below zero". */
-  | 'warning'
-  /** Dark amber text on the warning surface. */
-  | 'on-warning'
+  'warning',
+  /** Amber text on the warning surface. */
+  'on-warning',
   /** Amounts in, "X left". Same green as primary. */
-  | 'positive'
+  'positive',
   /** "X over", over-budget bars, negative Jar balances, "Delete account" text. */
-  | 'negative'
+  'negative',
   /** Pale red surface behind a danger button. */
-  | 'negative-surface'
+  'negative-surface',
   /** Orange highlight (kid avatar). */
-  | 'accent'
-  | 'border'
-  | 'jar-save'
-  | 'jar-spend'
-  | 'jar-give';
+  'accent',
+  /** Letter on the accent circle. */
+  'on-accent',
+  'border',
+  /** Dimmed backdrop behind dialogs; use at reduced opacity (bg-scrim/40). */
+  'scrim',
+  'jar-save',
+  'jar-spend',
+  'jar-give',
+] as const;
+
+export type ColorToken = (typeof COLOR_TOKENS)[number];
+
+type Colors = Record<ColorToken, `#${string}`>;
 
 export interface Theme {
-  colors: Record<ColorToken, `#${string}`>;
+  colors: Colors;
   /** Corner radius for cards and buttons. The Kid theme is rounder. */
   radius: number;
   /** Minimum touch height for buttons and keypad keys. The Kid theme has bigger controls. */
   controlHeight: number;
 }
 
-const shared = {
+const light = {
+  background: '#F5F3EC',
   surface: '#FFFFFF',
-  text: '#1E2A26',
-  muted: '#5E6B66',
-  primary: '#1D7962',
+  text: '#1E2B27',
+  muted: '#56655F',
+  primary: '#1F7A63',
   'on-primary': '#FFFFFF',
-  tint: '#DBEAE3',
-  dark: '#1E2A26',
+  tint: '#DCEBE4',
+  chip: '#DCEBE4',
+  // Not in the palette: picked to fit it (see ticket 23's comments).
+  dark: '#1E2B27',
   'on-dark': '#FFFFFF',
-  warning: '#FAEFD9',
-  'on-warning': '#7A4E06',
-  positive: '#1D7962',
-  negative: '#B23D27',
+  warning: '#FBF0D9',
+  'on-warning': '#8A5A0B',
+  positive: '#1F7A63',
+  negative: '#B23E27',
   'negative-surface': '#FBE3DE',
-  accent: '#FD9E42',
-  border: '#D3DED8',
-  'jar-save': '#3AA675',
-  'jar-spend': '#FD9E42',
-  'jar-give': '#F16A8A',
-} as const;
+  accent: '#FF9F43',
+  'on-accent': '#1E2B27',
+  border: '#D5DFD9',
+  scrim: '#000000',
+  'jar-save': '#3BA776',
+  'jar-spend': '#FF9F43',
+  'jar-give': '#F26B8A',
+} as const satisfies Colors;
 
-export const themes: Record<ThemeName, Theme> = {
+const dark = {
+  background: '#0F1513',
+  surface: '#1B2623',
+  text: '#EDEFEA',
+  muted: '#9AA7A1',
+  primary: '#4FB596',
+  'on-primary': '#06201A',
+  tint: '#24342F',
+  chip: '#24342F',
+  // Not in the palette: the "dark" button inverts to near-white so it stands out on Teal.
+  dark: '#EDEFEA',
+  'on-dark': '#0F1513',
+  warning: '#3A2E14',
+  'on-warning': '#E8B558',
+  positive: '#4FB596',
+  negative: '#F08A74',
+  'negative-surface': '#3B2420',
+  accent: '#FFB05A',
+  'on-accent': '#0F1513',
+  border: '#2E3D38',
+  scrim: '#000000',
+  'jar-save': '#4FC08D',
+  'jar-spend': '#FFB05A',
+  'jar-give': '#FF86A3',
+} as const satisfies Colors;
+
+const personal = { radius: 16, controlHeight: 52 };
+const kid = { radius: 24, controlHeight: 60 };
+
+export const themes: Record<ThemeName, Record<ColorScheme, Theme>> = {
   personal: {
-    colors: { ...shared, background: '#F5F2EB', chip: '#DBEAE3' },
-    radius: 16,
-    controlHeight: 52,
+    light: { ...personal, colors: light },
+    dark: { ...personal, colors: dark },
   },
   kid: {
-    colors: { ...shared, background: '#FEF0CB', chip: '#FFFFFF' },
-    radius: 24,
-    controlHeight: 60,
+    // Mint / Teal. The light Kid theme keeps white chips on Mint.
+    light: { ...kid, colors: { ...light, background: '#D9F2E6', chip: '#FFFFFF' } },
+    dark: { ...kid, colors: { ...dark, background: '#12302B' } },
   },
 };
 
@@ -88,8 +134,8 @@ function rgbChannels(hex: string): string {
 }
 
 /** CSS variables for NativeWind's `vars()`; see ThemeProvider. */
-export function themeVariables(name: ThemeName): Record<string, string> {
-  const theme = themes[name];
+export function themeVariables(name: ThemeName, scheme: ColorScheme): Record<string, string> {
+  const theme = themes[name][scheme];
   const variables: Record<string, string> = {
     '--radius': `${theme.radius}px`,
     '--control-height': `${theme.controlHeight}px`,

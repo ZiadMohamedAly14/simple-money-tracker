@@ -11,7 +11,7 @@ export function KidAvatar({ name, avatar, size = 'md' }: { name: string; avatar:
   const { circle, text } = SIZE[size];
   return (
     <View className={`items-center justify-center rounded-full bg-accent ${circle}`} accessible={false}>
-      <Text weight="bold" className={text}>
+      <Text weight="bold" tone="on-accent" className={text}>
         {avatar ?? (Array.from(name.trim())[0] ?? '').toLocaleUpperCase()}
       </Text>
     </View>

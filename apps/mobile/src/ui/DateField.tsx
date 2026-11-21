@@ -51,7 +51,7 @@ export function DateField({ value, onChange, numberingSystem }: DateFieldProps) 
         </Text>
       </Pressable>
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-        <Pressable className="flex-1 justify-center bg-black/40 px-5" onPress={() => setOpen(false)}>
+        <Pressable className="flex-1 justify-center bg-scrim/40 px-5" onPress={() => setOpen(false)}>
           {/* Inner Pressable swallows taps so they don't close the sheet. */}
           <Pressable className="rounded-theme bg-surface p-4" onPress={() => undefined}>
             <Calendar
