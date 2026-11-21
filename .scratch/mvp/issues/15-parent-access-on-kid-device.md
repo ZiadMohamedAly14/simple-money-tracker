@@ -4,7 +4,7 @@
 
 **Blocked by:** 14 (Kid-Mode device).
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] PIN elevation: the server checks the PIN with rate limiting and returns a short-lived full access token with no refresh. When offline, the device explains that the Parent Area needs internet.
 - [x] Leaving Kid Mode requires the PIN.
