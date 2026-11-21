@@ -44,10 +44,17 @@ export { monthFigures } from './budget/monthFigures';
 export type { MonthFigures, MonthFiguresInput } from './budget/monthFigures';
 export { categoryBreakdown } from './budget/categoryBreakdown';
 export type { CategoryBreakdownInput, CategoryFigures } from './budget/categoryBreakdown';
+export { DEFAULT_JAR_KEYS } from './kid/defaultJars';
+export type { DefaultJarKey } from './kid/defaultJars';
+export { jarBalances } from './kid/jarBalances';
+export type { JarBalances } from './kid/jarBalances';
+export { suggestTopUpSplit, topUpSplitProblem } from './kid/topUpSplit';
+export type { SuggestSplitOptions } from './kid/topUpSplit';
 export {
   accountSettingsId,
   categoryBudgetId,
   defaultCategoryId,
+  defaultJarId,
   isUuid,
   monthPlanId,
   otherCategoryId,
@@ -59,6 +66,11 @@ export type {
   AccountSettingsFields,
   CategoryBudgetFields,
   CategoryFields,
+  JarFields,
+  JarSplit,
+  KidProfileFields,
+  KidTransactionFields,
+  KidTransactionKind,
   MonthPlanFields,
   ParseResult,
   PulledChange,

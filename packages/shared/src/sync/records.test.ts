@@ -114,6 +114,85 @@ describe('parsePushedChange', () => {
     });
   });
 
+  describe('Kid Profile', () => {
+    const kid = { id, updatedAt: 1, deletedAt: null, name: 'Omar', avatar: '🦊', archivedAt: null };
+
+    it('accepts a name and an optional avatar', () => {
+      expect(parsePushedChange({ entity: 'kidProfile', record: kid })).toEqual({
+        ok: true,
+        change: { entity: 'kidProfile', record: kid },
+      });
+      expect(parsePushedChange({ entity: 'kidProfile', record: { ...kid, avatar: null } }).ok).toBe(true);
+    });
+
+    it.each([
+      ['an empty name', { name: '  ' }, 'name'],
+      ['a long avatar', { avatar: 'x'.repeat(40) }, 'avatar'],
+    ])('rejects %s', (_label, patch, field) => {
+      const result = parsePushedChange({ entity: 'kidProfile', record: { ...kid, ...patch } });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.problems.map((p) => p.field)).toEqual([field]);
+    });
+  });
+
+  describe('Jar', () => {
+    const jar = { id, updatedAt: 1, deletedAt: null, kidProfileId: categoryId, name: 'Save', order: 0, archivedAt: null };
+
+    it('accepts a Kid Profile, a name and an order', () => {
+      expect(parsePushedChange({ entity: 'jar', record: jar })).toEqual({ ok: true, change: { entity: 'jar', record: jar } });
+    });
+
+    it.each([
+      ['a missing Kid Profile', { kidProfileId: null }, 'kidProfileId'],
+      ['an empty name', { name: '' }, 'name'],
+    ])('rejects %s', (_label, patch, field) => {
+      const result = parsePushedChange({ entity: 'jar', record: { ...jar, ...patch } });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.problems.map((p) => p.field)).toEqual([field]);
+    });
+  });
+
+  describe('Top-up', () => {
+    const jarA = '019ca8a0-3e80-7000-8000-00000000000a';
+    const jarB = '019ca8a0-3e80-7000-8000-00000000000b';
+    const topUp = {
+      id,
+      updatedAt: 1,
+      deletedAt: null,
+      kidProfileId: categoryId,
+      kind: 'topUp',
+      amount: 10000,
+      splits: [
+        { jarId: jarA, amount: 3000 },
+        { jarId: jarB, amount: 7000 },
+      ],
+      date: '2026-03-01',
+      note: null,
+    };
+
+    it('accepts a split that adds up to the total, keeping only known split fields', () => {
+      const withExtra = { ...topUp, splits: topUp.splits.map((s) => ({ ...s, percent: 50 })) };
+      expect(parsePushedChange({ entity: 'kidTransaction', record: withExtra })).toEqual({
+        ok: true,
+        change: { entity: 'kidTransaction', record: topUp },
+      });
+    });
+
+    it.each([
+      ['a split that does not add up', { splits: [{ jarId: jarA, amount: 9000 }] }, 'splits'],
+      ['no splits', { splits: [] }, 'splits'],
+      ['splits that are not a list', { splits: 'all to Spend' }, 'splits'],
+      ['a split with a bad Jar', { splits: [{ jarId: 'spend', amount: 10000 }] }, 'splits'],
+      ['a zero total', { amount: 0, splits: [] }, 'amount'],
+      ['an unknown kind', { kind: 'allowance' }, 'kind'],
+      ['a missing Kid Profile', { kidProfileId: undefined }, 'kidProfileId'],
+    ])('rejects %s', (_label, patch, field) => {
+      const result = parsePushedChange({ entity: 'kidTransaction', record: { ...topUp, ...patch } });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.problems.map((p) => p.field)).toContain(field);
+    });
+  });
+
   it('rejects an unknown entity', () => {
     const result = parsePushedChange({ entity: 'goal', record: expense });
     expect(result).toEqual({ ok: false, problems: [{ field: 'entity', message: expect.any(String) }] });
