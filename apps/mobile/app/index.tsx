@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { Alert, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Redirect, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -201,7 +201,7 @@ interface HeroCardProps {
 
 /**
  * The home "Hero card" (docs/design/mockups/home-hero-card.png): Remaining
- * (Expected Income − Spending) large on the primary green, the income
+ * (the larger of Expected Income and Income, minus Spending) large on the primary green, the income
  * progress bar with "X of Y expected" (recorded Income against the plan),
  * and Income and Spending in translucent tiles. Numbers sit in
  * direction isolates so a minus sign stays at the start of the number in RTL.
@@ -250,8 +250,20 @@ function HeroCard({ figures, number, spoken, currencyLabel }: HeroCardProps) {
       )}
 
       <View className="flex-row gap-3">
-        <HeroTile icon="app:income-money" label={t('home.income')} value={number(figures.income)} spoken={spoken(figures.income)} />
-        <HeroTile icon="app:spending" label={t('home.spending')} value={number(figures.spending)} spoken={spoken(figures.spending)} />
+        <HeroTile
+          icon="app:income-money"
+          label={t('home.income')}
+          info={t('home.incomeInfo')}
+          value={number(figures.income)}
+          spoken={spoken(figures.income)}
+        />
+        <HeroTile
+          icon="app:spending"
+          label={t('home.spending')}
+          info={t('home.spendingInfo')}
+          value={number(figures.spending)}
+          spoken={spoken(figures.spending)}
+        />
       </View>
     </View>
   );
@@ -260,26 +272,57 @@ function HeroCard({ figures, number, spoken, currencyLabel }: HeroCardProps) {
 interface HeroTileProps {
   icon: GlyphName;
   label: string;
+  /** What the figure means, shown from the info button. */
+  info: string;
   value: string;
   spoken: string;
 }
 
-/** A translucent figure tile inside the hero card. */
-function HeroTile({ icon, label, value, spoken }: HeroTileProps) {
+/**
+ * A translucent figure tile inside the hero card. The info button sits beside
+ * the figure (not inside it), so a screen reader reaches both.
+ */
+function HeroTile({ icon, label, info, value, spoken }: HeroTileProps) {
   const { t } = useTranslation();
   const theme = useTheme();
   return (
-    <View accessible accessibilityLabel={t('home.figure', { label, amount: spoken })} className="flex-1 gap-1 rounded-theme bg-on-primary/15 p-3">
-      <View className="flex-row items-center gap-1">
-        <Glyph name={icon} size={14} color={theme.colors['on-primary']} />
-        <Text tone="on-primary" numberOfLines={1} className="flex-1 text-xs">
-          {label}
+    <View className="flex-1 flex-row items-start gap-1 rounded-theme bg-on-primary/15 p-3">
+      <View accessible accessibilityLabel={t('home.figure', { label, amount: spoken })} className="flex-1 gap-1">
+        <View className="flex-row items-center gap-1">
+          <Glyph name={icon} size={14} color={theme.colors['on-primary']} />
+          <Text tone="on-primary" numberOfLines={1} className="flex-1 text-xs">
+            {label}
+          </Text>
+        </View>
+        <Text weight="bold" tone="on-primary" numberOfLines={1} adjustsFontSizeToFit className="text-lg">
+          {ltrIsolate(value)}
         </Text>
       </View>
-      <Text weight="bold" tone="on-primary" numberOfLines={1} adjustsFontSizeToFit className="text-lg">
-        {ltrIsolate(value)}
-      </Text>
+      <InfoButton label={label} info={info} color={theme.colors['on-primary']} />
     </View>
+  );
+}
+
+interface InfoButtonProps {
+  /** The figure's name: the dialog title and part of the button's spoken label. */
+  label: string;
+  info: string;
+  color: string;
+}
+
+/** A small info icon that explains a home figure in a dialog. */
+function InfoButton({ label, info, color }: InfoButtonProps) {
+  const { t } = useTranslation();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={t('home.aboutFigure', { label })}
+      hitSlop={12}
+      onPress={() => Alert.alert(label, info, [{ text: t('common.ok') }])}
+      className="active:opacity-60"
+    >
+      <Glyph name="app:info" size={16} color={color} />
+    </Pressable>
   );
 }
 
@@ -294,23 +337,27 @@ interface UnallocatedRowProps {
 function UnallocatedRow({ value, spoken, warning }: UnallocatedRowProps) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const tone = warning ? theme.colors['on-warning'] : theme.colors.muted;
   return (
-    <View
-      accessible
-      accessibilityLabel={t('home.figure', { label: t('home.unallocated'), amount: spoken })}
-      className={`min-h-14 flex-row items-center gap-3 rounded-theme px-4 py-3 ${warning ? 'bg-warning' : 'bg-surface'}`}
-    >
-      <Glyph
-        name={warning ? 'app:gentle-warning' : 'app:pie-chart'}
-        size={18}
-        color={warning ? theme.colors['on-warning'] : theme.colors.primary}
-      />
-      <Text tone={warning ? 'on-warning' : 'text'} numberOfLines={1} className="flex-1 text-base">
-        {t('home.unallocated')}
-      </Text>
-      <Text weight="bold" tone={warning ? 'on-warning' : 'text'} numberOfLines={1} className="text-lg">
-        {ltrIsolate(value)}
-      </Text>
+    <View className={`min-h-14 flex-row items-center gap-3 rounded-theme px-4 py-3 ${warning ? 'bg-warning' : 'bg-surface'}`}>
+      <View
+        accessible
+        accessibilityLabel={t('home.figure', { label: t('home.unallocated'), amount: spoken })}
+        className="flex-1 flex-row items-center gap-3"
+      >
+        <Glyph
+          name={warning ? 'app:gentle-warning' : 'app:pie-chart'}
+          size={18}
+          color={warning ? theme.colors['on-warning'] : theme.colors.primary}
+        />
+        <Text tone={warning ? 'on-warning' : 'text'} numberOfLines={1} className="flex-1 text-base">
+          {t('home.unallocated')}
+        </Text>
+        <Text weight="bold" tone={warning ? 'on-warning' : 'text'} numberOfLines={1} className="text-lg">
+          {ltrIsolate(value)}
+        </Text>
+      </View>
+      <InfoButton label={t('home.unallocated')} info={t('home.unallocatedInfo')} color={tone} />
     </View>
   );
 }
