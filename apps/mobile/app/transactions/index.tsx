@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { currentMonth, formatMonth, formatMoneyParts, ltrIsolate } from '@money-tracker/shared';
 import { useAuthStatus } from '@/auth/appSession';
 import { categoryIconFor } from '@/data/categoryIcons';
-import { allCategoriesQuery } from '@/data/categories';
+import { allCategoriesQuery, shownCategoryOf } from '@/data/categories';
 import { monthTransactionListQuery } from '@/data/transactions';
 import { useAccountSettings } from '@/data/useAccountSettings';
 import { localDb, localStore } from '@/db/appDatabase';
@@ -51,13 +51,15 @@ function TransactionList() {
     setSyncing(false);
   }, []);
 
+  // An Expense whose Category is deleted shows as Other.
   const categoryOf = useMemo(() => {
     const iconFor = categoryIconFor(localStore.accountId());
-    const byId = new Map(
-      categories.map((c) => [c.id, { name: c.isOther ? t('categories.other') : c.name, icon: iconFor(c) }]),
-    );
-    return (id: string | null): { name: string; icon: GlyphName } =>
-      (id ? byId.get(id) : undefined) ?? { name: '', icon: 'app:other' };
+    const shown = shownCategoryOf(categories);
+    return (id: string | null): { name: string; icon: GlyphName } => {
+      const category = id ? shown(id) : undefined;
+      if (!category || category.isOther) return { name: t('categories.other'), icon: 'app:other' };
+      return { name: category.name, icon: iconFor(category) };
+    };
   }, [categories, t]);
 
   return (

@@ -1,10 +1,14 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { CATEGORY_NAME_MAX_LENGTH, currentMonth, formatMonth, fromMinorUnits } from '@money-tracker/shared';
+import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
+import { CATEGORY_NAME_MAX_LENGTH, currentMonth, formatMonth, fromMinorUnits, guessCategoryIcon } from '@money-tracker/shared';
+import { CategoryIconPicker } from '@/categories/CategoryIconPicker';
+import { useConfirmDeleteCategory } from '@/categories/useConfirmDeleteCategory';
 import { categoryBudgetsQuery, setCategoryBudgets } from '@/data/budget';
-import { allCategoriesQuery, categoryActions, categoryNameOf } from '@/data/categories';
+import { activeCategoriesQuery, allCategoriesQuery, categoryActions, categoryNameOf } from '@/data/categories';
+import { categoryIconFor } from '@/data/categoryIcons';
 import { useAccountSettings } from '@/data/useAccountSettings';
 import { localDb, localStore } from '@/db/appDatabase';
 import { useLanguage } from '@/i18n/useLanguage';
@@ -13,8 +17,11 @@ import { AmountEntryDisplay, AmountKeypad, Button, Card, Screen, ScreenHeader, T
 const actions = categoryActions(localStore, localDb);
 
 /**
- * Add a Category, or rename one and set its Category Budget for the Month.
- * Other keeps its name and can't be archived; only its budget changes here.
+ * Add a Category, or rename one, change its icon, set its Category Budget for
+ * the Month, archive or delete it. While adding, the icon follows the typed
+ * name until the adult picks one; renaming never changes it. Other keeps its
+ * name and icon and can't be archived or deleted; only its budget changes
+ * here. The last active Category besides Other can't be archived or deleted.
  * The budget is typed on the adult keypad, which takes sums (`+ − × ÷`).
  */
 export default function EditCategoryScreen() {
@@ -33,17 +40,29 @@ export default function EditCategoryScreen() {
   });
   const [name, setName] = useState(existing?.name ?? '');
   const budgetEntry = useAmountEntry(currency, initialBudget);
+  // The icon it shows now (for older records, the fallback); a new Category's follows the name until picked.
+  const [initialIcon] = useState(() => (existing ? categoryIconFor(localStore.accountId())(existing).slice(4) : null));
+  const [pickedIcon, setPickedIcon] = useState<string | null>(initialIcon);
+  const icon = pickedIcon ?? guessCategoryIcon(name);
+  const { data: active } = useLiveQuery(activeCategoriesQuery(localDb));
+  const confirmDelete = useConfirmDeleteCategory();
 
   const isOther = existing?.isOther ?? false;
   const validName = isOther ? existing!.name : categoryNameOf(name);
   // Nothing typed is 0; a negative result or an unfinished sum can't be saved.
   const budget = budgetEntry.allocation;
   const canSave = validName !== null && budget !== null;
+  // Archived or not, from the live list: it's the last one if no other active Category but Other is left.
+  const isLast = useMemo(
+    () => !!existing && existing.archivedAt === null && !active.some((c) => !c.isOther && c.id !== existing.id),
+    [active, existing],
+  );
 
   function save() {
     if (!canSave) return;
-    const id = existing ? existing.id : actions.add(validName);
+    const id = existing ? existing.id : actions.add(validName, icon);
     if (existing && !isOther && validName !== existing.name) actions.rename(id, validName);
+    if (existing && !isOther && icon !== initialIcon) actions.setIcon(id, icon);
     if (budgetEntry.typed !== initialBudget) setCategoryBudgets(localStore, month, { [id]: budget });
     router.back();
   }
@@ -53,6 +72,10 @@ export default function EditCategoryScreen() {
     router.back();
   }
 
+  function remove() {
+    if (existing) confirmDelete(existing, month, () => router.back());
+  }
+
   return (
     <Screen
       scroll
@@ -60,7 +83,19 @@ export default function EditCategoryScreen() {
         <>
           <AmountKeypad entry={budgetEntry} numberingSystem={numberingSystem} />
           <Button label={t('categories.save')} disabled={!canSave} onPress={save} />
-          {existing && !isOther ? <Button label={t('categories.archive')} variant="secondary" icon="app:archive" onPress={archive} /> : null}
+          {existing && !isOther ? (
+            <View className="flex-row gap-2">
+              <Button
+                label={t('categories.archive')}
+                variant="secondary"
+                icon="app:archive"
+                disabled={isLast || existing.archivedAt !== null}
+                onPress={archive}
+                className="flex-1"
+              />
+              <Button label={t('categories.delete')} variant="danger" icon="app:delete" disabled={isLast} onPress={remove} className="flex-1" />
+            </View>
+          ) : null}
         </>
       }
     >
@@ -104,9 +139,10 @@ export default function EditCategoryScreen() {
           </Text>
         ) : null}
       </View>
+      {isOther ? null : <CategoryIconPicker value={icon} onChange={setPickedIcon} />}
       {existing && !isOther ? (
         <Text tone="muted" className="text-sm">
-          {t('categories.archiveHint')}
+          {isLast ? t('categories.lastCategory') : t('categories.archiveHint')}
         </Text>
       ) : null}
     </Screen>

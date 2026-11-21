@@ -24,10 +24,41 @@ describe('parsePushedChange', () => {
   });
 
   it('accepts a Category', () => {
-    const record = { id: categoryId, updatedAt: 0, deletedAt: null, name: 'Other', order: 0, isOther: true, archivedAt: null };
+    const record = { id: categoryId, updatedAt: 0, deletedAt: null, name: 'Other', order: 0, isOther: true, archivedAt: null, icon: 'other' };
     expect(parsePushedChange({ entity: 'category', record })).toEqual({
       ok: true,
       change: { entity: 'category', record },
+    });
+  });
+
+  describe('a Category icon', () => {
+    const category = { id: categoryId, updatedAt: 0, deletedAt: null, name: 'Rent', order: 0, isOther: false, archivedAt: null };
+
+    it('accepts any short kebab-case icon name, including ones this app version does not know', () => {
+      for (const icon of ['housing', 'food-groceries', 'rocket-ship-2']) {
+        expect(parsePushedChange({ entity: 'category', record: { ...category, icon } })).toEqual({
+          ok: true,
+          change: { entity: 'category', record: { ...category, icon } },
+        });
+      }
+    });
+
+    it('reads a missing icon (an older app) as none', () => {
+      expect(parsePushedChange({ entity: 'category', record: category })).toEqual({
+        ok: true,
+        change: { entity: 'category', record: { ...category, icon: null } },
+      });
+    });
+
+    it.each([
+      ['an app: prefix', 'app:housing'],
+      ['capitals', 'Housing'],
+      ['spaces', 'food groceries'],
+      ['a long name', 'x'.repeat(41)],
+      ['a number', 7],
+    ])('rejects an icon with %s', (_label, icon) => {
+      const result = parsePushedChange({ entity: 'category', record: { ...category, icon } });
+      expect(result).toEqual({ ok: false, problems: [{ field: 'icon', message: expect.any(String) }] });
     });
   });
 

@@ -56,14 +56,24 @@ export type ExpenseChanges = Partial<Pick<NewExpense, 'amount' | 'date' | 'note'
 
 /**
  * Changes an Expense locally and queues it for sync. A new date may move it
- * into another Month, which is created first if it has no plan. False if it's
- * gone (deleted, maybe on another device).
+ * into another Month, which is created first if it has no plan. If its
+ * Category has been deleted, it is filed under Other. False if it's gone
+ * (deleted, maybe on another device).
  */
 export function editExpense(store: LocalStore, db: LocalDb, id: string, changes: ExpenseChanges): boolean {
+  const accountId = store.accountId();
+  const current = transactionQuery(db, id).get();
+  if (!accountId || !current) return false;
+  // An Expense whose Category is deleted shows as Other; saving it files it there.
+  const categoryId = changes.categoryId ?? current.categoryId;
+  if (categoryId && !isLiveCategory(db, categoryId)) changes = { ...changes, categoryId: otherCategoryId(accountId) };
   const edited = store.update('transaction', id, changes);
   if (edited && changes.date) openMonth(store, db, monthOf(changes.date));
   return edited;
 }
+
+const isLiveCategory = (db: LocalDb, id: string): boolean =>
+  db.select({ id: categories.id }).from(categories).where(and(eq(categories.id, id), isNull(categories.deletedAt))).get() !== undefined;
 
 /** The parts of an Income an adult can change. Income never has a Category. */
 export type IncomeChanges = Partial<Pick<NewIncome, 'amount' | 'date' | 'note'>>;

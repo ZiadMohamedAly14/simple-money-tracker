@@ -72,10 +72,14 @@ import {
 } from '@/data/kidWallet';
 import {
   activeCategoriesQuery,
+  allCategoriesQuery,
   archivedCategoriesQuery,
   categoryActions,
   categoryChoicesQuery,
+  categoryDeletionImpact,
+  isLastActiveCategory,
   readCategoryBreakdown,
+  shownCategoryOf,
 } from '@/data/categories';
 import { createLocalStore } from '@/db/localStore';
 import { migrate } from '@/db/migrations';
@@ -285,7 +289,13 @@ export async function createTestDevice(
     monthOverview: (month: string) => readMonthOverview(db, month),
     categoryBudgets: (month: string) => categoryBudgetsQuery(db, month).all(),
 
-    addCategory: (name: string) => categoryActionsOf.add(name),
+    addCategory: (name: string, icon?: string) => categoryActionsOf.add(name, icon),
+    setCategoryIcon: (id: string, icon: string) => categoryActionsOf.setIcon(id, icon),
+    deleteCategory: (id: string) => categoryActionsOf.remove(id),
+    categoryDeletionImpact: (id: string, month: string) => categoryDeletionImpact(db, id, month),
+    isLastActiveCategory: (id: string) => isLastActiveCategory(db, id),
+    /** The Category an Expense filed under `categoryId` shows as: Other if that Category is deleted. */
+    shownCategory: (categoryId: string) => shownCategoryOf(allCategoriesQuery(db).all())(categoryId),
     renameCategory: (id: string, name: string) => categoryActionsOf.rename(id, name),
     reorderCategories: (ids: readonly string[]) => categoryActionsOf.reorder(ids),
     archiveCategory: (id: string) => categoryActionsOf.archive(id),
