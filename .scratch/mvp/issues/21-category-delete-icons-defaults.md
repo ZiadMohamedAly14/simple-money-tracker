@@ -4,7 +4,7 @@
 
 **Blocked by:** 09 (Categories and Category Budgets).
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] **Delete** is on the Category edit screen and on rows in the Archived section. Other never shows it.
 - [x] Deleting a Category with no Expenses asks a plain "Delete 'X'?" confirmation.
