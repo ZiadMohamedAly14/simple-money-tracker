@@ -35,6 +35,9 @@ export interface AccountSettingsFields {
   numberingSystem: NumberingSystem;
 }
 
+/** Longest Category name, in UTF-16 code units. */
+export const CATEGORY_NAME_MAX_LENGTH = 60;
+
 export interface CategoryFields {
   name: string;
   order: number;
@@ -236,7 +239,7 @@ const FIELD_PARSERS: { [E in SyncEntity]: (read: FieldReader) => SyncFieldsByEnt
     amount: read.nonNegativeAmount('amount'),
   }),
   category: (read) => ({
-    name: read.text('name', 60),
+    name: read.text('name', CATEGORY_NAME_MAX_LENGTH),
     order: read.integer('order'),
     isOther: read.boolean('isOther'),
     archivedAt: read.optionalTime('archivedAt'),
