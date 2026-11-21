@@ -265,6 +265,52 @@ export const en = {
       archiveBody: 'It disappears from new top-ups. Its money and history stay.',
     },
   },
+  learn: {
+    title: 'Learn',
+    open: 'Learn about money',
+    next: 'Next',
+    done: 'Done',
+    progress: 'Lesson {{current}} of {{count}}',
+    // Placeholder copy until the final lesson text arrives.
+    lessons: {
+      saving: {
+        title: 'Save a little, often',
+        body: 'Each time you put a little in your Save jar, it grows. Small steps add up!',
+      },
+      jars: {
+        title: 'Three jars, three jobs',
+        body: 'Save is for later, Spend is for now, and Give is for helping others. Every jar has its own job.',
+      },
+      'needs-and-wants': {
+        title: 'Needs and wants',
+        body: 'A need is something you must have, like food. A want is something nice to have, like a new toy. Needs come first.',
+      },
+      'think-first': {
+        title: 'Stop and think',
+        body: 'Before you spend, ask yourself: do I really want this? Will I still like it next week?',
+      },
+      waiting: {
+        title: 'Worth the wait',
+        body: 'Big things take time. If you keep saving and wait a little, you can buy something you really love.',
+      },
+      giving: {
+        title: 'Giving feels good',
+        body: 'Money in your Give jar can help someone else. Sharing makes you and others happy.',
+      },
+      comparing: {
+        title: 'Look before you buy',
+        body: 'The same thing can cost different amounts in different places. Looking around helps your money go further.',
+      },
+      earning: {
+        title: 'Where money comes from',
+        body: 'Grown-ups work to earn money. That is why we take care of it and use it wisely.',
+      },
+      'running-low': {
+        title: 'When a jar runs low',
+        body: "If a jar doesn't have enough, that's okay. Wait, save a bit more, or talk to your parent.",
+      },
+    },
+  },
   settings: {
     title: 'Settings',
     numberingLabel: 'Digits',

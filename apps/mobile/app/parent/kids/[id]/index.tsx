@@ -90,6 +90,7 @@ function KidWallet({ id }: { id: string }) {
         title={t('kid.wallet.manageJars')}
         onPress={() => router.push({ pathname: '/parent/kids/[id]/jars', params: { id } })}
       />
+      <ListRow icon="app:learn" title={t('learn.open')} onPress={() => router.push('/learn')} />
 
       <Text weight="bold" accessibilityRole="header" className="pt-2 text-lg">
         {t('kid.wallet.topUps')}
