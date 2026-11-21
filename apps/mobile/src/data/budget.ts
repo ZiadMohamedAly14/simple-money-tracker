@@ -1,4 +1,4 @@
-import { and, eq, isNull, like } from 'drizzle-orm';
+import { and, asc, eq, isNull, like } from 'drizzle-orm';
 import {
   DEFAULT_CATEGORY_KEYS,
   DEFAULT_NUMBERING_SYSTEM,
@@ -180,6 +180,16 @@ export function monthTransactionsQuery(db: LocalDb, month: Month) {
     .select()
     .from(transactions)
     .where(and(isNull(transactions.deletedAt), like(transactions.date, `${month}-%`)));
+}
+
+/** Live-queryable: the earliest dated Transaction (one row, or none), which bounds how far back Months go. */
+export function earliestTransactionQuery(db: LocalDb) {
+  return db
+    .select({ date: transactions.date })
+    .from(transactions)
+    .where(isNull(transactions.deletedAt))
+    .orderBy(asc(transactions.date))
+    .limit(1);
 }
 
 /** A Month's figures from what the live queries above return. */
