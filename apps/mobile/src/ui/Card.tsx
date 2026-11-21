@@ -175,18 +175,22 @@ export function Notice({ text, icon }: NoticeProps) {
 }
 
 /**
- * "Pending sync": small muted text after the small pending-sync icon. Callers
- * decide when to show it (only after changes have waited more than a minute:
+ * "Pending sync": a pill on the soft fill with the pending-sync icon and the
+ * text in the accent colour, centred on its own line. Callers decide when to
+ * show it (only after changes have waited more than a minute:
  * `useSyncOverdue`).
  */
-export function PendingSyncLabel({ align = 'center' }: { align?: 'start' | 'center' | 'end' }) {
+export function PendingSyncLabel() {
   const { t } = useTranslation();
   const theme = useTheme();
-  const justify = align === 'start' ? 'justify-start' : align === 'end' ? 'justify-end' : 'justify-center';
   return (
-    <View className={`flex-row items-center gap-1 ${justify}`}>
-      <AppIcon name="pending-sync" size={12} color={theme.colors.muted} />
-      <Text tone="muted" align={align} className="text-xs">
+    <View
+      accessible
+      accessibilityLiveRegion="polite"
+      className="flex-row items-center gap-2 self-center rounded-full bg-tint px-4 py-1.5"
+    >
+      <AppIcon name="pending-sync" size={16} color={theme.colors.primary} />
+      <Text weight="semibold" tone="positive" className="text-sm">
         {t('sync.pending')}
       </Text>
     </View>

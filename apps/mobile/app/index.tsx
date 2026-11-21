@@ -73,6 +73,8 @@ function MonthOverview() {
           <RefreshControl refreshing={syncing} onRefresh={() => void refresh()} colors={[theme.colors.primary]} progressBackgroundColor={theme.colors.surface} />
         }
       >
+        {/* Above the Month row, in the scrolling content, so it scrolls away with the page. */}
+        {syncOverdue ? <PendingSyncLabel /> : null}
         <View className="min-h-11 flex-row items-center gap-2">
           <IconButton
             icon="app:chevron-forward"
@@ -86,7 +88,6 @@ function MonthOverview() {
             accessibilityRole="header"
             accessibilityLiveRegion="polite"
             numberOfLines={1}
-            adjustsFontSizeToFit
             align="center"
             className="flex-1 text-xl"
           >
@@ -98,7 +99,6 @@ function MonthOverview() {
             disabled={!canGoForward}
             onPress={goForward}
           />
-          {syncOverdue ? <PendingSyncLabel align="end" /> : null}
           <IconButton icon="app:settings" accessibilityLabel={t('home.settings')} onPress={() => router.push('/settings')} />
         </View>
 

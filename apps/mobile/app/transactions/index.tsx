@@ -68,8 +68,8 @@ function TransactionList() {
         <ScreenHeader
           title={`${t('transactions.title')} · ${formatMonth(month, { language, numberingSystem })}`}
           onBack={() => router.back()}
-          end={syncOverdue ? <PendingSyncLabel align="end" /> : undefined}
         />
+        {syncOverdue ? <PendingSyncLabel /> : null}
         <Button
           label={t('transactions.addIncome')}
           variant="secondary"
