@@ -113,6 +113,8 @@ function HealthScreen() {
 
       {/* Sync tracer bullet (ticket 05); the Month overview (ticket 07) replaces this screen. */}
       <Button label={t('expenses.open')} variant="secondary" onPress={() => router.push('/expenses')} />
+      {/* PIN-gated Parent Area (ticket 11); the kid wallet entry point (ticket 12) will lead here. */}
+      <Button label={t('parentArea.open')} variant="secondary" icon="lock-closed-outline" onPress={() => router.push('/parent')} />
 
       <Button label={t('session.signOut')} variant="danger" onPress={() => void authSession.signOut()} />
     </Screen>

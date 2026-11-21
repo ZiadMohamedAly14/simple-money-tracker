@@ -4,6 +4,8 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { authSession } from '@/auth/appSession';
+// Wires the Parent PIN gate to the session (refresh on sign-in, forget on sign-out) before it starts.
+import '@/pin/appPinGate';
 import { startI18n } from '@/i18n/i18n';
 import { FONT_ASSETS } from '@/theme/fontAssets';
 import { ThemeProvider } from '@/theme/ThemeProvider';
