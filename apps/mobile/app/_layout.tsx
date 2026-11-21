@@ -1,7 +1,7 @@
 import '../global.css';
 import { useEffect, useState } from 'react';
 import { useFonts } from 'expo-font';
-import { Stack, router, useSegments } from 'expo-router';
+import { router, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { authSession, useElevated, useKidModeProfileId } from '@/auth/appSession';
 // Wires the Parent PIN gate to the session (refresh on sign-in, forget on sign-out) before it starts.
@@ -12,7 +12,8 @@ import { startAutoSync } from '@/sync/appSync';
 import { FONT_ASSETS } from '@/theme/fontAssets';
 import { startAppearance } from '@/theme/appearanceStore';
 import { SystemBars } from '@/theme/SystemBars';
-import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
+import { ThemedStack } from '@/theme/ThemedStack';
+import { ThemeProvider } from '@/theme/ThemeProvider';
 import { DialogHost } from '@/ui/Dialog';
 
 // The splash (Background colour, light or dark by the phone) stays up until
@@ -69,15 +70,4 @@ export default function RootLayout() {
       <DialogHost />
     </ThemeProvider>
   );
-}
-
-/**
- * The screen stack. Each screen gets the palette's solid Background, so during
- * a transition the screen underneath never shows through (a see-through
- * screen made both pages overlap, then the old one vanish in one frame). Kid
- * screens paint their own Mint/Teal Background over it.
- */
-function ThemedStack() {
-  const theme = useTheme();
-  return <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.colors.background } }} />;
 }

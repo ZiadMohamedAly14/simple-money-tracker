@@ -1,6 +1,6 @@
-import { Stack } from 'expo-router';
+import { ThemedStack } from '@/theme/ThemedStack';
 
 /** Signed-out screens: enter email, then enter the code. */
 export default function AuthLayout() {
-  return <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }} />;
+  return <ThemedStack />;
 }

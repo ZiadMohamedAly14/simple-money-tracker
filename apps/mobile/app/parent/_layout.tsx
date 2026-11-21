@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable } from 'react-native';
-import { Redirect, Stack, router } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { getNetworkStateAsync } from 'expo-network';
 import { useTranslation } from 'react-i18next';
 import { formatCountdown } from '@money-tracker/shared';
@@ -9,6 +9,7 @@ import { useLanguage } from '@/i18n/useLanguage';
 import { parentArea, parentPinGate, useParentAreaUnlocked } from '@/pin/appPinGate';
 import { PinPad } from '@/pin/PinPad';
 import { Notice, ScreenHeader, Text } from '@/ui';
+import { ThemedStack } from '@/theme/ThemedStack';
 
 /**
  * The PIN-gated Parent Area. On a Personal-Mode device it opens with the PIN
@@ -22,7 +23,7 @@ export default function ParentAreaLayout() {
   const elevated = useElevated();
   if (kidMode && !(unlocked && elevated)) return <KidDeviceGate />;
   if (!unlocked) return <ParentGate />;
-  return <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }} />;
+  return <ThemedStack />;
 }
 
 function ParentGate() {

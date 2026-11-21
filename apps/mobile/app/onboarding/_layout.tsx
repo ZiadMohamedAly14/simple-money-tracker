@@ -1,6 +1,7 @@
-import { Redirect, Stack, usePathname } from 'expo-router';
+import { Redirect, usePathname } from 'expo-router';
 import { useAuthStatus } from '@/auth/appSession';
 import { useOnboardingState } from '@/data/useAccountSettings';
+import { ThemedStack } from '@/theme/ThemedStack';
 
 /**
  * Onboarding: purpose, then (personal path) currency, Expected Income and an
@@ -18,5 +19,5 @@ export default function OnboardingLayout() {
   if (status === 'loading' || onboarding === null) return null;
   if (status === 'signedOut') return <Redirect href="/sign-in" />;
   if (onboarding !== 'not_started' && !AFTER_ONBOARDING.includes(pathname)) return <Redirect href="/" />;
-  return <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }} />;
+  return <ThemedStack />;
 }
