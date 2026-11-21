@@ -112,6 +112,39 @@ describe('Months created lazily (Seam B)', () => {
     }
   });
 
+  it("a Month's first Transaction creates it, before it is ever opened", async () => {
+    const phone = await onboardedPhone();
+    phone.recordExpense({ amount: 1200, date: '2026-04-02' });
+    expect(phone.monthOverview(APRIL)).toMatchObject({ expectedIncome: 800000, spending: 1200 });
+  });
+
+  it('an Expense can be recorded in an earlier Month, or moved there by editing its date', async () => {
+    const phone = await onboardedPhone();
+    const food = idOf(phone, 'food');
+    phone.openMonth(APRIL);
+
+    phone.recordExpense({ amount: 2500, date: '2026-03-28', categoryId: food });
+    const late = phone.recordExpense({ amount: 900, date: '2026-04-01', categoryId: food });
+    phone.editExpense(late, { date: '2026-03-31' });
+    await phone.sync();
+
+    const tablet = await createTestDevice(server);
+    await tablet.signIn('sara@example.com');
+    await tablet.sync();
+    for (const device of [phone, tablet]) {
+      expect(device.monthOverview(MARCH).spending).toBe(3400);
+      expect(device.monthOverview(APRIL).spending).toBe(0);
+      expect(device.categoryBreakdown(MARCH).find((row) => row.categoryId === food)?.spent).toBe(3400);
+    }
+  });
+
+  it('moving an Expense into a Month that has no plan yet creates that Month', async () => {
+    const phone = await onboardedPhone();
+    const id = phone.recordExpense({ amount: 900, date: '2026-03-15' });
+    phone.editExpense(id, { date: '2026-05-01' });
+    expect(phone.monthOverview('2026-05')).toMatchObject({ expectedIncome: 800000, spending: 900 });
+  });
+
   it("a device opening a Month late doesn't overwrite changes another device already made to it", async () => {
     const phoneClock = createDeviceClock();
     const phone = await onboardedPhone(phoneClock);

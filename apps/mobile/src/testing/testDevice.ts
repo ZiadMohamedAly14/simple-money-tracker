@@ -182,8 +182,8 @@ export async function createTestDevice(
     /** Whether the app would show the pending-sync indicator now. */
     syncOverdue: () => isSyncOverdue(store.oldestPendingAt(), now()),
 
-    recordExpense: (expense: NewExpense) => recordExpense(store, expense),
-    editExpense: (id: string, changes: ExpenseChanges) => editExpense(store, id, changes),
+    recordExpense: (expense: NewExpense) => recordExpense(store, db, expense),
+    editExpense: (id: string, changes: ExpenseChanges) => editExpense(store, db, id, changes),
     deleteExpense: (id: string) => deleteExpense(store, id),
     expenses: () => expensesQuery(db).all(),
     categories: () => categoriesQuery(db).all(),
