@@ -91,6 +91,12 @@ export default function ParentAreaScreen() {
       })}
       <View className="gap-3">
         <Button label={t('parentArea.addKid')} icon="app:add" onPress={() => router.push('/parent/kids/new')} />
+        <Button
+          label={t('parentArea.setUpKidDevice')}
+          variant="secondary"
+          icon="app:kid-device"
+          onPress={() => router.push('/parent/kid-device')}
+        />
         <Button label={t('pin.change')} variant="secondary" onPress={() => router.push('/pin/set')} />
         <Button label={t('parentArea.lock')} variant="secondary" icon="app:lock-pin" onPress={lock} />
       </View>

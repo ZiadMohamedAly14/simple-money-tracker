@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Redirect, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { formatMonth, formatMoneyParts, ltrIsolate } from '@money-tracker/shared';
-import { useAuthStatus } from '@/auth/appSession';
+import { useAuthStatus, useKidModeProfileId } from '@/auth/appSession';
 import { categoryIconFor } from '@/data/categoryIcons';
 import { useAccountSettings, useOnboardingState } from '@/data/useAccountSettings';
 import { useMonthBudget } from '@/data/useMonthBudget';
@@ -19,13 +19,16 @@ import { AmountDisplay, Button, Card, Fab, Glyph, IconButton, IconCircle, Notice
 import type { GlyphName } from '@/ui';
 
 /**
- * Home: signed-out devices go to sign-in and new Accounts to onboarding. A
- * device whose session ended keeps showing its data, with a sign-in-again notice.
+ * Home: a Kid-Mode device goes to its kid's wallet, signed-out devices to
+ * sign-in and new Accounts to onboarding. A device whose session ended keeps
+ * showing its data, with a sign-in-again notice.
  */
 export default function HomeRoute() {
   const status = useAuthStatus();
+  const kidProfileId = useKidModeProfileId();
   const onboarding = useOnboardingState();
   if (status === 'loading' || onboarding === null) return null;
+  if (kidProfileId) return <Redirect href={{ pathname: '/kid/[id]', params: { id: kidProfileId } }} />;
   if (status === 'signedOut') return <Redirect href="/sign-in" />;
   if (onboarding === 'not_started') return <Redirect href="/onboarding" />;
   return <MonthOverview />;

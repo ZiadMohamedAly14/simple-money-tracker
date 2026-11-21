@@ -166,7 +166,7 @@ export function isAppIconMirrored(
 
 /**
  * Drawn and registered, but no screen uses them yet: they wait for upcoming
- * tickets (sign-in email, the adult's devices list and revoking one, the
- * recovery key, an expense note).
+ * tickets (the adult's devices list and revoking one, the recovery key, an
+ * expense note).
  */
-export const RESERVED_APP_ICONS = ['email', 'devices', 'revoke-device', 'key', 'note'] as const satisfies readonly AppIconName[];
+export const RESERVED_APP_ICONS = ['devices', 'revoke-device', 'key', 'note'] as const satisfies readonly AppIconName[];

@@ -1,19 +1,23 @@
-import { View } from 'react-native';
+import { useCallback, useState } from 'react';
+import { RefreshControl, View } from 'react-native';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { formatMoneyParts } from '@money-tracker/shared';
+import { useKidModeProfileId } from '@/auth/appSession';
 import { useAccountSettings } from '@/data/useAccountSettings';
 import { useLanguage } from '@/i18n/useLanguage';
 import { KidAvatar } from '@/kid/KidAvatar';
 import { jarStyle, useKidWallet } from '@/kid/useKidWallet';
-import { ThemeProvider } from '@/theme/ThemeProvider';
-import { AmountDisplay, Button, Card, IconButton, ListRow, Notice, ProgressRow, Screen, Text } from '@/ui';
+import { syncTriggers } from '@/sync/appSync';
+import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
+import { AmountDisplay, AppIcon, Button, Card, IconButton, ListRow, Notice, ProgressRow, Screen, Text } from '@/ui';
 
 /**
  * The kid's own wallet (PDF page 1, "Kid wallet"): "In my wallet", each Jar,
- * "I spent money" and "My history". Ticket 14 makes this the Kid-Mode home;
- * until then a parent opens it from the kid's wallet in the Parent Area.
- * A Jar below zero after a sync shows its negative balance and a notice.
+ * "I spent money", "My history" and Learn. On a Kid-Mode device this is the
+ * home screen, with no back button; a parent also opens it from the kid's
+ * wallet in the Parent Area. A Jar below zero after a sync shows its negative
+ * balance and a notice.
  */
 export default function KidHomeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -29,9 +33,18 @@ function KidHome({ id }: { id: string }) {
   const language = useLanguage();
   const { currency, numberingSystem } = useAccountSettings();
   const { kid, wallet } = useKidWallet(id);
+  const isKidModeHome = useKidModeProfileId() === id;
+  const [syncing, setSyncing] = useState(false);
+  const refresh = useCallback(async () => {
+    setSyncing(true);
+    await syncTriggers.refresh().catch(() => undefined);
+    setSyncing(false);
+  }, []);
   const parts = (minor: number) => formatMoneyParts(minor, { language, currency, numberingSystem });
 
   if (kid === undefined) return null;
+  // A Kid-Mode device whose first download hasn't finished yet (set up, then the connection dropped).
+  if (kid === null && isKidModeHome) return <WaitingForWallet syncing={syncing} onRetry={() => void refresh()} />;
   if (kid === null) return <Redirect href="/" />;
 
   const total = parts(wallet.total);
@@ -39,9 +52,11 @@ function KidHome({ id }: { id: string }) {
   const negative = wallet.jars.filter((jar) => wallet.negativeJarIds.includes(jar.id));
 
   return (
-    <Screen scroll>
+    <Screen scroll refreshControl={<RefreshControl refreshing={syncing} onRefresh={() => void refresh()} />}>
       <View className="min-h-11 flex-row items-center gap-3 pt-2">
-        <IconButton icon="app:back" directional accessibilityLabel={t('common.back')} onPress={() => router.back()} />
+        {isKidModeHome ? null : (
+          <IconButton icon="app:back" directional accessibilityLabel={t('common.back')} onPress={() => router.back()} />
+        )}
         <KidAvatar name={kid.name} avatar={kid.avatar} />
         <Text weight="bold" accessibilityRole="header" numberOfLines={1} className="flex-1 text-2xl">
           {t('kid.home.hi', { name: kid.name })}
@@ -94,6 +109,24 @@ function KidHome({ id }: { id: string }) {
         onPress={() => router.push({ pathname: '/kid/[id]/history', params: { id } })}
       />
       <ListRow icon="app:learn" title={t('learn.open')} onPress={() => router.push('/learn')} />
+    </Screen>
+  );
+}
+
+function WaitingForWallet({ syncing, onRetry }: { syncing: boolean; onRetry: () => void }) {
+  const { t } = useTranslation();
+  const theme = useTheme();
+  return (
+    <Screen footer={<Button label={t('kidDevice.tryAgain')} loading={syncing} onPress={onRetry} />}>
+      <View className="flex-1 items-center justify-center gap-3 px-6">
+        <AppIcon name="cloud" size={48} color={theme.colors.primary} />
+        <Text weight="bold" align="center" accessibilityRole="header" className="text-2xl">
+          {t('kidDevice.loading')}
+        </Text>
+        <Text tone="muted" align="center">
+          {t('kidDevice.loadingBody')}
+        </Text>
+      </View>
     </Screen>
   );
 }

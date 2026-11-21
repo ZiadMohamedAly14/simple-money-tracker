@@ -20,3 +20,8 @@ export const authSession = createAuthSession({
 export function useAuthStatus(): AuthStatus {
   return useSyncExternalStore(authSession.subscribe, authSession.status);
 }
+
+/** The Kid Profile this device is in Kid Mode for, or null on a Personal-Mode device (ADR-0002). */
+export function useKidModeProfileId(): string | null {
+  return useSyncExternalStore(authSession.subscribe, authSession.kidProfileId);
+}
