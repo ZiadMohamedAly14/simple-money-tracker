@@ -3,7 +3,7 @@ import { AppState } from 'react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 import { authSession } from '@/auth/appSession';
-import { createParentPinGate, forgetPinOnSignOut, type Biometrics, type PinGateState, type PinGateStore } from './parentPinGate';
+import { createParentPinGate, forgetPinOnSignOutOrKidMode, type Biometrics, type PinGateState, type PinGateStore } from './parentPinGate';
 
 const STATE_KEY = 'parentPin.state';
 
@@ -44,7 +44,7 @@ const deviceBiometrics: Biometrics = {
 /**
  * The app's Parent Area gate (Personal-Mode device). Its PIN hash copy is
  * refreshed whenever the device is signed in (app start, sign-in) and
- * forgotten on sign-out.
+ * forgotten on sign-out or on becoming a Kid-Mode device (ADR-0002).
  */
 export const parentPinGate = createParentPinGate({
   request: (config) =>
@@ -55,9 +55,9 @@ export const parentPinGate = createParentPinGate({
   now: Date.now,
 });
 
-forgetPinOnSignOut(authSession, parentPinGate);
+forgetPinOnSignOutOrKidMode(authSession, parentPinGate);
 authSession.subscribe(() => {
-  if (authSession.status() === 'signedIn') void parentPinGate.refresh();
+  if (authSession.status() === 'signedIn' && !authSession.kidProfileId()) void parentPinGate.refresh();
 });
 
 /**

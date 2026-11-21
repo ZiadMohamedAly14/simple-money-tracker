@@ -21,7 +21,15 @@ type Db = LocalDb | Tx;
 /** The `device_state` key holding the `OnboardingState` (screens read it with a live query). */
 export const ONBOARDING_STATE_KEY = 'onboarding';
 
-const STATE = { accountId: 'accountId', cursor: 'cursor', onboarding: ONBOARDING_STATE_KEY } as const;
+const STATE = { accountId: 'accountId', kidProfileId: 'kidProfileId', cursor: 'cursor', onboarding: ONBOARDING_STATE_KEY } as const;
+
+/** How the device holds its Account's data: everything, or only one Kid Profile's (Kid Mode, ADR-0002). */
+export interface ClaimOptions {
+  /** The server says the Account has finished onboarding. */
+  onboardingCompleted?: boolean;
+  /** A Kid-Mode device's Kid Profile; null or absent for a Personal-Mode device. */
+  kidProfileId?: string | null;
+}
 
 /**
  * Where this device's Account is with onboarding:
@@ -146,19 +154,31 @@ export function createLocalStore({ db, now, randomBytes }: LocalStoreDeps) {
 
     /**
      * Makes the device hold `accountId`'s data. If it held another Account's,
+     * or held it in the other Device Mode or for another Kid Profile,
      * everything local (rows, outbox, cursor) is deleted first, so one
-     * Account's records never show under another.
+     * Account's records never show under another and a Kid-Mode device never
+     * keeps what the parent's full session downloaded. A Kid-Mode device gets
+     * no Other Category: it holds only what its Kid Session can pull.
      */
-    claimAccount(accountId: string, { onboardingCompleted = false }: { onboardingCompleted?: boolean } = {}): void {
+    claimAccount(accountId: string, { onboardingCompleted = false, kidProfileId = null }: ClaimOptions = {}): void {
       db.transaction((tx) => {
-        if (getState(STATE.accountId, tx) !== accountId) {
+        if (getState(STATE.accountId, tx) !== accountId || getState(STATE.kidProfileId, tx) !== kidProfileId) {
           wipe(tx);
           setState(tx, STATE.accountId, accountId);
+          if (kidProfileId) setState(tx, STATE.kidProfileId, kidProfileId);
+        }
+        if (kidProfileId) {
+          // The parent onboarded before setting this device up; a Kid-Mode device never shows onboarding.
+          setState(tx, STATE.onboarding, 'complete');
+          return;
         }
         ensureOtherCategory(tx, accountId);
         if (onboardingCompleted) setState(tx, STATE.onboarding, 'complete');
       });
     },
+
+    /** The Kid Profile this device is in Kid Mode for, or null on a Personal-Mode device. */
+    kidProfileId: (): string | null => getState(STATE.kidProfileId),
 
     onboarding: (): OnboardingState => (getState(STATE.onboarding) as OnboardingState | null) ?? 'not_started',
 

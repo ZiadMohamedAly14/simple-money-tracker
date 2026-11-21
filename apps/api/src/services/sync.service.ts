@@ -8,6 +8,7 @@ import {
   monthPlanId,
   otherCategoryId,
   parsePushedChange,
+  type KidSessionErrorData,
   type KidTransactionFields,
   type PulledChange,
   type PushedChange,
@@ -34,9 +35,21 @@ interface Reference {
   field: string;
 }
 
+/** The fields a Kid Session's write rule looks at, on the pushed record and on any stored copy. */
+type KidScoped = Record<string, unknown> & { kind?: unknown; kidProfileId?: unknown };
+
 interface EntityRules {
-  kidCanRead: boolean;
-  kidCanWrite: boolean;
+  /**
+   * What a Kid Session pulls (ADR-0002): a filter limiting this entity to its
+   * Kid Profile, or null for nothing.
+   */
+  kidReads: ((kidProfileId: string) => Record<string, unknown>) | null;
+  /**
+   * Whether a Kid Session may write this record. Checked on the pushed record
+   * and on the stored copy it would replace, so an ID can't be reused to turn
+   * someone else's record into an allowed one. Absent: never.
+   */
+  kidWrites?(kidProfileId: string, record: KidScoped): boolean;
   references(change: PushedChange): Reference[];
   /** For records with a deterministic ID (spec, Data model): the only ID the record may have. */
   requiredId?(accountId: string, change: PushedChange): string;
@@ -45,44 +58,42 @@ interface EntityRules {
 }
 
 /**
- * Per-entity sync rules. Ticket 14 fills in what a Kid Session may read and
- * write (ADR-0002); the Kid Wallet entities add their references here.
+ * Per-entity sync rules, including the closed table of what a Kid Session may
+ * read and write (ADR-0002): it reads the Account settings (the Kid Wallet's
+ * currency and digits) and its own Kid Profile's wallet, and writes only Kid
+ * Expenses of that wallet. Anything not listed here is refused.
  */
 const RULES: { [E in SyncEntity]: EntityRules } = {
-  accountSettings: { kidCanRead: false, kidCanWrite: false, references: () => [], requiredId: (accountId) => accountSettingsId(accountId) },
-  category: { kidCanRead: false, kidCanWrite: false, references: () => [] },
+  accountSettings: { kidReads: () => ({}), references: () => [], requiredId: (accountId) => accountSettingsId(accountId) },
+  category: { kidReads: null, references: () => [] },
   monthPlan: {
-    kidCanRead: false,
-    kidCanWrite: false,
+    kidReads: null,
     references: () => [],
     requiredId: (accountId, change) => (change.entity === 'monthPlan' ? monthPlanId(accountId, change.record.month) : ''),
   },
   categoryBudget: {
-    kidCanRead: false,
-    kidCanWrite: false,
+    kidReads: null,
     references: (change) =>
       change.entity === 'categoryBudget' ? [{ entity: 'category', id: change.record.categoryId, field: 'categoryId' }] : [],
     requiredId: (accountId, change) =>
       change.entity === 'categoryBudget' ? categoryBudgetId(accountId, change.record.month, change.record.categoryId) : '',
   },
   transaction: {
-    kidCanRead: false,
-    kidCanWrite: false,
+    kidReads: null,
     references: (change) =>
       change.entity === 'transaction' && change.record.categoryId
         ? [{ entity: 'category', id: change.record.categoryId, field: 'categoryId' }]
         : [],
   },
-  kidProfile: { kidCanRead: false, kidCanWrite: false, references: () => [] },
+  kidProfile: { kidReads: (kidProfileId) => ({ _id: kidProfileId }), references: () => [] },
   jar: {
-    kidCanRead: false,
-    kidCanWrite: false,
+    kidReads: (kidProfileId) => ({ kidProfileId }),
     references: (change) =>
       change.entity === 'jar' ? [{ entity: 'kidProfile', id: change.record.kidProfileId, field: 'kidProfileId' }] : [],
   },
   kidTransaction: {
-    kidCanRead: false,
-    kidCanWrite: false,
+    kidReads: (kidProfileId) => ({ kidProfileId }),
+    kidWrites: (kidProfileId, record) => record.kind === 'kidExpense' && record.kidProfileId === kidProfileId,
     references: (change) =>
       change.entity === 'kidTransaction'
         ? [{ entity: 'kidProfile', id: change.record.kidProfileId, field: 'kidProfileId' }]
@@ -144,6 +155,25 @@ export function createSyncService({ now }: { now: Clock }) {
 
   const fieldOf = (index: number, field: string): string =>
     field === 'entity' ? `changes[${index}].entity` : `changes[${index}].record.${field}`;
+
+  /**
+   * A Kid Session may push only what the rules table lets it write, and only
+   * over stored copies it could have written too (ADR-0002).
+   */
+  async function checkKidScope(auth: AuthContext, changes: PushedChange[]): Promise<void> {
+    const refused = (): Error => {
+      const data: KidSessionErrorData = { reason: 'kid_session' };
+      return new ForbiddenError('A Kid Session cannot change these records', data);
+    };
+    const kidProfileId = auth.kidProfileId;
+    if (!kidProfileId) throw refused();
+    for (const change of changes) {
+      const kidWrites = RULES[change.entity].kidWrites;
+      if (!kidWrites?.(kidProfileId, change.record as unknown as KidScoped)) throw refused();
+      const stored = await modelOf(change.entity).findOne({ _id: change.record.id, accountId: auth.accountId }).lean<StoredRecord>();
+      if (stored && !kidWrites(kidProfileId, stored)) throw refused();
+    }
+  }
 
   /** Every pushed ID must be new or already this Account's. */
   async function checkOwnership(accountId: string, changes: PushedChange[]): Promise<void> {
@@ -268,11 +298,15 @@ export function createSyncService({ now }: { now: Clock }) {
   async function pull(auth: AuthContext, cursor: number, limit: number): Promise<SyncResponseData> {
     // Stop below any version still being written, or a late commit would fall behind the cursor.
     const committed = await committedServerVersion(now().getTime());
-    const readable = SYNC_ENTITIES.filter((entity) => auth.scope === 'full' || RULES[entity].kidCanRead);
+    const readable = SYNC_ENTITIES.flatMap((entity) => {
+      if (auth.scope === 'full') return [{ entity, scope: {} }];
+      const kidReads = RULES[entity].kidReads;
+      return kidReads && auth.kidProfileId ? [{ entity, scope: kidReads(auth.kidProfileId) }] : [];
+    });
     const batches = await Promise.all(
-      readable.map(async (entity) => {
+      readable.map(async ({ entity, scope }) => {
         const stored = await modelOf(entity)
-          .find({ accountId: auth.accountId, serverVersion: { $gt: cursor, $lte: committed } })
+          .find({ ...scope, accountId: auth.accountId, serverVersion: { $gt: cursor, $lte: committed } })
           .sort({ serverVersion: 1 })
           .limit(limit + 1)
           .lean<StoredRecord[]>();
@@ -289,10 +323,8 @@ export function createSyncService({ now }: { now: Clock }) {
   return {
     async sync(auth: AuthContext, body: SyncRequestBody): Promise<SyncResponseData> {
       const changes = parseAll(body.changes);
-      if (auth.scope !== 'full' && changes.some((c) => !RULES[c.entity].kidCanWrite)) {
-        throw new ForbiddenError('A Kid Session cannot change these records');
-      }
       if (auth.scope === 'full') await ensureOtherCategory(auth.accountId);
+      else await checkKidScope(auth, changes);
 
       // Referenced entities first, so a Category is stored before its Expenses.
       const ordered = [...changes].sort((a, b) => SYNC_ENTITIES.indexOf(a.entity) - SYNC_ENTITIES.indexOf(b.entity));

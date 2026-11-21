@@ -9,6 +9,12 @@ import type { TokenPair } from '@money-tracker/shared';
 export interface StoredSession {
   account: { id: string; email: string };
   tokens: TokenPair | null;
+  /**
+   * Set on a Kid-Mode device: its tokens are a Kid Session's for this Kid
+   * Profile, and the full tokens are gone (ADR-0002). Absent or null on a
+   * Personal-Mode device.
+   */
+  kidProfileId?: string | null;
 }
 
 /** Where the session lives. SecureStore on the device; in memory in tests. */
@@ -23,28 +29,33 @@ const KEYS = {
   accessToken: 'auth.accessToken',
   refreshToken: 'auth.refreshToken',
   account: 'auth.account',
+  kidProfileId: 'auth.kidProfileId',
 } as const;
 
 /** Tokens are kept only in SecureStore (never AsyncStorage or SQLite). */
 export const secureSessionStore: SessionStore = {
   async load() {
-    const [accessToken, refreshToken, account] = await Promise.all([
+    const [accessToken, refreshToken, account, kidProfileId] = await Promise.all([
       SecureStore.getItemAsync(KEYS.accessToken),
       SecureStore.getItemAsync(KEYS.refreshToken),
       SecureStore.getItemAsync(KEYS.account),
+      SecureStore.getItemAsync(KEYS.kidProfileId),
     ]);
     if (!account) return null;
     try {
       return {
         account: JSON.parse(account) as StoredSession['account'],
         tokens: accessToken && refreshToken ? { accessToken, refreshToken } : null,
+        kidProfileId: kidProfileId || null,
       };
     } catch {
       return null;
     }
   },
 
-  async save({ account, tokens }) {
+  async save({ account, tokens, kidProfileId }) {
+    // Kid Mode first: a crash between writes must never leave Kid tokens marked as a Personal-Mode device.
+    if (kidProfileId) await SecureStore.setItemAsync(KEYS.kidProfileId, kidProfileId);
     if (tokens) {
       await SecureStore.setItemAsync(KEYS.accessToken, tokens.accessToken);
       await SecureStore.setItemAsync(KEYS.refreshToken, tokens.refreshToken);
@@ -53,6 +64,7 @@ export const secureSessionStore: SessionStore = {
       await SecureStore.deleteItemAsync(KEYS.refreshToken);
     }
     await SecureStore.setItemAsync(KEYS.account, JSON.stringify(account));
+    if (!kidProfileId) await SecureStore.deleteItemAsync(KEYS.kidProfileId);
   },
 
   async clear() {

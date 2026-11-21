@@ -100,3 +100,4 @@ export {
   verifyParentPin,
 } from './pin/parentPin';
 export type { ParentPinData, ParentPinErrorData, SetParentPinBody } from './pin/parentPin';
+export type { KidSessionData, KidSessionErrorData, StartKidSessionBody } from './kid/kidDevice';

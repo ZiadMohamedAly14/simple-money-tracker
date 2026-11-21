@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
-import { ScrollView, View } from 'react-native';
+import type { ReactElement, ReactNode } from 'react';
+import { ScrollView, View, type RefreshControlProps } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { IconButton } from './Button';
@@ -11,13 +11,20 @@ export interface ScreenProps {
   scroll?: boolean;
   /** Pinned to the bottom (e.g. the main button). */
   footer?: ReactNode;
+  /** Pull to refresh on a scrolling screen. */
+  refreshControl?: ReactElement<RefreshControlProps>;
   className?: string;
 }
 
 /** Safe-area screen with the standard side padding. The theme background comes from ThemeProvider. */
-export function Screen({ children, scroll, footer, className = '' }: ScreenProps) {
+export function Screen({ children, scroll, footer, refreshControl, className = '' }: ScreenProps) {
   const body = scroll ? (
-    <ScrollView className="flex-1" contentContainerClassName={`gap-4 px-5 pb-6 ${className}`} keyboardShouldPersistTaps="handled">
+    <ScrollView
+      className="flex-1"
+      contentContainerClassName={`gap-4 px-5 pb-6 ${className}`}
+      keyboardShouldPersistTaps="handled"
+      refreshControl={refreshControl}
+    >
       {children}
     </ScrollView>
   ) : (
