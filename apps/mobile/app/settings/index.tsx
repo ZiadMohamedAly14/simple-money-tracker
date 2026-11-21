@@ -170,7 +170,7 @@ function SettingsScreen() {
         onPress={() => router.push('/health')}
       />
 
-      <Button label={t('session.signOut')} variant="secondary" icon="app:exit" onPress={confirmSignOut} />
+      <Button label={t('session.signOut')} variant="danger" icon="app:exit" onPress={confirmSignOut} />
 
       {/* Deleting needs a live session (an emailed code is checked on the server). */}
       {needsSignIn ? null : (
