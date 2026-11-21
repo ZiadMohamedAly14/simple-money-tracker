@@ -66,16 +66,28 @@ export type PulledChange = { [E in SyncEntity]: { entity: E; record: PulledRecor
 export interface SyncRequestBody {
   cursor: number;
   changes: PushedChange[];
+  /** Most changes to pull in this round trip (1 to `MAX_PULLED_CHANGES`, the default). */
+  limit?: number;
 }
 
-/** `POST /sync` data: every change after the request's cursor (including the ones just pushed). */
+/**
+ * `POST /sync` data: the changes after the request's cursor (including the
+ * ones just pushed), oldest first, up to the page size. When `hasMore` is
+ * true, sync again from `cursor` for the next page. It may also hold the
+ * current copy of a record whose push lost (last edit wins), even if the
+ * device's cursor is past it.
+ */
 export interface SyncResponseData {
   cursor: number;
   changes: PulledChange[];
+  hasMore: boolean;
 }
 
 /** Most changes one `POST /sync` may push. */
 export const MAX_PUSHED_CHANGES = 500;
+
+/** Most changes one `POST /sync` pulls; a device catching up takes several round trips. */
+export const MAX_PULLED_CHANGES = 500;
 
 export interface SyncProblem {
   field: string;

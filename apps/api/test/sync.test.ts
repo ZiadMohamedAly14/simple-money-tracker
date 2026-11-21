@@ -113,7 +113,7 @@ describe('POST /sync', () => {
     expect(data(pulled).changes.map((c) => c.record.id)).toEqual([otherCategoryId(phone.accountId), EXPENSE_ID]);
 
     const again = await sync(tablet, data(pulled).cursor);
-    expect(data(again)).toEqual({ cursor: data(pulled).cursor, changes: [] });
+    expect(data(again)).toEqual({ cursor: data(pulled).cursor, changes: [], hasMore: false });
   });
 
   it("never shows one Account's records to another", async () => {
@@ -253,6 +253,48 @@ describe('POST /sync', () => {
       await pushed(phone, { updatedAt: T + 1000, deletedAt: T + 1000 });
 
       expect(await storedCopy(phone)).toMatchObject({ deletedAt: T + 1000 });
+    });
+  });
+
+  describe('paged pulls', () => {
+    const idFor = (n: number) => `019ca8a0-3e80-7000-8000-${String(n).padStart(12, '0')}`;
+
+    it('hands a device catching up on a long history everything, a page at a time', async () => {
+      const phone = await signIn();
+      const tablet = await signIn();
+      const ids = [1, 2, 3, 4, 5].map(idFor);
+      await sync(phone, 0, ids.map((id) => expense(otherCategoryId(phone.accountId), { id })));
+
+      const pages: SyncResponseData[] = [];
+      let cursor = 0;
+      for (let round = 0; round < 10; round += 1) {
+        const res = await request(app)
+          .post('/sync')
+          .set('Authorization', `Bearer ${tablet.accessToken}`)
+          .send({ cursor, changes: [], limit: 2 });
+        expect(res.status).toBe(200);
+        pages.push(data(res));
+        cursor = data(res).cursor;
+        if (!data(res).hasMore) break;
+      }
+
+      expect(pages.map((p) => p.changes.length)).toEqual([2, 2, 2]);
+      expect(pages.map((p) => p.hasMore)).toEqual([true, true, false]);
+      expect(pages.flatMap((p) => p.changes.map((c) => c.record.id))).toEqual([otherCategoryId(phone.accountId), ...ids]);
+    });
+
+    it('says when nothing more is waiting', async () => {
+      const sara = await signIn();
+      expect(data(await sync(sara, 0)).hasMore).toBe(false);
+    });
+
+    it.each([0, 501, 'lots'])('rejects a page size of %p', async (limit) => {
+      const sara = await signIn();
+      const res = await request(app)
+        .post('/sync')
+        .set('Authorization', `Bearer ${sara.accessToken}`)
+        .send({ cursor: 0, changes: [], limit });
+      expect(res.status).toBe(422);
     });
   });
 

@@ -1,5 +1,6 @@
 import type { Model } from 'mongoose';
 import {
+  MAX_PULLED_CHANGES,
   OTHER_CATEGORY,
   SYNC_ENTITIES,
   otherCategoryId,
@@ -153,7 +154,8 @@ export function createSyncService({ now }: { now: Clock }) {
     throw new Error(`Sync could not store ${entity} ${id}: other syncs kept changing it`);
   }
 
-  async function pull(auth: AuthContext, cursor: number): Promise<SyncResponseData> {
+  /** Up to `limit` changes after `cursor`, oldest first. */
+  async function pull(auth: AuthContext, cursor: number, limit: number): Promise<SyncResponseData> {
     // Stop below any version still being written, or a late commit would fall behind the cursor.
     const committed = await committedServerVersion(now().getTime());
     const readable = SYNC_ENTITIES.filter((entity) => auth.scope === 'full' || RULES[entity].kidCanRead);
@@ -161,12 +163,17 @@ export function createSyncService({ now }: { now: Clock }) {
       readable.map(async (entity) => {
         const stored = await modelOf(entity)
           .find({ accountId: auth.accountId, serverVersion: { $gt: cursor, $lte: committed } })
+          .sort({ serverVersion: 1 })
+          .limit(limit + 1)
           .lean<StoredRecord[]>();
         return stored.map((record) => toPulled(entity, record));
       }),
     );
-    const changes = batches.flat().sort((a, b) => a.record.serverVersion - b.record.serverVersion);
-    return { cursor: Math.max(cursor, committed), changes };
+    const all = batches.flat().sort((a, b) => a.record.serverVersion - b.record.serverVersion);
+    const changes = all.slice(0, limit);
+    const hasMore = all.length > limit;
+    // Versions are unique, so the last one sent is a clean place to resume.
+    return { cursor: hasMore ? changes.at(-1)!.record.serverVersion : Math.max(cursor, committed), changes, hasMore };
   }
 
   return {
@@ -187,7 +194,7 @@ export function createSyncService({ now }: { now: Clock }) {
         if (winner) lost.push(toPulled(change.entity, winner));
       }
 
-      const pulled = await pull(auth, body.cursor);
+      const pulled = await pull(auth, body.cursor, body.limit ?? MAX_PULLED_CHANGES);
       // A device whose push lost may already be past the winner's version; hand it over anyway.
       const inPull = new Set(pulled.changes.map((c) => `${c.entity}:${c.record.id}`));
       const winners = lost.filter((c) => !inPull.has(`${c.entity}:${c.record.id}`));
