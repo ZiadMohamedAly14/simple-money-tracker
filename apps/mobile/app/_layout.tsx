@@ -12,7 +12,7 @@ import { startAutoSync } from '@/sync/appSync';
 import { FONT_ASSETS } from '@/theme/fontAssets';
 import { startAppearance } from '@/theme/appearanceStore';
 import { SystemBars } from '@/theme/SystemBars';
-import { ThemeProvider } from '@/theme/ThemeProvider';
+import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
 import { DialogHost } from '@/ui/Dialog';
 
 // The splash (Background colour, light or dark by the phone) stays up until
@@ -64,10 +64,20 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider name="personal">
-      {/* Transparent so the theme's background shows through each screen. */}
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }} />
+      <ThemedStack />
       <SystemBars />
       <DialogHost />
     </ThemeProvider>
   );
+}
+
+/**
+ * The screen stack. Each screen gets the palette's solid Background, so during
+ * a transition the screen underneath never shows through (a see-through
+ * screen made both pages overlap, then the old one vanish in one frame). Kid
+ * screens paint their own Mint/Teal Background over it.
+ */
+function ThemedStack() {
+  const theme = useTheme();
+  return <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.colors.background } }} />;
 }
