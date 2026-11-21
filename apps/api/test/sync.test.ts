@@ -82,6 +82,7 @@ describe('POST /sync', () => {
           order: expect.any(Number),
           isOther: true,
           archivedAt: null,
+          icon: 'other',
           updatedAt: expect.any(Number),
           deletedAt: null,
           serverVersion: expect.any(Number),
@@ -166,7 +167,7 @@ describe('POST /sync', () => {
     const categoryId = '019ca8a0-3e80-7000-8000-0000000000ca';
     const category: PushedChange = {
       entity: 'category',
-      record: { id: categoryId, updatedAt: 1, deletedAt: null, name: 'Food', order: 1, isOther: false, archivedAt: null },
+      record: { id: categoryId, updatedAt: 1, deletedAt: null, name: 'Food', order: 1, isOther: false, archivedAt: null, icon: 'food-groceries' },
     };
 
     const res = await sync(sara, 0, [category, expense(categoryId)]);
@@ -188,11 +189,61 @@ describe('POST /sync', () => {
     expect(omarsCopy?.record).toMatchObject({ amount: 12550, accountId: omar.accountId });
   });
 
+  describe('Category icons', () => {
+    const categoryId = '019ca8a0-3e80-7000-8000-0000000000cc';
+    const category = (icon: unknown, patch: object = {}) => ({
+      entity: 'category',
+      record: { id: categoryId, updatedAt: 1772355600000, deletedAt: null, name: 'Rent', order: 0, isOther: false, archivedAt: null, icon, ...patch },
+    });
+
+    it('stores a Category icon and hands it to the other device', async () => {
+      const phone = await signIn();
+      const tablet = await signIn();
+      expect((await sync(phone, 0, [category('housing')])).status).toBe(200);
+
+      const pulled = data(await sync(tablet, 0)).changes.find((c) => c.record.id === categoryId);
+      expect(pulled?.record).toMatchObject({ name: 'Rent', icon: 'housing' });
+    });
+
+    it('accepts an icon name this server has never heard of, so a newer app is never refused', async () => {
+      const sara = await signIn();
+      const res = await sync(sara, 0, [category('rocket-ship')]);
+      expect(res.status).toBe(200);
+      expect(data(res).changes.find((c) => c.record.id === categoryId)?.record).toMatchObject({ icon: 'rocket-ship' });
+    });
+
+    it('accepts a Category with no icon from an older app', async () => {
+      const sara = await signIn();
+      const { icon: _icon, ...withoutIcon } = category(null).record;
+      const res = await sync(sara, 0, [{ entity: 'category', record: withoutIcon }]);
+      expect(res.status).toBe(200);
+      expect(data(res).changes.find((c) => c.record.id === categoryId)?.record).toMatchObject({ icon: null });
+    });
+
+    it('refuses an icon that is not a short kebab-case name', async () => {
+      const sara = await signIn();
+      const res = await sync(sara, 0, [category('Not An Icon!')]);
+      expect(res.status).toBe(422);
+      expect(res.body.data).toEqual([{ field: 'changes[0].record.icon', message: expect.any(String) }]);
+    });
+
+    it('deletes a Category, and the deletion beats a later edit from another device', async () => {
+      const phone = await signIn();
+      const tablet = await signIn();
+      await sync(phone, 0, [category('housing')]);
+      await sync(phone, 0, [category('housing', { updatedAt: 1772355600000 + 1000, deletedAt: 1772355600000 + 1000 })]);
+      await sync(tablet, 0, [category('health', { updatedAt: 1772355600000 + 5000, name: 'Rent and gym' })]);
+
+      const stored = data(await sync(phone, 0)).changes.find((c) => c.record.id === categoryId);
+      expect(stored?.record.deletedAt).toBe(1772355600000 + 1000);
+    });
+  });
+
   describe('the Other Category', () => {
     const otherChange = (accountId: string, patch: object = {}): PushedChange =>
       ({
         entity: 'category',
-        record: { id: otherCategoryId(accountId), updatedAt: 1772355600000, deletedAt: null, name: 'Other', order: 9999, isOther: true, archivedAt: null, ...patch },
+        record: { id: otherCategoryId(accountId), updatedAt: 1772355600000, deletedAt: null, name: 'Other', order: 9999, isOther: true, archivedAt: null, icon: 'other', ...patch },
       }) as PushedChange;
 
     it.each([

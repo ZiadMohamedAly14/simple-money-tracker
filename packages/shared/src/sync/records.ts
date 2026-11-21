@@ -1,4 +1,5 @@
 import type { NumberingSystem } from '../i18n/language';
+import { isCategoryIconName } from '../budget/categoryIcon';
 import { topUpSplitProblem } from '../kid/topUpSplit';
 import { isUuid } from './ids';
 
@@ -54,10 +55,17 @@ export interface CategoryFields {
   /** The Other Category: always exists, can't be archived. Shown by its translated name. */
   isOther: boolean;
   archivedAt: number | null;
+  /**
+   * The app icon it shows (`app:<icon>`), a short kebab-case name; any such
+   * name is accepted, so a newer app's icon syncs. Null on records made before
+   * icons synced (the app falls back to its old mapping). Other always shows
+   * `other`, whatever this says.
+   */
+  icon: string | null;
 }
 
 /** The Other Category's fields. Its ID is `otherCategoryId(accountId)`; it sorts last. */
-export const OTHER_CATEGORY: CategoryFields = { name: 'Other', order: 9999, isOther: true, archivedAt: null };
+export const OTHER_CATEGORY: CategoryFields = { name: 'Other', order: 9999, isOther: true, archivedAt: null, icon: 'other' };
 
 /** One per Account and Month, ID `monthPlanId(accountId, month)`, so two offline devices make one record. */
 export interface MonthPlanFields {
@@ -259,6 +267,13 @@ class FieldReader {
       : this.fail(field, `must be at most ${maxLength} characters`, null);
   }
 
+  /** A Category icon name (`isCategoryIconName`), or null when absent. */
+  optionalIconName(field: string): string | null {
+    const value = this.source[field];
+    if (value === null || value === undefined) return null;
+    return isCategoryIconName(value) ? value : this.fail(field, 'must be a short kebab-case icon name', null);
+  }
+
   boolean(field: string): boolean {
     const value = this.source[field];
     return typeof value === 'boolean' ? value : this.fail(field, 'must be true or false', false);
@@ -314,6 +329,7 @@ const FIELD_PARSERS: { [E in SyncEntity]: (read: FieldReader) => SyncFieldsByEnt
     order: read.integer('order'),
     isOther: read.boolean('isOther'),
     archivedAt: read.optionalTime('archivedAt'),
+    icon: read.optionalIconName('icon'),
   }),
   transaction: (read) => {
     const kind = read.oneOf('kind', ['income', 'expense'] as const);

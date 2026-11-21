@@ -39,6 +39,8 @@ export const Category = model(
     order: { type: Number, required: true },
     isOther: { type: Boolean, required: true, default: false },
     archivedAt: { type: Number, default: null },
+    // Any short kebab-case app icon name (checked by the sync contract); null before icons synced.
+    icon: { type: String, default: null },
   }),
 );
 
