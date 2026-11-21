@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useTranslation } from 'react-i18next';
@@ -13,7 +13,7 @@ import { localDb, localStore } from '@/db/appDatabase';
 import { useFormatMoney } from '@/i18n/useFormatMoney';
 import { useLanguage } from '@/i18n/useLanguage';
 import { useTheme } from '@/theme/ThemeProvider';
-import { Button, Card, Glyph, IconButton, IconCircle, ListRow, Notice, Screen, ScreenHeader, Text } from '@/ui';
+import { Button, Card, Glyph, IconButton, IconCircle, joinSpoken, ListRow, Notice, Screen, ScreenHeader, Text } from '@/ui';
 
 const actions = categoryActions(localStore, localDb);
 
@@ -60,7 +60,18 @@ export default function CategoriesScreen() {
       <ScreenHeader title={t('categories.title')} onBack={() => router.back()} />
       <Text tone="muted">{t('categories.subtitle', { month: monthName })}</Text>
 
-      <Card onPress={() => router.push({ pathname: '/categories/income', params: { month } })} accessibilityLabel={t('categories.editExpectedIncome')} className="gap-2 p-4">
+      <Card
+        onPress={() => router.push({ pathname: '/categories/income', params: { month } })}
+        accessibilityLabel={joinSpoken(
+          [
+            t('home.figure', { label: t('categories.expectedIncome'), amount: formatMoney(figures.expectedIncome, currency) }),
+            t('home.figure', { label: t('home.unallocated'), amount: formatMoney(figures.unallocated, currency) }),
+          ],
+          t('common.listSeparator'),
+        )}
+        accessibilityHint={t('categories.editExpectedIncome')}
+        className="gap-2 p-4"
+      >
         <View className="flex-row items-center justify-between gap-2">
           <Text tone="muted">{t('categories.expectedIncome')}</Text>
           <View className="flex-row items-center gap-2">
@@ -89,18 +100,23 @@ export default function CategoriesScreen() {
         {active.map((category) => {
           const index = movable.findIndex((c) => c.id === category.id);
           const name = nameOf(category);
+          const budget = formatMoney(budgetOf.get(category.id) ?? 0, currency);
+          // The row's press area stops before the arrows: a pressable row around buttons hides them from screen readers.
           return (
-            <Card
-              key={category.id}
-              onPress={() => edit(category.id)}
-              accessibilityLabel={name}
-              className="flex-row items-center gap-3 px-3 py-2"
-            >
-              <IconCircle icon={iconOf(category)} size="sm" />
-              <Text weight="semibold" numberOfLines={1} className="flex-1 text-base">
-                {name}
-              </Text>
-              <Text weight="bold">{formatMoney(budgetOf.get(category.id) ?? 0, currency)}</Text>
+            <Card key={category.id} className="flex-row items-center gap-3 px-3 py-2">
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={joinSpoken([name, budget], t('common.listSeparator'))}
+                accessibilityHint={t('categories.editTitle')}
+                onPress={() => edit(category.id)}
+                className="min-h-11 flex-1 flex-row items-center gap-3 active:opacity-80"
+              >
+                <IconCircle icon={iconOf(category)} size="sm" />
+                <Text weight="semibold" numberOfLines={1} className="flex-1 text-base">
+                  {name}
+                </Text>
+                <Text weight="bold">{budget}</Text>
+              </Pressable>
               {category.isOther ? (
                 <View accessible accessibilityLabel={t('categories.otherLocked')} className="h-11 w-11 items-center justify-center">
                   <Glyph name="app:lock-pin" size={18} color={theme.colors.muted} />

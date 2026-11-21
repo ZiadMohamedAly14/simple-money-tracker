@@ -104,7 +104,7 @@ export default function SplitScreen() {
               key={category.id}
               selected={category.id === selected}
               onPress={() => setTarget(category.id)}
-              accessibilityLabel={name}
+              accessibilityLabel={t('home.figure', { label: name, amount: typedText(text) })}
               className="flex-row items-center gap-3 px-3 py-3"
             >
               <IconCircle icon={iconOf(category)} size="sm" />

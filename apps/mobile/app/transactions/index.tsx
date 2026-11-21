@@ -17,7 +17,7 @@ import { useLanguage } from '@/i18n/useLanguage';
 import { syncTriggers } from '@/sync/appSync';
 import { useSyncOverdue } from '@/sync/useSyncOverdue';
 import { useTheme } from '@/theme/ThemeProvider';
-import { Button, Fab, ListRow, PendingSyncLabel, ScreenHeader, Text, type GlyphName } from '@/ui';
+import { Button, Fab, joinSpoken, ListRow, PendingSyncLabel, ScreenHeader, Text, type GlyphName } from '@/ui';
 
 /**
  * A Month's Transactions, newest first (PDF pages 7–8), read live from the
@@ -104,13 +104,9 @@ function TransactionList() {
                 title={title}
                 subtitle={subtitle}
                 onPress={() => router.push({ pathname: '/transactions/[id]', params: { id: transaction.id } })}
+                accessibilityLabel={joinSpoken([title, subtitle, formatMoney(signed, currency)], t('common.listSeparator'))}
                 end={
-                  <Text
-                    weight="bold"
-                    tone={isIncome ? 'positive' : 'text'}
-                    className="text-base"
-                    accessibilityLabel={formatMoney(signed, currency)}
-                  >
+                  <Text weight="bold" tone={isIncome ? 'positive' : 'text'} className="text-base">
                     {isIncome ? ltrIsolate(`+${amount}`) : amount}
                   </Text>
                 }

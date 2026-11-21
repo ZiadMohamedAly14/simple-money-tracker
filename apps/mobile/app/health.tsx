@@ -2,12 +2,11 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { Redirect, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { formatMoneyParts } from '@money-tracker/shared';
+import { formatMoneyParts, ltrIsolate } from '@money-tracker/shared';
 import { useAuthStatus } from '@/auth/appSession';
 import { createApiClient } from '@/api/client';
 import { checkHealth, type HealthResult } from '@/api/health';
 import { API_URL } from '@/config';
-import { useFormatMoney } from '@/i18n/useFormatMoney';
 import { useLanguage } from '@/i18n/useLanguage';
 import { useTheme } from '@/theme/ThemeProvider';
 import { AmountDisplay, Card, IconCircle, Screen, ScreenHeader, Text } from '@/ui';
@@ -29,7 +28,6 @@ function HealthScreen() {
   const { t } = useTranslation();
   const theme = useTheme();
   const language = useLanguage();
-  const formatMoney = useFormatMoney();
   const [health, setHealth] = useState<HealthResult | null>(null);
 
   useEffect(() => {
@@ -65,7 +63,7 @@ function HealthScreen() {
             </Text>
           )}
           <Text tone="muted" className="text-xs">
-            {API_URL}
+            {ltrIsolate(API_URL)}
           </Text>
         </View>
       </Card>
@@ -79,7 +77,7 @@ function HealthScreen() {
           currency={sample.currency}
           size="md"
           align="start"
-          accessibilityLabel={formatMoney(123450, 'EGP')}
+          accessibilityLabel={t('health.sampleAmount')}
         />
       </Card>
     </Screen>
