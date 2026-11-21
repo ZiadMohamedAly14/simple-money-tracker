@@ -1,4 +1,4 @@
-import { and, eq, isNull, like } from 'drizzle-orm';
+import { and, asc, eq, isNull, like } from 'drizzle-orm';
 import {
   DEFAULT_CATEGORY_KEYS,
   DEFAULT_NUMBERING_SYSTEM,
@@ -7,6 +7,7 @@ import {
   defaultCategoryId,
   monthFigures,
   monthPlanId,
+  newMonthPlan,
   type CurrencyCode,
   type DefaultCategoryKey,
   type Month,
@@ -15,7 +16,7 @@ import {
 } from '@money-tracker/shared';
 import { FALLBACK_CURRENCY } from './currency';
 import { ONBOARDING_STATE_KEY, type KnownRecord, type LocalStore } from '@/db/localStore';
-import { accountSettings, categoryBudgets, deviceState, monthPlans, transactions } from '@/db/schema';
+import { accountSettings, categories, categoryBudgets, deviceState, monthPlans, transactions } from '@/db/schema';
 import type { LocalDb } from '@/db/types';
 
 function requireAccount(store: LocalStore): string {
@@ -101,6 +102,41 @@ export function setCategoryBudgets(store: LocalStore, month: Month, amounts: Rec
   );
 }
 
+/**
+ * Creates a Month the first time it is opened or receives a Transaction
+ * (spec, Domain rules), by copying the previous Month's Expected Income and
+ * Category Budgets (`newMonthPlan`). Does nothing if the Month already has a
+ * plan, or there is no earlier plan to copy. The copies are written as
+ * defaults (edit time 0), so if another device already created or changed
+ * this Month, its copy wins on sync; the IDs are deterministic, so there is
+ * still one plan.
+ */
+export function openMonth(store: LocalStore, db: LocalDb, month: Month): void {
+  const accountId = requireAccount(store);
+  const plans = db.select().from(monthPlans).where(isNull(monthPlans.deletedAt)).all();
+  if (plans.some((p) => p.month === month)) return;
+  const plan = newMonthPlan({
+    month,
+    plans,
+    budgets: db.select().from(categoryBudgets).where(isNull(categoryBudgets.deletedAt)).all(),
+    categories: db.select().from(categories).where(isNull(categories.deletedAt)).all(),
+  });
+  if (!plan) return;
+  store.put(
+    [
+      monthPlanRecord(accountId, month, plan.expectedIncome),
+      ...plan.budgets.map(
+        ({ categoryId, amount }): KnownRecord => ({
+          entity: 'categoryBudget',
+          id: categoryBudgetId(accountId, month, categoryId),
+          fields: { month, categoryId, amount },
+        }),
+      ),
+    ],
+    { asDefault: true },
+  );
+}
+
 export interface AccountSettingsChanges {
   currency?: CurrencyCode;
   numberingSystem?: NumberingSystem;
@@ -159,6 +195,16 @@ export function monthTransactionsQuery(db: LocalDb, month: Month) {
     .select()
     .from(transactions)
     .where(and(isNull(transactions.deletedAt), like(transactions.date, `${month}-%`)));
+}
+
+/** Live-queryable: the earliest dated Transaction (one row, or none), which bounds how far back Months go. */
+export function earliestTransactionQuery(db: LocalDb) {
+  return db
+    .select({ date: transactions.date })
+    .from(transactions)
+    .where(isNull(transactions.deletedAt))
+    .orderBy(asc(transactions.date))
+    .limit(1);
 }
 
 /** A Month's figures from what the live queries above return. */

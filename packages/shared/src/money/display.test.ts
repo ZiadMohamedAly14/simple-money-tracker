@@ -1,4 +1,4 @@
-import { formatAmountInput, formatMoneyParts } from './display';
+import { formatAmountExpression, formatAmountInput, formatMoneyParts } from './display';
 
 /** Drop the invisible bidi marks Intl adds in Arabic, and normalize no-break spaces. */
 const visible = (text: string) => text.replace(/[‎‏؜]/g, '').replace(/[  ]/g, ' ');
@@ -49,5 +49,30 @@ describe('formatAmountInput (an amount as it is being typed on the keypad)', () 
 
   it('uses Western digits in Arabic by default', () => {
     expect(visible(formatAmountInput('1250.5', { language: 'ar' }))).toBe('1,250.5');
+  });
+});
+
+describe('formatAmountExpression (a keypad sum as it is being typed)', () => {
+  const LRI = '⁦';
+  const PDI = '⁩';
+
+  it('shows the operators as + − × ÷ between grouped numbers, inside a left-to-right isolate', () => {
+    expect(formatAmountExpression('1200+35*2-9/3', { language: 'en' })).toBe(`${LRI}1,200 + 35 × 2 − 9 ÷ 3${PDI}`);
+  });
+
+  it('keeps a trailing operator and a trailing decimal point as typed', () => {
+    expect(formatAmountExpression('120+', { language: 'en' })).toBe(`${LRI}120 +${PDI}`);
+    expect(formatAmountExpression('5+12.', { language: 'en' })).toBe(`${LRI}5 + 12.${PDI}`);
+  });
+
+  it('shows 0 for nothing typed', () => {
+    expect(formatAmountExpression('', { language: 'en' })).toBe(`${LRI}0${PDI}`);
+  });
+
+  it('stays left to right in Arabic, with digits in the chosen numbering system', () => {
+    expect(visible(formatAmountExpression('1200+35.5', { language: 'ar', numberingSystem: 'arabic-indic' }))).toBe(
+      `${LRI}١٬٢٠٠ + ٣٥٫٥${PDI}`,
+    );
+    expect(visible(formatAmountExpression('300/3', { language: 'ar' }))).toBe(`${LRI}300 ÷ 3${PDI}`);
   });
 });

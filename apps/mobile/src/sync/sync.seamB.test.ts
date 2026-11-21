@@ -254,7 +254,7 @@ describe('sync between devices (Seam B)', () => {
         phone.goOffline();
         tablet.goOffline();
         clock.advance(1000);
-        phone.deleteExpense(lunch);
+        phone.deleteTransaction(lunch);
         clock.advance(1000);
         tablet.editExpense(lunch, { amount: 15000 }); // later than the deletion
 
@@ -275,7 +275,7 @@ describe('sync between devices (Seam B)', () => {
       const { clock, phone, tablet, lunch } = await twoDevicesWithLunch();
       tablet.goOffline(); // the old device, left in a drawer
       clock.advance(1000);
-      phone.deleteExpense(lunch);
+      phone.deleteTransaction(lunch);
       await phone.sync();
 
       tablet.goOnline();
@@ -315,7 +315,7 @@ describe('sync between devices (Seam B)', () => {
     it('a pulled deletion replaces an edit made during the sync', async () => {
       const { clock, phone, tablet, lunch } = await twoDevicesWithLunch();
       clock.advance(1000);
-      tablet.deleteExpense(lunch);
+      tablet.deleteTransaction(lunch);
       await tablet.sync();
 
       const syncing = phone.sync();

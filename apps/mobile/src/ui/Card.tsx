@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
 import { Pressable, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/theme/ThemeProvider';
+import { AppIcon } from './AppIcon';
 import { Glyph, IconCircle, type GlyphName, type IconCircleTone } from './icons';
 import { Text, type TextTone } from './Text';
 
@@ -70,7 +70,7 @@ export function ListRow({ icon, iconTone, title, subtitle, end, endTone = 'text'
       ) : (
         end
       )}
-      {selected ? <Ionicons name="checkmark" size={20} color={theme.colors.primary} /> : null}
+      {selected ? <AppIcon name="selected" size={20} color={theme.colors.primary} /> : null}
     </Card>
   );
 }
@@ -79,23 +79,27 @@ export interface ChipProps {
   label: string;
   selected?: boolean;
   onPress?: () => void;
+  /** Leading icon, e.g. the Category's (`categoryIconFor`). */
+  icon?: GlyphName;
 }
 
 /**
  * Pill: selected = primary, unselected = chip token (tint, white in Kid).
  * Shows the full name and truncates (design flaw 12).
  */
-export function Chip({ label, selected, onPress }: ChipProps) {
+export function Chip({ label, selected, onPress, icon }: ChipProps) {
+  const theme = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected: !!selected }}
       onPress={onPress}
-      className={`min-h-10 max-w-48 items-center justify-center rounded-full px-4 active:opacity-80 ${
+      className={`min-h-10 max-w-48 flex-row items-center justify-center gap-1.5 rounded-full px-4 active:opacity-80 ${
         selected ? 'bg-primary' : 'bg-chip'
       }`}
     >
-      <Text weight="semibold" tone={selected ? 'on-primary' : 'text'} numberOfLines={1} className="text-sm">
+      {icon ? <Glyph name={icon} size={16} color={selected ? theme.colors['on-primary'] : theme.colors.text} /> : null}
+      <Text weight="semibold" tone={selected ? 'on-primary' : 'text'} numberOfLines={1} className="shrink text-sm">
         {label}
       </Text>
     </Pressable>
@@ -157,14 +161,20 @@ export function Notice({ text, icon }: NoticeProps) {
 }
 
 /**
- * "Pending sync": small muted text, no icon. Callers decide when to show it
- * (only after changes have waited more than a minute: `useSyncOverdue`).
+ * "Pending sync": small muted text after the small pending-sync icon. Callers
+ * decide when to show it (only after changes have waited more than a minute:
+ * `useSyncOverdue`).
  */
 export function PendingSyncLabel({ align = 'center' }: { align?: 'start' | 'center' | 'end' }) {
   const { t } = useTranslation();
+  const theme = useTheme();
+  const justify = align === 'start' ? 'justify-start' : align === 'end' ? 'justify-end' : 'justify-center';
   return (
-    <Text tone="muted" align={align} className="text-xs">
-      {t('sync.pending')}
-    </Text>
+    <View className={`flex-row items-center gap-1 ${justify}`}>
+      <AppIcon name="pending-sync" size={12} color={theme.colors.muted} />
+      <Text tone="muted" align={align} className="text-xs">
+        {t('sync.pending')}
+      </Text>
+    </View>
   );
 }

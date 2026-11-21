@@ -15,12 +15,12 @@ const DEFAULT_ICONS: Record<DefaultCategoryKey, GlyphName> = {
 /**
  * The icon for each Category of `accountId`: the default Categories have their
  * own custom icon (found by their fixed IDs), Other has `app:other`, and
- * Categories the adult added get a tag (the custom set has no generic one).
+ * Categories the adult added get `app:tag`.
  */
 export function categoryIconFor(accountId: string | null) {
   const byId = new Map<string, GlyphName>(
     accountId ? DEFAULT_CATEGORY_KEYS.map((key) => [defaultCategoryId(accountId, key), DEFAULT_ICONS[key]]) : [],
   );
   return (category: { id: string; isOther: boolean }): GlyphName =>
-    category.isOther ? 'app:other' : (byId.get(category.id) ?? 'pricetag-outline');
+    category.isOther ? 'app:other' : (byId.get(category.id) ?? 'app:tag');
 }

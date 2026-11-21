@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { View } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useTranslation } from 'react-i18next';
 import { currentMonth, formatMonth } from '@money-tracker/shared';
@@ -28,7 +28,8 @@ export default function CategoriesScreen() {
   const language = useLanguage();
   const { currency, numberingSystem } = useAccountSettings();
   const formatMoney = useFormatMoney(numberingSystem);
-  const month = currentMonth(new Date());
+  const params = useLocalSearchParams<{ month?: string }>();
+  const month = params.month ?? currentMonth(new Date());
   const monthName = formatMonth(month, { language, numberingSystem });
   const { figures, rows } = useMonthBudget(month);
   const { data: active } = useLiveQuery(activeCategoriesQuery(localDb));
@@ -59,7 +60,7 @@ export default function CategoriesScreen() {
           <Text tone="muted">{t('categories.expectedIncome')}</Text>
           <View className="flex-row items-center gap-2">
             <Text weight="bold">{formatMoney(figures.expectedIncome, currency)}</Text>
-            <Glyph name="create-outline" size={16} color={theme.colors.primary} />
+            <Glyph name="app:edit" size={16} color={theme.colors.primary} />
           </View>
         </View>
         <View className="flex-row items-center justify-between gap-2">
@@ -100,13 +101,13 @@ export default function CategoriesScreen() {
               ) : (
                 <View className="flex-row">
                   <IconButton
-                    icon="chevron-up"
+                    icon="app:chevron-up"
                     accessibilityLabel={t('categories.moveUp', { name })}
                     onPress={() => move(index, -1)}
                     disabled={index === 0}
                   />
                   <IconButton
-                    icon="chevron-down"
+                    icon="app:chevron-down"
                     accessibilityLabel={t('categories.moveDown', { name })}
                     onPress={() => move(index, 1)}
                     disabled={index === movable.length - 1}
@@ -128,7 +129,7 @@ export default function CategoriesScreen() {
               key={category.id}
               icon={iconOf(category)}
               title={category.name}
-              end={<Button label={t('categories.restore')} variant="secondary" onPress={() => actions.restore(category.id)} />}
+              end={<Button label={t('categories.restore')} variant="secondary" icon="app:restore" onPress={() => actions.restore(category.id)} />}
             />
           ))}
         </View>

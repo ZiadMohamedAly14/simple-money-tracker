@@ -23,12 +23,12 @@ export default function SettingsCurrencyScreen() {
   return (
     <Screen scroll className="pt-4">
       <ScreenHeader title={t('settings.currencyTitle')} onBack={() => router.back()} />
-      <Notice text={t('settings.currencyNote')} icon="information-circle-outline" />
+      <Notice text={t('settings.currencyNote')} icon="app:info" />
       <View className="gap-3">
         {ONBOARDING_CURRENCIES.map((code) => (
           <ListRow
             key={code}
-            icon="cash-outline"
+            icon="app:currency"
             title={t(`currencies.${code}`)}
             subtitle={code}
             selected={currency === code}

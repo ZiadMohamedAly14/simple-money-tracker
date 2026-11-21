@@ -3,7 +3,14 @@ import { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useTranslation } from 'react-i18next';
-import { currentMonth, monthFigures, toMinorUnits } from '@money-tracker/shared';
+import {
+  applyKeypadKey,
+  currencyMinorDigits,
+  currentMonth,
+  evaluateAllocation,
+  monthFigures,
+  type KeypadKey,
+} from '@money-tracker/shared';
 import { monthPlansQuery, setCategoryBudgets } from '@/data/budget';
 import { categoryIconFor } from '@/data/categoryIcons';
 import { PERSONAL_STEPS } from '@/data/currency';
@@ -11,12 +18,13 @@ import { categoriesQuery } from '@/data/transactions';
 import { useAccountSettings } from '@/data/useAccountSettings';
 import { localDb, localStore } from '@/db/appDatabase';
 import { useFormatMoney } from '@/i18n/useFormatMoney';
-import { Button, Card, IconCircle, Screen, ScreenHeader, Text, TextField } from '@/ui';
+import { AmountKeypad, Button, Card, IconCircle, Screen, ScreenHeader, Text, useTypedAmountText } from '@/ui';
 
 /**
  * Step 4 (optional): split Expected Income across Categories (PDF page 5).
- * Onboarding is already complete here, so Skip just goes home with every
- * budget at 0. Unallocated may go negative.
+ * Tap a Category, then type its budget on the keypad, which takes sums
+ * (`+ − × ÷`). Onboarding is already complete here, so Skip just goes home
+ * with every budget at 0. Unallocated may go negative.
  */
 export default function SplitScreen() {
   const { t } = useTranslation();
@@ -24,21 +32,26 @@ export default function SplitScreen() {
   const month = params.month ?? currentMonth(new Date());
   const { currency, numberingSystem } = useAccountSettings();
   const formatMoney = useFormatMoney(numberingSystem);
+  const typedText = useTypedAmountText(numberingSystem);
+  const fractionDigits = currencyMinorDigits(currency);
   const { data: categories } = useLiveQuery(categoriesQuery(localDb));
   const { data: plans } = useLiveQuery(monthPlansQuery(localDb, month));
   const [typed, setTyped] = useState<Record<string, string>>({});
+  const [target, setTarget] = useState<string | null>(null);
 
   const iconOf = useMemo(() => categoryIconFor(localStore.accountId()), []);
   const live = categories.filter((c) => c.archivedAt === null);
+  const selected = target ?? live[0]?.id ?? null;
 
-  const amounts = useMemo(() => {
-    const parsed: Record<string, number> = {};
-    for (const [categoryId, text] of Object.entries(typed)) {
-      const amount = text.trim() ? toMinorUnits(text, currency) : null;
-      if (amount !== null) parsed[categoryId] = amount;
-    }
-    return parsed;
-  }, [typed, currency]);
+  // Each Category's budget: the result of its sum. Null while a sum is unfinished or negative.
+  const results = useMemo(
+    () => Object.fromEntries(Object.entries(typed).map(([id, text]) => [id, evaluateAllocation(text, currency)])),
+    [typed, currency],
+  );
+  const amounts = Object.fromEntries(
+    Object.entries(results).filter((entry): entry is [string, number] => entry[1] !== null && typed[entry[0]] !== ''),
+  );
+  const allValid = Object.values(results).every((amount) => amount !== null);
 
   const { unallocated } = monthFigures({
     month,
@@ -47,7 +60,16 @@ export default function SplitScreen() {
     transactions: [],
   });
 
+  function press(key: KeypadKey) {
+    if (!selected) return;
+    setTyped((current) => ({
+      ...current,
+      [selected]: applyKeypadKey(current[selected] ?? '', key, { kind: 'expression', fractionDigits }),
+    }));
+  }
+
   function done() {
+    if (!allValid) return;
     setCategoryBudgets(localStore, month, amounts);
     router.replace('/');
   }
@@ -57,7 +79,8 @@ export default function SplitScreen() {
       scroll
       footer={
         <>
-          <Button label={t('onboarding.splitDone')} onPress={done} />
+          <AmountKeypad entry={{ press, showDecimal: fractionDigits > 0 }} numberingSystem={numberingSystem} />
+          <Button label={t('onboarding.splitDone')} disabled={!allValid} onPress={done} />
           <Button label={t('onboarding.splitSkip')} variant="secondary" onPress={() => router.replace('/')} />
         </>
       }
@@ -75,21 +98,22 @@ export default function SplitScreen() {
         {live.map((category) => {
           const name = category.isOther ? t('categories.other') : category.name;
           const text = typed[category.id] ?? '';
-          const invalid = text.trim() !== '' && amounts[category.id] === undefined;
+          const invalid = results[category.id] === null;
           return (
-            <Card key={category.id} className="flex-row items-center gap-3 px-3 py-2">
+            <Card
+              key={category.id}
+              selected={category.id === selected}
+              onPress={() => setTarget(category.id)}
+              accessibilityLabel={name}
+              className="flex-row items-center gap-3 px-3 py-3"
+            >
               <IconCircle icon={iconOf(category)} size="sm" />
               <Text weight="semibold" numberOfLines={1} className="flex-1 text-base">
                 {name}
               </Text>
-              <TextField
-                value={text}
-                onChangeText={(next) => setTyped((current) => ({ ...current, [category.id]: next }))}
-                placeholder="0"
-                keyboardType="decimal-pad"
-                accessibilityLabel={name}
-                className={`w-28 ${invalid ? 'opacity-60' : ''}`}
-              />
+              <Text weight="bold" tone={invalid ? 'negative' : text ? 'text' : 'muted'} numberOfLines={1} className="max-w-40 text-base">
+                {typedText(text)}
+              </Text>
             </Card>
           );
         })}

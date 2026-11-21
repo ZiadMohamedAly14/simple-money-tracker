@@ -37,7 +37,7 @@ export default function CurrencyScreen() {
         {ONBOARDING_CURRENCIES.map((code) => (
           <ListRow
             key={code}
-            icon="cash-outline"
+            icon="app:currency"
             title={t(`currencies.${code}`)}
             subtitle={code}
             selected={currency === code}

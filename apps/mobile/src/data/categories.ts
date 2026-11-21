@@ -1,7 +1,7 @@
-import { and, asc, eq, isNotNull, isNull } from 'drizzle-orm';
+import { and, asc, eq, isNotNull, isNull, sql } from 'drizzle-orm';
 import { CATEGORY_NAME_MAX_LENGTH, categoryBreakdown, type CategoryFigures, type Month } from '@money-tracker/shared';
 import type { LocalStore } from '@/db/localStore';
-import { categories } from '@/db/schema';
+import { categories, transactions } from '@/db/schema';
 import type { LocalDb } from '@/db/types';
 import { categoryBudgetsQuery, monthTransactionsQuery } from './budget';
 
@@ -76,8 +76,31 @@ export function activeCategoriesQuery(db: LocalDb) {
   return db
     .select()
     .from(categories)
-    .where(and(isNull(categories.deletedAt), isNull(categories.archivedAt)))
+    .where(isActive())
     .orderBy(asc(categories.isOther), asc(categories.order), asc(categories.id));
+}
+
+/** Not deleted and not Archived. */
+const isActive = () => and(isNull(categories.deletedAt), isNull(categories.archivedAt));
+
+/**
+ * Live-queryable: the Category chips when recording an Expense. The active
+ * Categories (as `activeCategoriesQuery`), most recently recorded-against
+ * first (by the Expense's UUIDv7 ID, which sorts by when it was recorded, on
+ * whichever device), then the never-used ones in display order, Other last.
+ */
+export function categoryChoicesQuery(db: LocalDb) {
+  const lastUse = sql`(
+    select max(${transactions.id}) from ${transactions}
+    where ${transactions.categoryId} = ${categories.id}
+      and ${transactions.kind} = 'expense'
+      and ${transactions.deletedAt} is null
+  )`;
+  return db
+    .select()
+    .from(categories)
+    .where(isActive())
+    .orderBy(sql`${lastUse} desc nulls last`, asc(categories.isOther), asc(categories.order), asc(categories.id));
 }
 
 /** Live-queryable: Archived Categories, by name. */

@@ -18,8 +18,10 @@ export { formatCountdown } from './i18n/countdown';
 export type { CountdownOptions } from './i18n/countdown';
 export { toWesternDigits } from './i18n/digits';
 export { applyKeypadKey } from './keypad/keypad';
-export type { KeypadKey, KeypadMode } from './keypad/keypad';
-export { formatAmountInput, formatMoneyParts } from './money/display';
+export type { DigitKey, KeypadKey, KeypadMode, OperatorKey } from './keypad/keypad';
+export { evaluateAllocation, evaluateAmountExpression } from './keypad/expression';
+export type { ExpressionOperator, ExpressionResult } from './keypad/expression';
+export { formatAmountExpression, formatAmountInput, formatMoneyParts } from './money/display';
 export type { AmountInputOptions, MoneyParts } from './money/display';
 export {
   DEFAULT_LANGUAGE,
@@ -34,12 +36,14 @@ export type { Language, NumberingSystem } from './i18n/language';
 export { currencyMinorDigits, formatMoney, fromMinorUnits, toMinorUnits } from './money/money';
 export type { CurrencyCode, MoneyFormatOptions } from './money/money';
 export { toLocalDate } from './dates/localDate';
-export { currentMonth, formatMonth, monthOf } from './dates/month';
+export { addMonths, currentMonth, formatMonth, monthOf } from './dates/month';
 export type { Month } from './dates/month';
 export { DEFAULT_CATEGORY_KEYS } from './budget/defaultCategories';
 export type { DefaultCategoryKey } from './budget/defaultCategories';
 export { monthFigures } from './budget/monthFigures';
 export type { MonthFigures, MonthFiguresInput } from './budget/monthFigures';
+export { newMonthPlan } from './budget/newMonthPlan';
+export type { NewMonthPlan, NewMonthPlanInput } from './budget/newMonthPlan';
 export { categoryBreakdown } from './budget/categoryBreakdown';
 export type { CategoryBreakdownInput, CategoryFigures } from './budget/categoryBreakdown';
 export { DEFAULT_JAR_KEYS } from './kid/defaultJars';

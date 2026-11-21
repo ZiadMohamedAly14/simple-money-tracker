@@ -55,7 +55,7 @@ function HealthScreen() {
       <ScreenHeader title={t('health.title')} onBack={() => router.back()} />
 
       <Card className="flex-row items-center gap-3 p-4">
-        <IconCircle icon={health?.status === 'ok' ? 'cloud-done-outline' : 'cloud-offline-outline'} />
+        <IconCircle icon={health?.status === 'ok' ? 'app:cloud' : 'app:offline'} />
         <View className="flex-1 gap-1">
           {statusLine === null ? (
             <ActivityIndicator color={theme.colors.primary} />
