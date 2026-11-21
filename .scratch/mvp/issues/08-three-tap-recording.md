@@ -29,7 +29,7 @@ Built on `ticket/08-three-tap-recording`:
 
 **Left over:**
 - **Category Budget keypad:** 09's `app/categories/edit.tsx` and the onboarding split step use decimal-pad text fields, not the in-app keypad, so they don't take sums yet. Moving them to `AmountKeypad` changes their layout (the edit screen has a name field too), so I left it for a follow-up instead of reworking 09's screen here. That's why the "adult amount keypads" item isn't ticked.
-- **Top-up and Jar Transfer keypads (tickets 12, 13):** use `useAmountEntry` / `AmountEntryDisplay` / `AmountKeypad`. The Kid Expense keypad (13) should use `NumericKeypad` without `showOperators`, in `amount` mode.
+- **Top-up and Jar Transfer keypads (tickets 12, 13):** 12's `src/kid/TopUpForm.tsx` (merged after this ticket was built) still uses `amount` mode without operators. Its one keypad types either the total or a Jar's share, so moving it to `expression` mode (with `evaluateAmountExpression` instead of `toMinorUnits`, and `showOperators`) is a follow-up. Jar Transfer (13) should use `useAmountEntry` / `AmountEntryDisplay` / `AmountKeypad`. The Kid Expense keypad (13) should use `NumericKeypad` without `showOperators`, in `amount` mode.
 - There is no swipe to delete. Deleting is on the edit screen (design flaw 11 allows that), so no gesture library was added.
 - Future dates aren't blocked; the spec doesn't say whether they should be.
 - The Transactions screen shows the current Month only. Switching Months is ticket 10.
