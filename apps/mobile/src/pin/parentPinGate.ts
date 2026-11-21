@@ -143,7 +143,14 @@ export function createParentPinGate({ request, accountId, store, biometrics, now
       return !!(await load())?.biometrics && (await biometrics.isEnrolled());
     },
 
-    setBiometricsEnabled: (on: boolean): Promise<void> => update({ biometrics: on }),
+    /** Turns biometrics on for this device, after one successful scan. True if it is now on. */
+    async enableBiometrics(prompt: string): Promise<boolean> {
+      if (!(await biometrics.isEnrolled()) || !(await biometrics.authenticate(prompt))) return false;
+      await update({ biometrics: true });
+      return true;
+    },
+
+    disableBiometrics: (): Promise<void> => update({ biometrics: false }),
 
     /** Opens the gate with a scan, if biometrics are on. A cancelled or failed scan leaves the PIN. */
     async unlockWithBiometrics(prompt: string): Promise<boolean> {

@@ -140,7 +140,7 @@ describe('Parent PIN gate on a Personal-Mode device', () => {
       expect(await phone.pinGate.biometricsEnabled()).toBe(false);
       expect(await phone.pinGate.unlockWithBiometrics('Open')).toBe(false);
 
-      await phone.pinGate.setBiometricsEnabled(true);
+      expect(await phone.pinGate.enableBiometrics('Turn on')).toBe(true);
       phone.goOffline();
       expect(await phone.pinGate.biometricsEnabled()).toBe(true);
       expect(await phone.pinGate.unlockWithBiometrics('Open')).toBe(true);
@@ -149,17 +149,39 @@ describe('Parent PIN gate on a Personal-Mode device', () => {
     it('a failed or cancelled scan does not open the gate; the PIN still does', async () => {
       const phone = await signedInPhone();
       await phone.pinGate.setPin('2580');
-      await phone.pinGate.setBiometricsEnabled(true);
+      expect(await phone.pinGate.enableBiometrics('Turn on')).toBe(true);
 
       phone.biometrics.nextResult = false;
       expect(await phone.pinGate.unlockWithBiometrics('Open')).toBe(false);
       expect(await phone.pinGate.checkPin('2580')).toEqual({ status: 'ok' });
     });
 
+    it('are turned on only after a successful scan', async () => {
+      const phone = await signedInPhone();
+      await phone.pinGate.setPin('2580');
+      phone.biometrics.nextResult = false;
+      expect(await phone.pinGate.enableBiometrics('Turn on')).toBe(false);
+      expect(await phone.pinGate.biometricsEnabled()).toBe(false);
+
+      phone.biometrics.enrolled = false;
+      phone.biometrics.nextResult = true;
+      expect(await phone.pinGate.enableBiometrics('Turn on')).toBe(false);
+    });
+
+    it('can be turned off again; then only the PIN opens', async () => {
+      const phone = await signedInPhone();
+      await phone.pinGate.setPin('2580');
+      await phone.pinGate.enableBiometrics('Turn on');
+
+      await phone.pinGate.disableBiometrics();
+      expect(await phone.pinGate.biometricsEnabled()).toBe(false);
+      expect(await phone.pinGate.unlockWithBiometrics('Open')).toBe(false);
+    });
+
     it('are not used once the device no longer has biometrics enrolled', async () => {
       const phone = await signedInPhone();
       await phone.pinGate.setPin('2580');
-      await phone.pinGate.setBiometricsEnabled(true);
+      expect(await phone.pinGate.enableBiometrics('Turn on')).toBe(true);
       phone.biometrics.enrolled = false;
       expect(await phone.pinGate.biometricsEnabled()).toBe(false);
       expect(await phone.pinGate.unlockWithBiometrics('Open')).toBe(false);
@@ -168,7 +190,7 @@ describe('Parent PIN gate on a Personal-Mode device', () => {
     it('a successful scan clears the wrong PIN count', async () => {
       const phone = await signedInPhone();
       await phone.pinGate.setPin('2580');
-      await phone.pinGate.setBiometricsEnabled(true);
+      expect(await phone.pinGate.enableBiometrics('Turn on')).toBe(true);
       for (let i = 0; i < 4; i += 1) await phone.pinGate.checkPin('1111');
       expect(await phone.pinGate.unlockWithBiometrics('Open')).toBe(true);
       expect(await phone.pinGate.checkPin('1111')).toEqual({ status: 'wrong', retryAfterSeconds: 0 });
@@ -178,7 +200,7 @@ describe('Parent PIN gate on a Personal-Mode device', () => {
   it('forgets the PIN hash and biometrics choice when the device signs out', async () => {
     const phone = await signedInPhone();
     await phone.pinGate.setPin('2580');
-    await phone.pinGate.setBiometricsEnabled(true);
+    expect(await phone.pinGate.enableBiometrics('Turn on')).toBe(true);
 
     await phone.signOut();
     await phone.signIn('sara@example.com');
