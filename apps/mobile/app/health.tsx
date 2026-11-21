@@ -2,22 +2,19 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { Redirect, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { SUPPORTED_LANGUAGES, formatMoneyParts, type Language } from '@money-tracker/shared';
-import { authSession, useAuthStatus } from '@/auth/appSession';
+import { formatMoneyParts } from '@money-tracker/shared';
+import { useAuthStatus } from '@/auth/appSession';
 import { createApiClient } from '@/api/client';
 import { checkHealth, type HealthResult } from '@/api/health';
 import { API_URL } from '@/config';
-import { switchLanguage } from '@/i18n/i18n';
 import { useFormatMoney } from '@/i18n/useFormatMoney';
 import { useLanguage } from '@/i18n/useLanguage';
 import { useTheme } from '@/theme/ThemeProvider';
-import { AmountDisplay, Button, Card, IconCircle, Screen, ScreenHeader, SegmentedControl, Text } from '@/ui';
+import { AmountDisplay, Card, IconCircle, Screen, ScreenHeader, Text } from '@/ui';
 
 /**
- * Walking-skeleton health screen: proves the app can reach the API, and
- * doubles as the right-to-left check for the shell (text, a sample amount and
- * the language switch). Reached from the home screen's settings button until
- * the Settings screen (ticket 17) takes over language and sign-out.
+ * Connection screen (from Settings): proves the app can reach the API, and
+ * shows a sample amount as a quick right-to-left check.
  */
 export default function HealthRoute() {
   // Signed-out devices go to sign-in first. A device whose session ended keeps
@@ -33,7 +30,6 @@ function HealthScreen() {
   const theme = useTheme();
   const language = useLanguage();
   const formatMoney = useFormatMoney();
-  const needsSignIn = useAuthStatus() === 'needsSignIn';
   const [health, setHealth] = useState<HealthResult | null>(null);
 
   useEffect(() => {
@@ -53,21 +49,10 @@ function HealthScreen() {
         ? t('health.error', { message: health.message })
         : t(`health.${health.status}`);
   const sample = formatMoneyParts(123450, { language, currency: 'EGP' });
-  const languages = SUPPORTED_LANGUAGES.map((value) => ({ value, label: t(`language.${value}`) }));
 
   return (
     <Screen scroll className="pt-4">
-      <View className="gap-1">
-        <ScreenHeader title={t('home.settings')} onBack={() => router.back()} />
-        <Text tone="muted">{t('health.title')}</Text>
-      </View>
-
-      {needsSignIn ? (
-        <Card className="gap-3 p-4">
-          <Text>{t('session.needsSignInBody')}</Text>
-          <Button label={t('session.signInAgain')} onPress={() => router.push('/sign-in')} />
-        </Card>
-      ) : null}
+      <ScreenHeader title={t('health.title')} onBack={() => router.back()} />
 
       <Card className="flex-row items-center gap-3 p-4">
         <IconCircle icon={health?.status === 'ok' ? 'cloud-done-outline' : 'cloud-offline-outline'} />
@@ -97,20 +82,6 @@ function HealthScreen() {
           accessibilityLabel={formatMoney(123450, 'EGP')}
         />
       </Card>
-
-      <Card className="gap-2 p-4">
-        <Text tone="muted" className="text-sm">
-          {t('language.label')}
-        </Text>
-        <SegmentedControl<Language>
-          options={languages}
-          value={language}
-          onChange={(next) => void switchLanguage(next)}
-          accessibilityLabel={t('language.label')}
-        />
-      </Card>
-
-      <Button label={t('session.signOut')} variant="danger" onPress={() => void authSession.signOut()} />
     </Screen>
   );
 }

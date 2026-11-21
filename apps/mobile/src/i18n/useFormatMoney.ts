@@ -9,8 +9,8 @@ import {
 
 /**
  * Formats stored amounts for the device language. The numbering system is
- * an Account setting; until Account settings exist (ticket 17) callers pass
- * it or get Western digits.
+ * an Account setting: callers pass `useAccountSettings().numberingSystem`
+ * (Western digits otherwise).
  */
 export function useFormatMoney(numberingSystem: NumberingSystem = DEFAULT_NUMBERING_SYSTEM) {
   const { i18n } = useTranslation();

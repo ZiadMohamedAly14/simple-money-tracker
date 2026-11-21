@@ -12,7 +12,9 @@ import type { SessionStore, StoredSession } from '@/auth/tokenStore';
 import {
   accountSettingsQuery,
   categoryBudgetsQuery,
+  changeAccountSettings,
   completePersonalOnboarding,
+  type AccountSettingsChanges,
   monthPlansQuery,
   readMonthOverview,
   setCategoryBudgets,
@@ -191,6 +193,7 @@ export async function createTestDevice(
     setExpectedIncome: (month: string, amount: number) => setExpectedIncome(store, month, amount),
     setCategoryBudgets: (month: string, amounts: Record<string, number>) => setCategoryBudgets(store, month, amounts),
     accountSettings: () => accountSettingsQuery(db).get(),
+    changeAccountSettings: (changes: AccountSettingsChanges) => changeAccountSettings(store, db, changes),
     monthPlans: () => monthPlansQuery(db).all(),
     monthOverview: (month: string) => readMonthOverview(db, month),
     categoryBudgets: (month: string) => categoryBudgetsQuery(db, month).all(),
