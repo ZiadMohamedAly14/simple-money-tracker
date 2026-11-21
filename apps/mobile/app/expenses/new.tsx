@@ -13,7 +13,7 @@ import {
 } from '@money-tracker/shared';
 import { recordExpense } from '@/data/transactions';
 import { useAccountSettings } from '@/data/useAccountSettings';
-import { localStore } from '@/db/appDatabase';
+import { localDb, localStore } from '@/db/appDatabase';
 import { useLanguage } from '@/i18n/useLanguage';
 import { AmountDisplay, Button, Chip, NumericKeypad, Screen, ScreenHeader, Text } from '@/ui';
 
@@ -36,7 +36,7 @@ export default function NewExpenseScreen() {
 
   function save() {
     if (!amount) return;
-    recordExpense(localStore, { amount, date: toLocalDate(new Date()) }); // syncs on its own about 2 s later
+    recordExpense(localStore, localDb, { amount, date: toLocalDate(new Date()) }); // syncs on its own about 2 s later
     router.back();
   }
 

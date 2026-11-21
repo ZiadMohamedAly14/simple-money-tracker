@@ -1,5 +1,6 @@
 import { and, asc, desc, eq, isNull } from 'drizzle-orm';
-import { otherCategoryId } from '@money-tracker/shared';
+import { monthOf, otherCategoryId } from '@money-tracker/shared';
+import { openMonth } from './budget';
 import type { LocalStore } from '@/db/localStore';
 import { categories, transactions } from '@/db/schema';
 import type { LocalDb } from '@/db/types';
@@ -14,10 +15,15 @@ export interface NewExpense {
   categoryId?: string;
 }
 
-/** Saves an Expense locally and queues it for sync. Works offline. Returns its ID. */
-export function recordExpense(store: LocalStore, { amount, date, note = null, categoryId }: NewExpense): string {
+/**
+ * Saves an Expense locally and queues it for sync. Works offline. Its date may
+ * be in any Month; a Month with no plan yet is created first (`openMonth`).
+ * Returns its ID.
+ */
+export function recordExpense(store: LocalStore, db: LocalDb, { amount, date, note = null, categoryId }: NewExpense): string {
   const accountId = store.accountId();
   if (!accountId) throw new Error('No Account is signed in on this device');
+  openMonth(store, db, monthOf(date));
   return store.create('transaction', {
     kind: 'expense',
     amount,
@@ -30,9 +36,15 @@ export function recordExpense(store: LocalStore, { amount, date, note = null, ca
 /** The parts of an Expense an adult can change. */
 export type ExpenseChanges = Partial<Pick<NewExpense, 'amount' | 'date' | 'note' | 'categoryId'>>;
 
-/** Changes an Expense locally and queues it for sync. False if it's gone (deleted, maybe on another device). */
-export function editExpense(store: LocalStore, id: string, changes: ExpenseChanges): boolean {
-  return store.update('transaction', id, changes);
+/**
+ * Changes an Expense locally and queues it for sync. A new date may move it
+ * into another Month, which is created first if it has no plan. False if it's
+ * gone (deleted, maybe on another device).
+ */
+export function editExpense(store: LocalStore, db: LocalDb, id: string, changes: ExpenseChanges): boolean {
+  const edited = store.update('transaction', id, changes);
+  if (edited && changes.date) openMonth(store, db, monthOf(changes.date));
+  return edited;
 }
 
 /** Deletes an Expense: it stays as a deletion marker so the deletion syncs (ADR-0001). */

@@ -1,4 +1,15 @@
-import { currentMonth, formatMonth, monthOf } from './month';
+import { addMonths, currentMonth, formatMonth, monthOf } from './month';
+
+describe('addMonths', () => {
+  it('steps to the previous and next Month, across year ends', () => {
+    expect(addMonths('2026-03', -1)).toBe('2026-02');
+    expect(addMonths('2026-03', 1)).toBe('2026-04');
+    expect(addMonths('2026-01', -1)).toBe('2025-12');
+    expect(addMonths('2026-12', 1)).toBe('2027-01');
+    expect(addMonths('2026-11', -23)).toBe('2024-12');
+    expect(addMonths('2026-11', 0)).toBe('2026-11');
+  });
+});
 
 describe('formatMonth', () => {
   it('names the Month and year in the language', () => {

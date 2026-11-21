@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { View } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useTranslation } from 'react-i18next';
 import { currentMonth, formatMonth } from '@money-tracker/shared';
@@ -28,7 +28,8 @@ export default function CategoriesScreen() {
   const language = useLanguage();
   const { currency, numberingSystem } = useAccountSettings();
   const formatMoney = useFormatMoney(numberingSystem);
-  const month = currentMonth(new Date());
+  const params = useLocalSearchParams<{ month?: string }>();
+  const month = params.month ?? currentMonth(new Date());
   const monthName = formatMonth(month, { language, numberingSystem });
   const { figures, rows } = useMonthBudget(month);
   const { data: active } = useLiveQuery(activeCategoriesQuery(localDb));

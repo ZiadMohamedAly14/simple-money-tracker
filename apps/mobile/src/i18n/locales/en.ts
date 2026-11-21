@@ -94,6 +94,10 @@ export const en = {
     freshTitle: 'A fresh month',
     freshBody: 'Add your income, then tap + to log your first expense.',
     categories: 'Categories',
+    previousMonth: 'Previous month',
+    nextMonth: 'Next month',
+    emptyPastTitle: 'Nothing recorded',
+    emptyPastBody: 'No transactions this month. You can still add one with a date in this month.',
   },
   expenses: {
     title: 'Expenses',
