@@ -4,7 +4,7 @@
 
 **Blocked by:** 05 (Sync tracer bullet).
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] The PIN can be set and changed. The server stores only its hash on the Account.
 - [x] A Personal-Mode device keeps a copy of the PIN hash so it can check the PIN offline. A Kid-Mode device never receives it (ADR-0002).
