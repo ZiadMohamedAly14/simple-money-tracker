@@ -47,6 +47,17 @@ function upsertRow(db: Db, entity: SyncEntity, row: object): void {
 /** A record whose ID the caller already knows (a fixed or deterministic one). */
 export type KnownRecord = { [E in SyncEntity]: { entity: E; id: string; fields: SyncFieldsByEntity[E] } }[SyncEntity];
 
+export interface PutOptions {
+  /**
+   * Write the records as defaults that any real edit beats, on this device or
+   * another: they carry edit time 0, so last edit wins (ADR-0001) always
+   * prefers an edit. Used for a Month's plan copied from the previous Month,
+   * so a device opening the Month late can't overwrite a change made to it
+   * elsewhere.
+   */
+  asDefault?: boolean;
+}
+
 export interface PendingPush {
   changes: PushedChange[];
   /** The newest outbox entry included; acknowledged when the server has stored the push. */
@@ -119,12 +130,13 @@ export function createLocalStore({ db, now, randomBytes }: LocalStoreDeps) {
     return accountId;
   }
 
-  function putRows(tx: Db, records: readonly KnownRecord[]): void {
+  function putRows(tx: Db, records: readonly KnownRecord[], { asDefault = false }: PutOptions = {}): void {
     const accountId = requireAccount(tx);
-    const updatedAt = now();
+    const queuedAt = now();
+    const updatedAt = asDefault ? 0 : queuedAt;
     for (const { entity, id, fields } of records) {
       upsertRow(tx, entity, { ...fields, id, accountId, updatedAt, deletedAt: null, serverVersion: 0 });
-      tx.insert(outbox).values({ entity, recordId: id, queuedAt: updatedAt }).run();
+      tx.insert(outbox).values({ entity, recordId: id, queuedAt }).run();
     }
   }
 
@@ -192,8 +204,8 @@ export function createLocalStore({ db, now, randomBytes }: LocalStoreDeps) {
      * `monthPlanId`) and queues them for sync, all at once. Two devices doing
      * this offline end up with one record each.
      */
-    put(records: readonly KnownRecord[]): void {
-      db.transaction((tx) => putRows(tx, records));
+    put(records: readonly KnownRecord[], options?: PutOptions): void {
+      db.transaction((tx) => putRows(tx, records, options));
       announceWrite();
     },
 

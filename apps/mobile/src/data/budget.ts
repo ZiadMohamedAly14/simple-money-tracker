@@ -7,6 +7,7 @@ import {
   defaultCategoryId,
   monthFigures,
   monthPlanId,
+  newMonthPlan,
   type CurrencyCode,
   type DefaultCategoryKey,
   type Month,
@@ -15,7 +16,7 @@ import {
 } from '@money-tracker/shared';
 import { FALLBACK_CURRENCY } from './currency';
 import { ONBOARDING_STATE_KEY, type KnownRecord, type LocalStore } from '@/db/localStore';
-import { accountSettings, categoryBudgets, deviceState, monthPlans, transactions } from '@/db/schema';
+import { accountSettings, categories, categoryBudgets, deviceState, monthPlans, transactions } from '@/db/schema';
 import type { LocalDb } from '@/db/types';
 
 function requireAccount(store: LocalStore): string {
@@ -83,6 +84,41 @@ export function setCategoryBudgets(store: LocalStore, month: Month, amounts: Rec
       id: categoryBudgetId(accountId, month, categoryId),
       fields: { month, categoryId, amount },
     })),
+  );
+}
+
+/**
+ * Creates a Month the first time it is opened or receives a Transaction
+ * (spec, Domain rules), by copying the previous Month's Expected Income and
+ * Category Budgets (`newMonthPlan`). Does nothing if the Month already has a
+ * plan, or there is no earlier plan to copy. The copies are written as
+ * defaults (edit time 0), so if another device already created or changed
+ * this Month, its copy wins on sync; the IDs are deterministic, so there is
+ * still one plan.
+ */
+export function openMonth(store: LocalStore, db: LocalDb, month: Month): void {
+  const accountId = requireAccount(store);
+  const plans = db.select().from(monthPlans).where(isNull(monthPlans.deletedAt)).all();
+  if (plans.some((p) => p.month === month)) return;
+  const plan = newMonthPlan({
+    month,
+    plans,
+    budgets: db.select().from(categoryBudgets).where(isNull(categoryBudgets.deletedAt)).all(),
+    categories: db.select().from(categories).where(isNull(categories.deletedAt)).all(),
+  });
+  if (!plan) return;
+  store.put(
+    [
+      monthPlanRecord(accountId, month, plan.expectedIncome),
+      ...plan.budgets.map(
+        ({ categoryId, amount }): KnownRecord => ({
+          entity: 'categoryBudget',
+          id: categoryBudgetId(accountId, month, categoryId),
+          fields: { month, categoryId, amount },
+        }),
+      ),
+    ],
+    { asDefault: true },
   );
 }
 

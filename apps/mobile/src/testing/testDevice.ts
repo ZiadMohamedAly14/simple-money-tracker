@@ -16,6 +16,7 @@ import {
   completePersonalOnboarding,
   type AccountSettingsChanges,
   monthPlansQuery,
+  openMonth,
   readMonthOverview,
   setCategoryBudgets,
   setExpectedIncome,
@@ -195,6 +196,7 @@ export async function createTestDevice(
     accountSettings: () => accountSettingsQuery(db).get(),
     changeAccountSettings: (changes: AccountSettingsChanges) => changeAccountSettings(store, db, changes),
     monthPlans: () => monthPlansQuery(db).all(),
+    openMonth: (month: string) => openMonth(store, db, month),
     monthOverview: (month: string) => readMonthOverview(db, month),
     categoryBudgets: (month: string) => categoryBudgetsQuery(db, month).all(),
 
