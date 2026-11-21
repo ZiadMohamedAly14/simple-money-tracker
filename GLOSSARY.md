@@ -51,7 +51,7 @@ Income minus Spending for a Month. Always derived, never entered.
 _Avoid_: Balance, money left
 
 **Category**:
-A named bucket that every Expense belongs to. **Other** is the default catch-all. An **Archived** Category is hidden from new Months but kept in history.
+A named bucket that every Expense belongs to. **Other** is the default catch-all. An **Archived** Category is hidden from new Months but kept in history. A **Deleted** Category is gone for good: its Expenses show as Other, and its Category Budgets are removed. The app always keeps at least one Category besides Other.
 _Avoid_: Tag, envelope
 
 **Category Budget**:

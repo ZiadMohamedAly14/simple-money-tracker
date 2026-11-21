@@ -21,6 +21,19 @@ describe('categoryBreakdown', () => {
     ]);
   });
 
+  it('counts an Expense whose Category is deleted (not among the live Categories) under Other', () => {
+    const rows = categoryBreakdown({
+      month: '2026-03',
+      categories: [food, other],
+      budgets: [budget('deleted', 50000)],
+      transactions: [expense('deleted', 1500, '2026-03-02'), expense('other', 500, '2026-03-03')],
+    });
+    expect(rows).toEqual([
+      { categoryId: 'food', budget: 0, spent: 0, remaining: 0 },
+      { categoryId: 'other', budget: 0, spent: 2000, remaining: -2000 },
+    ]);
+  });
+
   it('a Category with no Category Budget has a budget of 0, so any spending puts it over', () => {
     const [row] = categoryBreakdown({
       month: '2026-03',

@@ -7,25 +7,15 @@ import { startTestServer, type TestServer } from '@/testing/testServer';
 import { createTestDevice } from '@/testing/testDevice';
 
 const ENGLISH: Record<DefaultCategoryKey, string> = {
-  housing: 'Housing',
   food: 'Food & Groceries',
-  transport: 'Transport',
   bills: 'Bills & Utilities',
-  health: 'Health',
   shopping: 'Shopping',
-  entertainment: 'Entertainment',
-  kids: 'Kids',
 };
 
 const ARABIC: Record<DefaultCategoryKey, string> = {
-  housing: 'السكن',
   food: 'الطعام والبقالة',
-  transport: 'المواصلات',
   bills: 'الفواتير والخدمات',
-  health: 'الصحة',
   shopping: 'التسوق',
-  entertainment: 'الترفيه',
-  kids: 'الأطفال',
 };
 
 describe('personal onboarding and Month plans (Seam B)', () => {
@@ -52,16 +42,13 @@ describe('personal onboarding and Month plans (Seam B)', () => {
     expect(phone.onboarding()).toBe('unreported');
     expect(phone.accountSettings()).toMatchObject({ currency: 'USD', numberingSystem: 'western' });
     expect(phone.categories().map((c) => (c.isOther ? '(Other)' : c.name))).toEqual([
-      'Housing',
       'Food & Groceries',
-      'Transport',
       'Bills & Utilities',
-      'Health',
       'Shopping',
-      'Entertainment',
-      'Kids',
       '(Other)',
     ]);
+    // Each default has its icon set; Other is always `other`.
+    expect(phone.categories().map((c) => c.icon)).toEqual(['food-groceries', 'bills-utilities', 'shopping-spend', 'other']);
     expect(phone.monthPlans()).toEqual([expect.objectContaining({ month: '2026-03', expectedIncome: 800000 })]);
     // Every Category starts with a budget of 0: no Category Budget yet.
     expect(phone.monthOverview('2026-03')).toEqual({
@@ -77,7 +64,7 @@ describe('personal onboarding and Month plans (Seam B)', () => {
     const phone = await createTestDevice(server);
     await phone.signIn('sara@example.com');
     phone.onboardPersonal({ currency: 'EGP', expectedIncome: 0, month: '2026-03', categoryNames: ARABIC });
-    expect(phone.categories().slice(0, 2).map((c) => c.name)).toEqual(['السكن', 'الطعام والبقالة']);
+    expect(phone.categories().slice(0, 2).map((c) => c.name)).toEqual(['الطعام والبقالة', 'الفواتير والخدمات']);
   });
 
   it('marks onboarding complete on the server once online, so a second device skips onboarding and gets the same data', async () => {
@@ -135,9 +122,9 @@ describe('personal onboarding and Month plans (Seam B)', () => {
     const accountId = phone.accountId()!;
 
     phone.setCategoryBudgets('2026-03', {
-      [defaultCategoryId(accountId, 'housing')]: 300000,
+      [defaultCategoryId(accountId, 'bills')]: 300000,
       [defaultCategoryId(accountId, 'food')]: 150000,
-      [defaultCategoryId(accountId, 'transport')]: 0,
+      [defaultCategoryId(accountId, 'shopping')]: 0,
     });
     expect(phone.monthOverview('2026-03').unallocated).toBe(350000);
     await phone.sync();

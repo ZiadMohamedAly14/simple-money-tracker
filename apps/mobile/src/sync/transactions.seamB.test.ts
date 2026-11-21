@@ -88,33 +88,25 @@ describe('recording Transactions (Seam B)', () => {
 
     expect(order(phone)).toEqual([...DEFAULT_CATEGORY_KEYS, 'other']);
 
-    phone.recordExpense({ amount: 100, date: '2026-03-05', categoryId: id('transport') });
+    phone.recordExpense({ amount: 100, date: '2026-03-05', categoryId: id('shopping') });
     phone.recordExpense({ amount: 100, date: '2026-03-01', categoryId: id('food') }); // recorded later, dated earlier
     await phone.sync();
     await tablet.sync();
     tablet.recordExpense({ amount: 100, date: '2026-03-02' }); // Other
-    tablet.archiveCategory(id('kids'));
+    tablet.addCategory('Pets');
+    tablet.archiveCategory(id('bills'));
 
-    expect(order(tablet)).toEqual([
-      'other',
-      'food',
-      'transport',
-      'housing',
-      'bills',
-      'health',
-      'shopping',
-      'entertainment',
-    ]);
+    expect(order(tablet)).toEqual(['other', 'food', 'shopping', 'Pets']);
   });
 
   it('a deleted Expense no longer counts as a use of its Category', async () => {
     const [phone] = await twoDevices();
     const id = (key: DefaultCategoryKey) => defaultCategoryId(phone.accountId()!, key);
-    phone.recordExpense({ amount: 100, date: '2026-03-01', categoryId: id('health') });
+    phone.recordExpense({ amount: 100, date: '2026-03-01', categoryId: id('bills') });
     const mistake = phone.recordExpense({ amount: 100, date: '2026-03-01', categoryId: id('shopping') });
     phone.deleteTransaction(mistake);
 
-    expect(phone.categoryChoices()[0]).toMatchObject({ id: id('health') });
+    expect(phone.categoryChoices()[0]).toMatchObject({ id: id('bills') });
   });
 
   it("Income recorded in, or moved by its date into, a Month with no plan yet creates that Month from the previous plan", async () => {

@@ -28,6 +28,7 @@ export const categories = sqliteTable('categories', {
   order: integer('sort_order').notNull(),
   isOther: integer('is_other', { mode: 'boolean' }).notNull(),
   archivedAt: integer('archived_at'),
+  icon: text('icon'),
 });
 
 export const monthPlans = sqliteTable('month_plans', {

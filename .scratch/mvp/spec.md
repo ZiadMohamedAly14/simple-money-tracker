@@ -38,7 +38,7 @@ All money is virtual. Everything works offline, and changes sync between devices
 10. As a new adult, I want to choose whether the app is mainly for me or for a kid, so that I land on the right home screen.
 11. As a new adult, I want to pick my currency once, so that every amount is shown correctly.
 12. As a new personal user, I want to enter my Expected Income, so that I can start budgeting straight away.
-13. As a new personal user, I want a sensible set of default Categories (Housing, Food & Groceries, Transport, Bills & Utilities, Health, Shopping, Entertainment, Kids, Other), so that I don't start from a blank screen.
+13. As a new personal user, I want a sensible set of default Categories (Food & groceries, Bills & utilities, Shopping, Other), so that I don't start from a blank screen.
 14. As a new personal user, I want an optional step to split my Expected Income across Categories, so that I can set budgets right away or skip it.
 15. As a new parent choosing the kid path, I want to create a Kid Profile, set a Parent PIN and optionally add a first Top-up, so that the device is ready for my child.
 16. As a parent who started on the kid path, I want my Personal Budget to still exist for later, so that I never need a second Account.
@@ -150,7 +150,10 @@ All money is virtual. Everything works offline, and changes sync between devices
 - A Month is a calendar month. Each Transaction carries a local calendar date, which decides its Month and is never converted between time zones, plus a separate edit time used for sync.
 - Income, Spending, Remaining, Unallocated, per-Category figures and Jar balances are always worked out from Transactions, never stored or synced.
 - A Month is created lazily, the first time it is opened or receives a Transaction, by copying the previous Month's Expected Income and Category Budgets.
-- Every Expense has a Category. Other always exists and can't be archived. Archived Categories are hidden from new Months but kept in history. Income has no Category.
+- Every Expense has a Category. Other always exists and can't be archived or deleted. Archived Categories are hidden from new Months but kept in history. Income has no Category.
+- A Category can be deleted (ticket 21). Deleting marks it deleted (the deletion beats any edit, ADR-0001) and deletes its Category Budgets in every Month. Its Expenses aren't rewritten: wherever they show (Month breakdown, totals, Transaction list, Category chips, the edit screen's picker) they count as Other, and saving one files it under Other. There is no undo.
+- The last active Category that isn't Other can't be archived or deleted, in the app's data layer as well as on screen.
+- Each Category has an icon. A new one's icon is guessed from its name (English and Arabic keywords) until the adult picks one; renaming never changes it. Other always shows its own icon.
 - Category Budgets can add up to any amount, so Unallocated may go negative.
 - Adult amount keypads accept `+ − × ÷` with normal calculator order and no brackets. The expression is evaluated in whole minor units, rounded half-up, and only the result is stored. The child's keypad has no operators.
 - A Kid Wallet is a running balance with no Months. A Top-up carries a split across Jars that must add up to its total. A Kid Expense comes out of exactly one Jar. A Jar Transfer moves an amount between two Jars of the same wallet and can only be made by a parent.
@@ -162,7 +165,7 @@ All money is virtual. Everything works offline, and changes sync between devices
 - Every synced record has a UUIDv7 ID created on the device (ADR-0006), its owning Account, the device's last-edit time, an optional deletion marker, and a server version number set by the server.
 - Synced entities:
   - **Account settings:** currency, numbering system.
-  - **Category:** name, order, Other flag, archived time.
+  - **Category:** name, order, Other flag, archived time, icon (an app icon name; any short kebab-case name is accepted so a newer app's icon always syncs; none on records made before ticket 21).
   - **Month plan:** Month, Expected Income.
   - **Category Budget:** Month, Category, amount.
   - **Transaction:** income or expense, amount, Category for expenses, date, note.

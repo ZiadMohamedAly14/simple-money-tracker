@@ -115,6 +115,10 @@ const MIGRATIONS: readonly string[][] = [
     `ALTER TABLE kid_transactions ADD COLUMN jar_id TEXT`,
     `ALTER TABLE kid_transactions ADD COLUMN to_jar_id TEXT`,
   ],
+  [
+    // A Category's icon (ticket 21); null on records made before icons synced.
+    `ALTER TABLE categories ADD COLUMN icon TEXT`,
+  ],
 ];
 
 /** Brings the database up to the latest schema. Safe to call on every app start. */

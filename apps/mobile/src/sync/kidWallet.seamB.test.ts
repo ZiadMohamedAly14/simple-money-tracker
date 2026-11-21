@@ -47,7 +47,8 @@ describe('Kid Profiles, Jars and Top-ups (Seam B)', () => {
     expect(phone.onboarding()).toBe('unreported');
     expect(phone.accountSettings()).toMatchObject({ currency: 'SAR' });
     // The Personal Budget still exists for later (spec, story 16).
-    expect(phone.categories()).toHaveLength(9);
+    expect(phone.categories().map((c) => (c.isOther ? '(Other)' : c.name))).toEqual(['food', 'bills', 'shopping', '(Other)']);
+    expect(phone.categories().map((c) => c.icon)).toEqual(['food-groceries', 'bills-utilities', 'shopping-spend', 'other']);
     expect(phone.kidProfiles()).toEqual([expect.objectContaining({ id: kid, name: 'Omar', avatar: '🦊' })]);
     expect(balancesOf(phone, kid)).toEqual([
       ['Save', 0],

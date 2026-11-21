@@ -249,6 +249,28 @@ export function createLocalStore({ db, now, randomBytes }: LocalStoreDeps) {
       return edit(entity, id, (updatedAt) => ({ deletedAt: updatedAt }));
     },
 
+    /**
+     * Marks several records deleted and queues them for sync, all at once.
+     * Records that don't exist or are already deleted are skipped. Returns how many were deleted.
+     */
+    removeAll(records: readonly { entity: SyncEntity; id: string }[]): number {
+      const updatedAt = now();
+      const removed = db.transaction((tx) => {
+        let n = 0;
+        for (const { entity, id } of records) {
+          const table = tableOf(entity);
+          const live = tx.select({ id: table.id }).from(table).where(and(eq(table.id, id), isNull(table.deletedAt))).get();
+          if (!live) continue;
+          tx.update(table).set({ deletedAt: updatedAt, updatedAt } as never).where(eq(table.id, id)).run();
+          tx.insert(outbox).values({ entity, recordId: id, queuedAt: updatedAt }).run();
+          n += 1;
+        }
+        return n;
+      });
+      if (removed > 0) announceWrite();
+      return removed;
+    },
+
     /** Calls `listener` after each local write (create, update, remove) commits. Returns an unsubscribe. */
     onWrite(listener: () => void): () => void {
       writeListeners.add(listener);
