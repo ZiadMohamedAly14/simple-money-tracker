@@ -26,6 +26,6 @@ export function apiRoutes(env: Env, { mailer, now }: AppDeps): Router {
   router.use('/account/onboarding', onboardingRoutes(createOnboardingService({ now }), tokens));
   const pins = createParentPinService({ now });
   router.use('/account/pin', parentPinRoutes(pins, tokens));
-  router.use('/kid-devices', kidDeviceRoutes(createKidDeviceService({ tokens, pins }), tokens));
+  router.use('/kid-devices', kidDeviceRoutes(createKidDeviceService({ tokens, pins, now }), tokens));
   return router;
 }

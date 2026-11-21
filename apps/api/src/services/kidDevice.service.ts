@@ -1,7 +1,16 @@
-import type { ElevateErrorData, ElevatedAccessData, KidSessionData, KidSessionErrorData } from '@money-tracker/shared';
+import type {
+  ElevateErrorData,
+  ElevatedAccessData,
+  KidDevicesData,
+  KidSessionData,
+  KidSessionErrorData,
+} from '@money-tracker/shared';
+import { Types } from 'mongoose';
 import { Account } from '../models/account.model';
+import { Session } from '../models/session.model';
 import { KidProfile } from '../models/synced.model';
-import { AppError } from '../utils/AppError';
+import { AppError, NotFoundError } from '../utils/AppError';
+import type { Clock } from '../utils/clock';
 import type { ParentPinService } from './parentPin.service';
 import type { AuthContext, TokenService } from './token.service';
 
@@ -14,7 +23,7 @@ const refused = (message: string, status: number, reason: Reason): AppError => n
  * on that device for a Kid Session limited to one Kid Profile. The parent can
  * later elevate it with the PIN, list Kid-Mode devices and revoke them.
  */
-export function createKidDeviceService({ tokens, pins }: { tokens: TokenService; pins: ParentPinService }) {
+export function createKidDeviceService({ tokens, pins, now }: { tokens: TokenService; pins: ParentPinService; now: Clock }) {
   async function requirePin(accountId: string): Promise<void> {
     const account = await Account.findById(accountId).select({ parentPinHash: 1 }).lean();
     if (!account?.parentPinHash) throw refused('Set a Parent PIN first', 409, 'no_pin');
@@ -47,6 +56,32 @@ export function createKidDeviceService({ tokens, pins }: { tokens: TokenService;
       await requirePin(auth.accountId);
       await pins.checkPin(auth.accountId, pin);
       return tokens.startElevatedSession(auth);
+    },
+
+    /** This Account's Kid-Mode devices (live Kid Sessions), newest first. */
+    async list(auth: AuthContext): Promise<KidDevicesData> {
+      const sessions = await Session.find({ accountId: auth.accountId, scope: 'kid', expiresAt: { $gt: now() } })
+        .sort({ createdAt: -1, _id: -1 })
+        .lean();
+      return {
+        devices: sessions.map((session) => ({
+          id: String(session._id),
+          kidProfileId: session.kidProfileId!,
+          deviceLabel: session.deviceLabel ?? null,
+          createdAt: session.createdAt.getTime(),
+          lastActiveAt: session.updatedAt.getTime(),
+          current: String(session._id) === auth.elevatedFrom,
+        })),
+      };
+    },
+
+    /** Revokes a Kid-Mode device: its Kid Session (and any elevation) ends, so its next sync is refused. */
+    async revoke(auth: AuthContext, deviceId: string): Promise<void> {
+      const device = Types.ObjectId.isValid(deviceId)
+        ? await Session.exists({ _id: deviceId, accountId: auth.accountId, scope: 'kid' })
+        : null;
+      if (!device) throw new NotFoundError('No such Kid-Mode device');
+      await tokens.endSession(deviceId);
     },
   };
 }

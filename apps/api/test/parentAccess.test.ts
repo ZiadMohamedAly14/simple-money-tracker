@@ -5,7 +5,7 @@
  */
 import request from 'supertest';
 import type { Express } from 'express';
-import { defaultJarId, type PushedChange, type SyncResponseData } from '@money-tracker/shared';
+import { defaultJarId, otherCategoryId, type KidDeviceSummary, type PushedChange, type SyncResponseData } from '@money-tracker/shared';
 import { MINUTE, SECOND, buildTestApp, createTestClock, createTestMailer, type TestClock, type TestMailer } from './helpers/testApp';
 import { useTestDatabase } from './helpers/testDatabase';
 
@@ -60,7 +60,7 @@ const topUp = (accountId: string, kidProfileId: string, amount: number): PushedC
 const expense = (accountId: string): PushedChange =>
   ({
     entity: 'transaction',
-    record: { id: newId(), ...meta, kind: 'expense', amount: 1500, categoryId: `${accountId}`, date: '2026-03-02', note: 'Coffee' },
+    record: { id: newId(), ...meta, kind: 'expense', amount: 1500, categoryId: otherCategoryId(accountId), date: '2026-03-02', note: 'Coffee' },
   }) as unknown as PushedChange;
 
 describe('Parent access on a kid device (Seam A)', () => {
@@ -170,7 +170,7 @@ describe('Parent access on a kid device (Seam A)', () => {
 
     it('lets the parent top up from the kid device while it still holds only that kid', async () => {
       const parent = await family();
-      await sync(parent, 0, [expense(parent.accountId)]);
+      expect((await sync(parent, 0, [expense(parent.accountId)])).status).toBe(200);
       const kid = await kidDevice();
       const elevated = (await elevate(kid, PIN)).body.data as { accessToken: string };
 
@@ -178,11 +178,105 @@ describe('Parent access on a kid device (Seam A)', () => {
       expect(res.status).toBe(200);
       const pulled = (res.body.data as SyncResponseData).changes;
       expect(new Set(pulled.map((change) => change.entity))).toEqual(new Set(['kidProfile', 'jar', 'kidTransaction']));
-      expect(pulled.every((change) => change.entity === 'kidProfile' ? change.record.id === OMAR : (change.record as { kidProfileId?: string }).kidProfileId === OMAR)).toBe(true);
+      const kidOf = (change: (typeof pulled)[number]) =>
+        change.entity === 'kidProfile' ? change.record.id : (change.record as { kidProfileId?: string }).kidProfileId;
+      expect(pulled.every((change) => kidOf(change) === OMAR)).toBe(true);
       expect(pulled.filter((change) => change.entity === 'kidTransaction')).toHaveLength(2);
 
       const seenByParent = (await sync(parent, 0)).body.data as SyncResponseData;
       expect(seenByParent.changes.filter((change) => change.entity === 'kidTransaction')).toHaveLength(2);
+    });
+  });
+
+  const listDevices = (who: { accessToken: string }) => request(app).get('/kid-devices').set('Authorization', bearer(who));
+  const revoke = (who: { accessToken: string }, id: string) =>
+    request(app).delete(`/kid-devices/${id}`).set('Authorization', bearer(who));
+
+  describe('listing Kid-Mode devices', () => {
+    it("lists this Account's Kid-Mode devices by the kid's name, newest first, and marks the one asking", async () => {
+      const parent = await family();
+      const omars = await kidDevice(OMAR, 'Omar');
+      clock.advance(MINUTE);
+      await kidDevice(LINA, 'Lina');
+      await signIn('someone@example.com'); // another Account's sessions never show
+
+      const res = await listDevices(parent);
+      expect(res.status).toBe(200);
+      const devices = res.body.data.devices as KidDeviceSummary[];
+      expect(devices.map((d) => [d.kidProfileId, d.deviceLabel, d.current])).toEqual([
+        [LINA, 'Lina', false],
+        [OMAR, 'Omar', false],
+      ]);
+      expect(devices[0]).toEqual({
+        id: expect.any(String),
+        kidProfileId: LINA,
+        deviceLabel: 'Lina',
+        createdAt: expect.any(Number),
+        lastActiveAt: expect.any(Number),
+        current: false,
+      });
+
+      // From Omar's phone, elevated: only Kid Sessions are listed, and Omar's is marked.
+      const elevated = (await elevate(omars, PIN)).body.data as { accessToken: string };
+      const fromKid = (await listDevices(elevated)).body.data.devices as KidDeviceSummary[];
+      expect(fromKid.map((d) => [d.deviceLabel, d.current])).toEqual([
+        ['Lina', false],
+        ['Omar', true],
+      ]);
+    });
+
+    it('needs full access: a Kid Session cannot list devices', async () => {
+      await family();
+      const kid = await kidDevice();
+      const res = await listDevices(kid);
+      expect(res.status).toBe(403);
+      expect(res.body.data).toEqual({ reason: 'kid_session' });
+    });
+  });
+
+  describe('revoking a Kid-Mode device', () => {
+    it('signs the device out on its next sync or refresh, and ends any elevation it holds', async () => {
+      const parent = await family();
+      const kid = await kidDevice();
+      const elevated = (await elevate(kid, PIN)).body.data as { accessToken: string };
+      const [device] = (await listDevices(parent)).body.data.devices as KidDeviceSummary[];
+
+      const res = await revoke(parent, device!.id);
+      expect(res.status).toBe(200);
+      expect((await listDevices(parent)).body.data.devices).toEqual([]);
+
+      const next = await sync(kid, 0);
+      expect(next.status).toBe(401);
+      expect(next.body.data).toEqual({ reason: 'session_ended' });
+      expect((await request(app).post('/auth/refresh').send({ refreshToken: kid.refreshToken })).status).toBe(401);
+      expect((await sync(elevated, 0)).status).toBe(401);
+    });
+
+    it("can be done from the kid's phone, elevated", async () => {
+      await family();
+      const omars = await kidDevice(OMAR, 'Omar');
+      const linas = await kidDevice(LINA, 'Lina');
+      const elevated = (await elevate(omars, PIN)).body.data as { accessToken: string };
+      const lina = ((await listDevices(elevated)).body.data.devices as KidDeviceSummary[]).find((d) => d.kidProfileId === LINA);
+
+      expect((await revoke(elevated, lina!.id)).status).toBe(200);
+      expect((await sync(linas, 0)).status).toBe(401);
+      expect((await sync(omars, 0)).status).toBe(200);
+    });
+
+    it("refuses another Account's device, a full session, an unknown id, and a Kid Session asking", async () => {
+      const parent = await family();
+      const kid = await kidDevice();
+      const [device] = (await listDevices(parent)).body.data.devices as KidDeviceSummary[];
+
+      const stranger = await signIn('someone@example.com');
+      expect((await revoke(stranger, device!.id)).status).toBe(404);
+      expect((await revoke(parent, '0123456789abcdef01234567')).status).toBe(404);
+      expect((await revoke(parent, 'not-an-id')).status).toBe(422);
+      expect((await revoke(kid, device!.id)).status).toBe(403);
+      expect((await sync(kid, 0)).status).toBe(200);
+
+      expect((await listDevices(parent)).body.data.devices).toHaveLength(1);
     });
   });
 });
