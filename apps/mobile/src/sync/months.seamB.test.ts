@@ -47,7 +47,7 @@ describe('Months created lazily (Seam B)', () => {
       expectedIncome: 800000,
       income: 0,
       spending: 0,
-      remaining: 0,
+      remaining: 800000,
       unallocated: 100000,
     });
     expect(budgetsOf(phone, APRIL)).toEqual({ [housing]: 500000, [food]: 200000 });

@@ -4,17 +4,17 @@ const income = (amount: number, date: string) => ({ kind: 'income' as const, amo
 const expense = (amount: number, date: string) => ({ kind: 'expense' as const, amount, date });
 
 describe('monthFigures', () => {
-  it('a Month with nothing recorded has every figure at zero except Unallocated, which is the Expected Income', () => {
+  it('a Month with nothing recorded has Income and Spending at zero, and Remaining and Unallocated at the Expected Income', () => {
     expect(monthFigures({ month: '2026-03', expectedIncome: 800000, budgets: [], transactions: [] })).toEqual({
       expectedIncome: 800000,
       income: 0,
       spending: 0,
-      remaining: 0,
+      remaining: 800000,
       unallocated: 800000,
     });
   });
 
-  it('sums Income and Spending from the Transactions dated in the Month, and Remaining is Income minus Spending', () => {
+  it('sums Income and Spending from the Transactions dated in the Month, and Remaining is Expected Income minus Spending', () => {
     const figures = monthFigures({
       month: '2026-03',
       expectedIncome: 800000,
@@ -28,7 +28,25 @@ describe('monthFigures', () => {
     });
     expect(figures.income).toBe(1000000);
     expect(figures.spending).toBe(20000);
-    expect(figures.remaining).toBe(980000);
+    expect(figures.remaining).toBe(780000);
+  });
+
+  it('Remaining ignores recorded Income: Income above or below the plan does not change it', () => {
+    const plan = { month: '2026-03', expectedIncome: 800000, budgets: [] };
+    const none = monthFigures({ ...plan, transactions: [expense(5000, '2026-03-02')] });
+    const extra = monthFigures({ ...plan, transactions: [income(1200000, '2026-03-01'), expense(5000, '2026-03-02')] });
+    expect(none.remaining).toBe(795000);
+    expect(extra.remaining).toBe(795000);
+  });
+
+  it('Category Budgets do not count as spent', () => {
+    const figures = monthFigures({
+      month: '2026-03',
+      expectedIncome: 800000,
+      budgets: [{ month: '2026-03', amount: 300000 }],
+      transactions: [expense(10000, '2026-03-02')],
+    });
+    expect(figures.remaining).toBe(790000);
   });
 
   it("ignores Transactions dated in other Months, so nothing carries over", () => {
@@ -41,12 +59,12 @@ describe('monthFigures', () => {
     expect(figures).toMatchObject({ income: 0, spending: 100, remaining: -100 });
   });
 
-  it('Remaining goes negative when Spending is more than Income', () => {
+  it('Remaining goes negative when Spending is more than Expected Income', () => {
     const figures = monthFigures({
       month: '2026-03',
-      expectedIncome: 0,
+      expectedIncome: 1000,
       budgets: [],
-      transactions: [income(1000, '2026-03-01'), expense(2500, '2026-03-02')],
+      transactions: [income(5000, '2026-03-01'), expense(2500, '2026-03-02')],
     });
     expect(figures.remaining).toBe(-1500);
   });

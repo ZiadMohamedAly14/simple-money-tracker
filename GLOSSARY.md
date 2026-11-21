@@ -47,7 +47,7 @@ The sum of Expense transactions recorded in a Month.
 _Avoid_: Costs, outflow
 
 **Remaining**:
-Income minus Spending for a Month. Always derived, never entered.
+Expected Income minus Spending for a Month: what the plan leaves to spend. Recorded Income doesn't change it, and Category Budgets don't count as spent. Always derived, never entered. May be negative.
 _Avoid_: Balance, money left
 
 **Category**:

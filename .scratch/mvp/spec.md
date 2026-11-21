@@ -53,7 +53,7 @@ All money is virtual. Everything works offline, and changes sync between devices
 21. As an adult, I want to switch to previous Months and see their figures, so that I can review my history.
 22. As an adult, I want a new Month to start with my previous Month's Expected Income and Category Budgets, so that I don't have to set them up again.
 23. As an adult, I want unused money to stay behind rather than roll into the next Month, so that each Month is a clean slate.
-24. As an adult, I want Remaining always worked out from my Transactions, so that I can trust the number and never have to type in a balance.
+24. As an adult, I want Remaining (Expected Income minus Spending) always worked out from my plan and my Expenses, so that I can trust the number and never have to type in a balance.
 25. As an adult, I want a list of a Month's Transactions, so that I can see exactly what happened.
 
 ### Personal Budget: recording
@@ -63,7 +63,7 @@ All money is virtual. Everything works offline, and changes sync between devices
 27a. As an adult, I want to type simple sums like `120+35` or `300÷3` on the amount keypad, so that I can add up a receipt or split a bill without leaving the app.
 28. As an adult, I want the date to default to today and the note to be optional, so that I only fill in extras when I need them.
 29. As an adult, I want to record an Expense with an earlier date, including in a previous Month, so that I can catch up on things I forgot.
-30. As an adult, I want to record Income with an amount, a date and an optional note, so that Remaining reflects what actually came in.
+30. As an adult, I want to record Income with an amount, a date and an optional note, so that I can see what actually came in against my Expected Income.
 31. As an adult, I want to edit or delete any Transaction, so that I can fix mistakes.
 32. As an adult who records something just after midnight, I want it to count in the Month of my local date, so that time zones never move my spending into the wrong Month.
 
@@ -148,7 +148,8 @@ All money is virtual. Everything works offline, and changes sync between devices
 
 - Money is stored as integers in the currency's smallest unit (ADR-0004). There is one currency per Account, inherited by Kid Wallets, and changing it relabels amounts without converting them.
 - A Month is a calendar month. Each Transaction carries a local calendar date, which decides its Month and is never converted between time zones, plus a separate edit time used for sync.
-- Income, Spending, Remaining, Unallocated, per-Category figures and Jar balances are always worked out from Transactions, never stored or synced.
+- Income, Spending, Remaining, Unallocated, per-Category figures and Jar balances are always worked out from Transactions and the Month plan, never stored or synced.
+- Home screen figures: Remaining is Expected Income minus Spending (recorded Income doesn't change it, and Category Budgets don't count as spent). The income bar, the "X of Y expected" caption and the Income tile show recorded Income against Expected Income. Unallocated is Expected Income minus the Month's Category Budgets.
 - A Month is created lazily, the first time it is opened or receives a Transaction, by copying the previous Month's Expected Income and Category Budgets.
 - Every Expense has a Category. Other always exists and can't be archived or deleted. Archived Categories are hidden from new Months but kept in history. Income has no Category.
 - A Category can be deleted (ticket 21). Deleting marks it deleted (the deletion beats any edit, ADR-0001) and deletes its Category Budgets in every Month. Its Expenses aren't rewritten: wherever they show (Month breakdown, totals, Transaction list, Category chips, the edit screen's picker) they count as Other, and saving one files it under Other. There is no undo.

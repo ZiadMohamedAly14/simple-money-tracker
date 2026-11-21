@@ -55,7 +55,7 @@ describe('personal onboarding and Month plans (Seam B)', () => {
       expectedIncome: 800000,
       income: 0,
       spending: 0,
-      remaining: 0,
+      remaining: 800000,
       unallocated: 800000,
     });
   });
@@ -148,7 +148,7 @@ describe('personal onboarding and Month plans (Seam B)', () => {
       expectedIncome: 800000,
       income: 1000000,
       spending: 50000,
-      remaining: 950000,
+      remaining: 750000, // Expected Income minus Spending: the extra Income doesn't raise it
       unallocated: 800000,
     });
   });
