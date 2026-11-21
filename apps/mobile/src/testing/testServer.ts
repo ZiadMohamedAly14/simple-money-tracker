@@ -3,7 +3,7 @@
  * an in-memory MongoDB. Test-only; never imported by the app. Mongo in Jest
  * needs the NODE_OPTIONS in this workspace's `test` script.
  */
-import type { Server } from 'node:http';
+import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { createApp } from '../../../api/src/app';
@@ -19,7 +19,7 @@ export interface TestServer {
   nextMinute(): void;
   /** Revokes every Session, as if each refresh token had expired. */
   endAllSessions(): Promise<void>;
-  /** Deletes every document (between tests). */
+  /** Deletes every document and resets the API's in-memory rate limits (between tests). */
   clear(): Promise<void>;
   stop(): Promise<void>;
 }
@@ -29,9 +29,10 @@ export async function startTestServer(): Promise<TestServer> {
   await connectDatabase(mongo.getUri());
   const mailer = createTestMailer();
   const clock = createTestClock(new Date());
-  const app = createApp(testEnv(), { mailer, now: clock });
+  // Rebuilt by `clear()`, so per-IP sign-in limits don't carry over between tests.
+  let app = createApp(testEnv(), { mailer, now: clock });
   const http: Server = await new Promise((resolve) => {
-    const server = app.listen(0, '127.0.0.1', () => resolve(server));
+    const server = createServer((req, res) => app(req, res)).listen(0, '127.0.0.1', () => resolve(server));
   });
   const { port } = http.address() as AddressInfo;
 
@@ -42,7 +43,10 @@ export async function startTestServer(): Promise<TestServer> {
     async endAllSessions() {
       await Session.deleteMany({});
     },
-    clear: clearTestDatabase,
+    async clear() {
+      await clearTestDatabase();
+      app = createApp(testEnv(), { mailer, now: clock });
+    },
     async stop() {
       await new Promise<void>((resolve) => http.close(() => resolve()));
       await disconnectDatabase();

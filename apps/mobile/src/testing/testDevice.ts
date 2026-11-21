@@ -9,7 +9,15 @@ import { createApiClient } from '@/api/client';
 import { requestCode, verifyCode } from '@/api/auth';
 import { createAuthSession, type AuthSession, type AuthedResult } from '@/auth/authSession';
 import type { SessionStore, StoredSession } from '@/auth/tokenStore';
-import { categoriesQuery, expensesQuery, recordExpense, type NewExpense } from '@/data/transactions';
+import {
+  categoriesQuery,
+  deleteExpense,
+  editExpense,
+  expensesQuery,
+  recordExpense,
+  type ExpenseChanges,
+  type NewExpense,
+} from '@/data/transactions';
 import { createLocalStore } from '@/db/localStore';
 import { migrate } from '@/db/migrations';
 import { schema } from '@/db/schema';
@@ -31,10 +39,28 @@ function memorySessionStore(initial: StoredSession | null = null): SessionStore 
   };
 }
 
-export async function createTestDevice(server: TestServer) {
+/** A device clock that only moves when told to, so tests decide which edit is later. */
+export function createDeviceClock(start = Date.parse('2026-03-01T09:00:00Z')) {
+  let current = start;
+  return {
+    now: () => current,
+    advance: (ms: number) => {
+      current += ms;
+    },
+  };
+}
+
+export interface TestDeviceOptions {
+  /** The device clock (Unix ms); real time by default. */
+  now?: () => number;
+  /** Page size the device asks for when pulling; the server's default otherwise. */
+  pullLimit?: number;
+}
+
+export async function createTestDevice(server: TestServer, { now = Date.now, pullLimit }: TestDeviceOptions = {}) {
   const db: LocalDb = drizzle(new Database(':memory:'), { schema });
   migrate(db);
-  const store = createLocalStore({ db, now: Date.now, randomBytes: (n) => new Uint8Array(randomBytes(n)) });
+  const store = createLocalStore({ db, now, randomBytes: (n) => new Uint8Array(randomBytes(n)) });
   const client = createApiClient(server.url);
   let online = true;
 
@@ -47,6 +73,7 @@ export async function createTestDevice(server: TestServer) {
   let auth = await startAuth(memorySessionStore());
   const engine = createSyncEngine({
     store,
+    pullLimit,
     request: (config): Promise<AuthedResult> =>
       online ? auth.request(config) : Promise.resolve({ status: 'unreachable' }),
   });
@@ -81,6 +108,8 @@ export async function createTestDevice(server: TestServer) {
     sync: (): Promise<SyncOutcome> => engine.sync(),
 
     recordExpense: (expense: NewExpense) => recordExpense(store, expense),
+    editExpense: (id: string, changes: ExpenseChanges) => editExpense(store, id, changes),
+    deleteExpense: (id: string) => deleteExpense(store, id),
     expenses: () => expensesQuery(db).all(),
     categories: () => categoriesQuery(db).all(),
     pendingChanges: () => store.pendingCount(),

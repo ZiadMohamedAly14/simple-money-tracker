@@ -27,6 +27,19 @@ export function recordExpense(store: LocalStore, { amount, date, note = null, ca
   });
 }
 
+/** The parts of an Expense an adult can change. */
+export type ExpenseChanges = Partial<Pick<NewExpense, 'amount' | 'date' | 'note' | 'categoryId'>>;
+
+/** Changes an Expense locally and queues it for sync. False if it's gone (deleted, maybe on another device). */
+export function editExpense(store: LocalStore, id: string, changes: ExpenseChanges): boolean {
+  return store.update('transaction', id, changes);
+}
+
+/** Deletes an Expense: it stays as a deletion marker so the deletion syncs (ADR-0001). */
+export function deleteExpense(store: LocalStore, id: string): boolean {
+  return store.remove('transaction', id);
+}
+
 /** Live-queryable: Expenses, newest date first. Run with `.all()` or pass to `useLiveQuery`. */
 export function expensesQuery(db: LocalDb) {
   return db
