@@ -72,6 +72,44 @@ const MIGRATIONS: readonly string[][] = [
     )`,
     `CREATE INDEX category_budgets_month ON category_budgets (month)`,
   ],
+  [
+    `CREATE TABLE kid_profiles (
+      id TEXT PRIMARY KEY NOT NULL,
+      account_id TEXT NOT NULL,
+      updated_at INTEGER NOT NULL,
+      deleted_at INTEGER,
+      server_version INTEGER NOT NULL DEFAULT 0,
+      name TEXT NOT NULL,
+      avatar TEXT,
+      archived_at INTEGER
+    )`,
+    `CREATE TABLE jars (
+      id TEXT PRIMARY KEY NOT NULL,
+      account_id TEXT NOT NULL,
+      updated_at INTEGER NOT NULL,
+      deleted_at INTEGER,
+      server_version INTEGER NOT NULL DEFAULT 0,
+      kid_profile_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      sort_order INTEGER NOT NULL,
+      archived_at INTEGER
+    )`,
+    `CREATE INDEX jars_kid_profile ON jars (kid_profile_id)`,
+    `CREATE TABLE kid_transactions (
+      id TEXT PRIMARY KEY NOT NULL,
+      account_id TEXT NOT NULL,
+      updated_at INTEGER NOT NULL,
+      deleted_at INTEGER,
+      server_version INTEGER NOT NULL DEFAULT 0,
+      kid_profile_id TEXT NOT NULL,
+      kind TEXT NOT NULL,
+      amount INTEGER NOT NULL,
+      splits TEXT NOT NULL,
+      date TEXT NOT NULL,
+      note TEXT
+    )`,
+    `CREATE INDEX kid_transactions_kid_profile ON kid_transactions (kid_profile_id, date)`,
+  ],
 ];
 
 /** Brings the database up to the latest schema. Safe to call on every app start. */

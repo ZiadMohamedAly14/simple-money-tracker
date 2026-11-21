@@ -213,9 +213,16 @@ export function createLocalStore({ db, now, randomBytes }: LocalStoreDeps) {
      * Changes a record's fields and queues it for sync. Returns false (and
      * changes nothing) if the record doesn't exist or has been deleted.
      */
-    update<E extends SyncEntity>(entity: E, id: string, changes: Partial<SyncFieldsByEntity[E]>): boolean {
-      return edit(entity, id, () => changes);
+    update<E extends SyncEntity>(
+      entity: E,
+      id: string,
+      changes: Partial<SyncFieldsByEntity[E]> | ((now: number) => Partial<SyncFieldsByEntity[E]>),
+    ): boolean {
+      return edit(entity, id, typeof changes === 'function' ? changes : () => changes);
     },
+
+    /** A new UUIDv7 for a record about to be written with `put` alongside records that refer to it. */
+    newId: (): string => uuidv7(now(), randomBytes),
 
     /** Marks a record deleted (ADR-0001) and queues it for sync. False if it doesn't exist or is already deleted. */
     remove(entity: SyncEntity, id: string): boolean {

@@ -13,7 +13,7 @@ export default function PurposeScreen() {
   const [purpose, setPurpose] = useState<Purpose>('me');
 
   function next() {
-    router.push(purpose === 'me' ? '/onboarding/currency' : '/onboarding/kid');
+    router.push(purpose === 'me' ? '/onboarding/currency' : { pathname: '/onboarding/currency', params: { path: 'kid' } });
   }
 
   return (
@@ -34,7 +34,7 @@ export default function PurposeScreen() {
         onPress={() => setPurpose('me')}
       />
       <ListRow
-        icon="gift-outline"
+        icon="app:kids"
         title={t('onboarding.purposeKid')}
         subtitle={t('onboarding.purposeKidBody')}
         selected={purpose === 'kid'}

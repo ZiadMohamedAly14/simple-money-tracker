@@ -4,15 +4,19 @@ import { useOnboardingState } from '@/data/useAccountSettings';
 
 /**
  * Onboarding: purpose, then (personal path) currency, Expected Income and an
- * optional split across Categories. Once onboarding is done only the split
- * step stays reachable, so going back can't onboard twice.
+ * optional split across Categories, or (kid path) currency, Kid Profile,
+ * Parent PIN and an optional first Top-up. Once onboarding is done only the
+ * optional last steps stay reachable, so going back can't onboard twice.
  */
+/** Optional steps that come after onboarding is recorded. */
+const AFTER_ONBOARDING = ['/onboarding/split', '/onboarding/kid-top-up'];
+
 export default function OnboardingLayout() {
   const status = useAuthStatus();
   const onboarding = useOnboardingState();
   const pathname = usePathname();
   if (status === 'loading' || onboarding === null) return null;
   if (status === 'signedOut') return <Redirect href="/sign-in" />;
-  if (onboarding !== 'not_started' && pathname !== '/onboarding/split') return <Redirect href="/" />;
+  if (onboarding !== 'not_started' && !AFTER_ONBOARDING.includes(pathname)) return <Redirect href="/" />;
   return <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }} />;
 }

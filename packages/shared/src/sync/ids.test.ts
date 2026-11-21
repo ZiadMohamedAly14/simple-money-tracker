@@ -2,6 +2,7 @@ import {
   accountSettingsId,
   categoryBudgetId,
   defaultCategoryId,
+  defaultJarId,
   isUuid,
   monthPlanId,
   otherCategoryId,
@@ -95,5 +96,16 @@ describe('deterministic IDs', () => {
     expect(monthPlanId(sara, '2026-03')).toBe('f336ea85-61f9-8630-a1fa-960e50ed0bc1');
     expect(categoryBudgetId(sara, '2026-03', food)).toBe('10cce712-9c9c-839b-909b-361b8c2b8948');
     expect(defaultCategoryId(sara, 'food')).toBe('a7e4cc1b-28d7-84f7-9b00-900d259966ff');
+    const kid = food;
+    expect(defaultJarId(sara, kid, 'spend')).toBe('d4689075-f34d-83ea-acaf-7ecc6c90a9bd');
+  });
+
+  it("each Kid Profile's default Jars have their own IDs", () => {
+    const kidA = '019ca8a0-3e80-7000-8000-00000000000a';
+    const kidB = '019ca8a0-3e80-7000-8000-00000000000b';
+    expect(isUuid(defaultJarId(sara, kidA, 'spend'))).toBe(true);
+    expect(defaultJarId(sara, kidA, 'spend')).toBe(defaultJarId(sara, kidA, 'spend'));
+    const others = [defaultJarId(sara, kidA, 'save'), defaultJarId(sara, kidB, 'spend'), defaultJarId(omar, kidA, 'spend')];
+    expect(others).not.toContain(defaultJarId(sara, kidA, 'spend'));
   });
 });
