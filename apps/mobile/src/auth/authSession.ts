@@ -103,13 +103,18 @@ export function createAuthSession({ client, store, localData, now = Date.now }: 
     notify();
   }
 
-  /** Forgets the session and every local record. */
+  /**
+   * Forgets the session and every local record. Screens hear "signed out"
+   * first and leave for sign-in, so none of them reads the emptied database
+   * while it still looks signed in (that crashed home on leaving Kid Mode).
+   */
   async function forget(): Promise<void> {
     elevation = null;
     current = null;
+    status = 'signedOut';
+    notify(); // even if already signed out: the session and elevation just changed
     await store.clear();
     localData.wipe();
-    setStatus('signedOut');
   }
 
   /**
@@ -306,7 +311,10 @@ export function createAuthSession({ client, store, localData, now = Date.now }: 
      */
     async leaveKidMode(): Promise<'ok' | 'locked'> {
       if (!current?.kidProfileId || !this.elevated()) return 'locked';
-      endElevation(); // log out as the Kid Session, which ends its elevations too
+      // Log out as the Kid Session, which ends its elevations too. Dropped
+      // quietly: telling the screens now would send the Kid-Mode route guard
+      // home mid-sign-out; they hear it once, as "signed out".
+      elevation = null;
       await this.signOut();
       return 'ok';
     },
@@ -316,7 +324,7 @@ export function createAuthSession({ client, store, localData, now = Date.now }: 
      * it on this device, local records included (unsynced ones too).
      */
     async signOut(): Promise<void> {
-      endElevation();
+      elevation = null; // the screens hear it with "signed out" in forget()
       if (current?.tokens) await this.request({ method: 'POST', url: '/auth/logout' });
       await forget();
     },

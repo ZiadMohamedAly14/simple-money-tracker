@@ -199,4 +199,17 @@ describe('auth session on the device', () => {
     expect(offlineStore.current).toBeNull();
     expect(offline.status()).toBe('signedOut');
   });
+
+  it('signing out tells the screens before it wipes the local records, so no screen reads an empty database while still signed in', async () => {
+    api = await fakeApi({ '/auth/logout': () => ({ status: 200, body: envelope(null) }) });
+    const seen: string[] = [];
+    let session!: AuthSession;
+    const localData: LocalAccountData = { claimAccount: () => undefined, wipe: () => seen.push(`wipe while ${session.status()}`) };
+    session = createAuthSession({ client: createApiClient(api.url), store: memoryStore(signedIn()), localData });
+    await session.start();
+    session.subscribe(() => seen.push(session.status()));
+
+    await session.signOut();
+    expect(seen).toEqual(['signedOut', 'wipe while signedOut']);
+  });
 });
