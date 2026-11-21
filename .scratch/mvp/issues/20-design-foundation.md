@@ -6,7 +6,7 @@
 
 **Status:** resolved
 
-- [x] Theme tokens in `apps/mobile/src/theme/themes.ts` and `tailwind.config.js` use the Mizan palette for the Personal and Kid themes, including tint, warning surface and the three Jar colors. Screens still use token classes only.
+- [x] Theme tokens in `apps/mobile/src/theme/themes.ts` and `tailwind.config.js` use the Mizan palette for the Personal and Kid themes, including tint, warning surface and the three Jar colors. Screens still use token classes only. (Ticket 23 replaced these colours with the light and dark palettes, and the Kid background is now Mint / Teal instead of yellow; see `docs/design/README.md`.)
 - [x] Inter (Latin) and Alexandria (Arabic) are bundled and loaded; the family follows the device language.
 - [x] The display name is Mizan / ميزان (app name, translated app title, sign-in email sender name and copy). Slug and Android package are unchanged.
 - [x] Shared UI pieces matching the design: button (primary, secondary/tint, dark, danger), round icon button (mirrored when directional), card, chip, numeric keypad (decimal key optional), big amount display, category/progress row, segmented control, FAB, "pending sync" label, list row with icon circle. Start/end layout only.
