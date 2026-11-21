@@ -20,6 +20,8 @@ export interface TestServer {
   nextMinute(): void;
   /** Revokes every Session, as if each refresh token had expired. */
   endAllSessions(): Promise<void>;
+  /** How many Sessions are live (signed-in devices). */
+  sessionCount(): Promise<number>;
   /** Deletes every document and restarts the app, so per-IP rate limits start again (between tests). */
   clear(): Promise<void>;
   stop(): Promise<void>;
@@ -51,6 +53,7 @@ export async function startTestServer(): Promise<TestServer> {
     async endAllSessions() {
       await Session.deleteMany({});
     },
+    sessionCount: () => Session.countDocuments({}),
     async clear() {
       await clearTestDatabase();
       await close(running.http);
