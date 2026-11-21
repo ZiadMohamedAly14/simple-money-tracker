@@ -3,7 +3,7 @@
  * styling from scratch; see notes in each file for props.
  */
 export { AmountDisplay, ProgressBar, ProgressRow } from './Amount';
-export { AmountEntryDisplay, AmountKeypad, useAmountEntry } from './AmountEntry';
+export { AmountEntryDisplay, AmountKeypad, isSum, useAmountEntry, useTypedAmountText } from './AmountEntry';
 export type { AmountEntry, AmountEntryDisplayProps, AmountKeypadProps } from './AmountEntry';
 export type { AmountDisplayProps, ProgressBarProps, ProgressRowProps, ProgressTone } from './Amount';
 export { Button, Fab, IconButton } from './Button';

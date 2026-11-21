@@ -1,9 +1,10 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import {
   applyKeypadKey,
   currencyMinorDigits,
+  evaluateAllocation,
   evaluateAmountExpression,
   formatAmountExpression,
   formatAmountInput,
@@ -26,8 +27,13 @@ export interface AmountEntry {
   result: ExpressionResult;
   /** The amount to save, in minor units; null while it is zero, negative, incomplete or divides by zero. */
   amount: number | null;
+  /** For amounts that may be 0 (budgets, Expected Income): nothing typed is 0; null if negative or unfinished. */
+  allocation: number | null;
   showDecimal: boolean;
 }
+
+/** Whether typed keypad text is a sum rather than a plain amount. */
+export const isSum = (typed: string): boolean => /[+\-*/]/.test(typed);
 
 /**
  * An adult amount keypad's state: a sum like `120+35` (spec), evaluated live.
@@ -42,11 +48,12 @@ export function useAmountEntry(currency: CurrencyCode, initial = ''): AmountEntr
   );
   const result = evaluateAmountExpression(typed, currency);
   const amount = result.status === 'ok' && result.amount > 0 ? result.amount : null;
-  return { typed, press, result, amount, showDecimal: fractionDigits > 0 };
+  return { typed, press, result, amount, allocation: evaluateAllocation(typed, currency), showDecimal: fractionDigits > 0 };
 }
 
 export interface AmountEntryDisplayProps {
-  entry: AmountEntry;
+  /** A `useAmountEntry`, or any typed text with `evaluateAmountExpression`'s result for it. */
+  entry: Pick<AmountEntry, 'typed' | 'result'>;
   currency: CurrencyCode;
   numberingSystem?: NumberingSystem;
   accessibilityLabel?: string;
@@ -61,7 +68,7 @@ export function AmountEntryDisplay({ entry, currency, numberingSystem, accessibi
   const language = useLanguage();
   const currencyLabel = formatMoneyParts(0, { language, currency, numberingSystem }).currency;
 
-  if (!/[+\-*/]/.test(entry.typed)) {
+  if (!isSum(entry.typed)) {
     return (
       <AmountDisplay
         amount={formatAmountInput(entry.typed || '0', { language, numberingSystem })}
@@ -98,11 +105,27 @@ export function AmountEntryDisplay({ entry, currency, numberingSystem, accessibi
 }
 
 export interface AmountKeypadProps {
-  entry: AmountEntry;
+  /** A `useAmountEntry`, or `press` from screens that type into several amounts with `expression` mode. */
+  entry: Pick<AmountEntry, 'press' | 'showDecimal'>;
   numberingSystem?: NumberingSystem;
 }
 
 /** The adult amount keypad: digits, the decimal key if the currency has minor units, and `+ − × ÷`. */
 export function AmountKeypad({ entry, numberingSystem }: AmountKeypadProps) {
   return <NumericKeypad onKey={entry.press} showDecimal={entry.showDecimal} showOperators numberingSystem={numberingSystem} />;
+}
+
+/**
+ * Typed keypad text as one line, for rows that show a small amount being
+ * typed (a Jar's share, a Category's budget): a plain amount, or a sum left to right.
+ */
+export function useTypedAmountText(numberingSystem?: NumberingSystem) {
+  const language = useLanguage();
+  return useMemo(
+    () => (typed: string) =>
+      isSum(typed)
+        ? formatAmountExpression(typed, { language, numberingSystem })
+        : formatAmountInput(typed || '0', { language, numberingSystem }),
+    [language, numberingSystem],
+  );
 }

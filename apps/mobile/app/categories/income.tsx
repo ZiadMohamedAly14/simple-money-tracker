@@ -26,7 +26,7 @@ export default function EditExpectedIncomeScreen() {
   }, [month, currency]);
   const entry = useAmountEntry(currency, initial);
   // Clearing it means 0; a negative result or an unfinished sum can't be saved.
-  const amount = !entry.typed ? 0 : entry.result.status === 'ok' && entry.result.amount >= 0 ? entry.result.amount : null;
+  const amount = entry.allocation;
 
   function save() {
     if (amount === null) return;
