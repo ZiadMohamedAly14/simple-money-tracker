@@ -8,6 +8,7 @@ import {
   defaultCategoryId,
   monthFigures,
   monthPlanId,
+  copiedPlanEditTime,
   newMonthPlan,
   type CurrencyCode,
   type DefaultCategoryKey,
@@ -107,9 +108,12 @@ export function setCategoryBudgets(store: LocalStore, month: Month, amounts: Rec
  * (spec, Domain rules), by copying the previous Month's Expected Income and
  * Category Budgets (`newMonthPlan`). Does nothing if the Month already has a
  * plan, or there is no earlier plan to copy. The copies are written as
- * defaults (edit time 0), so if another device already created or changed
- * this Month, its copy wins on sync; the IDs are deterministic, so there is
- * still one plan.
+ * defaults (`copiedPlanEditTime`: a small edit time per source Month), so a
+ * real edit made to this Month on another device always wins, and of two
+ * devices copying it, the copy from the newer source Month wins whichever
+ * syncs first. Every live Category the copy leaves out gets a 0 budget, so an
+ * older copy can't bring back an Archived or dropped Category's budget. The
+ * IDs are deterministic, so there is still one plan.
  */
 export function openMonth(store: LocalStore, db: LocalDb, month: Month): void {
   const accountId = requireAccount(store);
@@ -125,7 +129,7 @@ export function openMonth(store: LocalStore, db: LocalDb, month: Month): void {
   store.put(
     [
       monthPlanRecord(accountId, month, plan.expectedIncome),
-      ...plan.budgets.map(
+      ...[...plan.budgets, ...plan.cleared.map((categoryId) => ({ categoryId, amount: 0 }))].map(
         ({ categoryId, amount }): KnownRecord => ({
           entity: 'categoryBudget',
           id: categoryBudgetId(accountId, month, categoryId),
@@ -133,7 +137,7 @@ export function openMonth(store: LocalStore, db: LocalDb, month: Month): void {
         }),
       ),
     ],
-    { asDefault: true },
+    { defaultEditTime: copiedPlanEditTime(plan.sourceMonth) },
   );
 }
 

@@ -46,7 +46,7 @@ export type { DefaultCategoryKey } from './budget/defaultCategories';
 export { monthFigures } from './budget/monthFigures';
 export type { MonthFigures, MonthFiguresInput } from './budget/monthFigures';
 export { incomeProgress } from './budget/incomeProgress';
-export { newMonthPlan } from './budget/newMonthPlan';
+export { copiedPlanEditTime, newMonthPlan } from './budget/newMonthPlan';
 export type { NewMonthPlan, NewMonthPlanInput } from './budget/newMonthPlan';
 export { categoryBreakdown } from './budget/categoryBreakdown';
 export {

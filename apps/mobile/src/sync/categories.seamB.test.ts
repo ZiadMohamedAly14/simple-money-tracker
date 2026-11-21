@@ -186,8 +186,10 @@ describe('Categories and Category Budgets (Seam B)', () => {
         });
         expect(device.categoryBreakdown('2026-04').find((r) => r.categoryId === other)?.spent).toBe(800);
         expect(device.categoryBreakdown(MONTH).map((r) => r.categoryId)).not.toContain(food);
-        expect(device.categoryBudgets(MONTH)).toEqual([]);
-        expect(device.categoryBudgets('2026-04')).toEqual([]);
+        // No budget left for it, and none above 0 (April, copied from March, holds 0s for the others).
+        for (const month of [MONTH, '2026-04']) {
+          expect(device.categoryBudgets(month).filter((b) => b.categoryId === food || b.amount > 0)).toEqual([]);
+        }
         // The budget goes back to Unallocated; spending doesn't change.
         expect(device.monthOverview(MONTH)).toEqual({ ...before, unallocated: before.unallocated + 300000 });
         // The record still names the deleted Category; it's shown as Other.

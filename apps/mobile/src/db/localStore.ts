@@ -58,12 +58,13 @@ export type KnownRecord = { [E in SyncEntity]: { entity: E; id: string; fields: 
 export interface PutOptions {
   /**
    * Write the records as defaults that any real edit beats, on this device or
-   * another: they carry edit time 0, so last edit wins (ADR-0001) always
-   * prefers an edit. Used for a Month's plan copied from the previous Month,
-   * so a device opening the Month late can't overwrite a change made to it
-   * elsewhere.
+   * another: they carry this small edit time instead of the clock's, so last
+   * edit wins (ADR-0001) always prefers an edit. Used for a Month's plan
+   * copied from an earlier Month (`copiedPlanEditTime`), so a device opening
+   * the Month late can't overwrite a change made to it elsewhere, and of two
+   * copies the one from the newer source Month wins.
    */
-  asDefault?: boolean;
+  defaultEditTime?: number;
 }
 
 export interface PendingPush {
@@ -138,10 +139,10 @@ export function createLocalStore({ db, now, randomBytes }: LocalStoreDeps) {
     return accountId;
   }
 
-  function putRows(tx: Db, records: readonly KnownRecord[], { asDefault = false }: PutOptions = {}): void {
+  function putRows(tx: Db, records: readonly KnownRecord[], { defaultEditTime }: PutOptions = {}): void {
     const accountId = requireAccount(tx);
     const queuedAt = now();
-    const updatedAt = asDefault ? 0 : queuedAt;
+    const updatedAt = defaultEditTime ?? queuedAt;
     for (const { entity, id, fields } of records) {
       upsertRow(tx, entity, { ...fields, id, accountId, updatedAt, deletedAt: null, serverVersion: 0 });
       tx.insert(outbox).values({ entity, recordId: id, queuedAt }).run();
