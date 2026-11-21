@@ -4,7 +4,7 @@
 
 **Blocked by:** 12 (Kid Profiles, Jars and Top-ups).
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] About 8–10 lesson cards bundled with the app (saving, needs and wants, giving, …) in English and Arabic. Placeholder text is acceptable until final copy arrives.
 - [x] Learn is reachable from the Kid experience's navigation and renders correctly right to left.
