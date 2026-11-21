@@ -136,6 +136,27 @@ export function createSyncService({ now }: { now: Clock }) {
     if (problems.length > 0) throw new ValidationError(problems);
   }
 
+  /**
+   * Other always exists (spec): it can't be archived or deleted, and only the
+   * Account's fixed Other ID may carry the Other flag.
+   */
+  function checkOtherCategory(accountId: string, changes: PushedChange[]): void {
+    const problems: SyncProblem[] = [];
+    const otherId = otherCategoryId(accountId);
+    changes.forEach((change, index) => {
+      if (change.entity !== 'category') return;
+      const { id, isOther, archivedAt, deletedAt } = change.record;
+      if (isOther !== (id === otherId)) {
+        problems.push({ field: fieldOf(index, 'isOther'), message: `only ${otherId} is the Other Category` });
+      } else if (isOther && archivedAt !== null) {
+        problems.push({ field: fieldOf(index, 'archivedAt'), message: 'the Other Category can’t be archived' });
+      } else if (isOther && deletedAt !== null) {
+        problems.push({ field: fieldOf(index, 'deletedAt'), message: 'the Other Category can’t be deleted' });
+      }
+    });
+    if (problems.length > 0) throw new ValidationError(problems);
+  }
+
   /** References must point at this Account's records, stored already or pushed in the same sync. */
   async function checkReferences(accountId: string, changes: PushedChange[]): Promise<void> {
     const pushed = new Set(changes.map((c) => `${c.entity}:${c.record.id}`));
@@ -225,6 +246,7 @@ export function createSyncService({ now }: { now: Clock }) {
       // Referenced entities first, so a Category is stored before its Expenses.
       const ordered = [...changes].sort((a, b) => SYNC_ENTITIES.indexOf(a.entity) - SYNC_ENTITIES.indexOf(b.entity));
       checkDerivedIds(auth.accountId, changes);
+      checkOtherCategory(auth.accountId, changes);
       await checkOwnership(auth.accountId, ordered);
       await checkReferences(auth.accountId, changes);
       const lost: PulledChange[] = [];
