@@ -116,23 +116,43 @@ export function createSyncService({ now }: { now: Clock }) {
   }
 
   /**
-   * Stores one change with a fresh server version. Ticket 06 adds conflict
-   * resolution here (keep the stored copy when its `updatedAt` is later, and
-   * never let an older copy clear a deletion marker).
+   * Stores one change by last edit wins (ADR-0001). Returns null when the
+   * change was stored, or the stored copy when the push lost, so the device
+   * can be handed the winner. A deletion marker always wins: once stored it is
+   * never cleared, and a deletion lands even on a copy edited later, so the
+   * outcome doesn't depend on which device syncs first.
    */
-  async function apply(accountId: string, { entity, record }: PushedChange): Promise<void> {
+  async function apply(accountId: string, { entity, record }: PushedChange): Promise<StoredRecord | null> {
     const { id, ...fields } = record;
-    const serverVersion = await nextServerVersion();
-    try {
-      await modelOf(entity).updateOne(
-        { _id: id, accountId },
-        { $set: { ...fields, accountId, serverVersion } },
-        { upsert: true },
-      );
-    } catch (error) {
-      if (isDuplicateKey(error)) throw new ForbiddenError('A pushed record belongs to another Account');
-      throw error;
+    const model = modelOf(entity);
+    // Another sync may write the same record between our read and write; then read again and redecide.
+    let duplicate = false;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const stored = await model.findOne({ _id: id, accountId }).lean<StoredRecord>();
+      let update: Record<string, unknown>;
+      if (!stored || (stored.deletedAt == null && record.updatedAt > (stored.updatedAt as number))) update = fields;
+      else if (stored.deletedAt == null && record.deletedAt != null) update = { deletedAt: record.deletedAt };
+      else return stored;
+
+      const serverVersion = await nextServerVersion();
+      try {
+        if (!stored) {
+          await model.create({ ...update, _id: id, accountId, serverVersion });
+          return null;
+        }
+        const result = await model.updateOne(
+          { _id: id, accountId, serverVersion: stored.serverVersion },
+          { $set: { ...update, serverVersion } },
+        );
+        if (result.matchedCount === 1) return null;
+      } catch (error) {
+        if (!isDuplicateKey(error)) throw error;
+        // Created meanwhile, by this Account's other device or (ownership check races) another Account.
+        duplicate = true;
+      }
     }
+    if (duplicate) throw new ForbiddenError('A pushed record belongs to another Account');
+    throw new Error(`Sync could not store ${entity} ${id}: other syncs kept changing it`);
   }
 
   async function pull(auth: AuthContext, cursor: number): Promise<SyncResponseData> {
@@ -161,9 +181,17 @@ export function createSyncService({ now }: { now: Clock }) {
       const ordered = [...changes].sort((a, b) => SYNC_ENTITIES.indexOf(a.entity) - SYNC_ENTITIES.indexOf(b.entity));
       await checkOwnership(auth.accountId, ordered);
       await checkReferences(auth.accountId, changes);
-      for (const change of ordered) await apply(auth.accountId, change);
+      const lost: PulledChange[] = [];
+      for (const change of ordered) {
+        const winner = await apply(auth.accountId, change);
+        if (winner) lost.push(toPulled(change.entity, winner));
+      }
 
-      return pull(auth, body.cursor);
+      const pulled = await pull(auth, body.cursor);
+      // A device whose push lost may already be past the winner's version; hand it over anyway.
+      const inPull = new Set(pulled.changes.map((c) => `${c.entity}:${c.record.id}`));
+      const winners = lost.filter((c) => !inPull.has(`${c.entity}:${c.record.id}`));
+      return { ...pulled, changes: [...winners, ...pulled.changes] };
     },
   };
 }

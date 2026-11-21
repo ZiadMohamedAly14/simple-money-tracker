@@ -178,4 +178,79 @@ describe('POST /sync', () => {
     const omarsCopy = data(await sync(omar, 0)).changes.find((c) => c.record.id === EXPENSE_ID);
     expect(omarsCopy?.record).toMatchObject({ amount: 12550, accountId: omar.accountId });
   });
+
+  describe('conflicts and deletion markers (ADR-0001)', () => {
+    const T = 1772355600000;
+
+    async function pushed(who: SignedIn, patch: Partial<Record<string, unknown>>) {
+      return sync(who, 0, [expense(otherCategoryId(who.accountId), patch)]);
+    }
+
+    const storedCopy = async (who: SignedIn) =>
+      data(await sync(who, 0)).changes.find((c) => c.record.id === EXPENSE_ID)?.record;
+
+    it('keeps the later edit when an older edit of the same record arrives afterwards', async () => {
+      const phone = await signIn();
+      const tablet = await signIn();
+      await pushed(phone, { updatedAt: T + 2000, amount: 300 });
+
+      const res = await pushed(tablet, { updatedAt: T + 1000, amount: 200 });
+
+      expect(res.status).toBe(200);
+      expect(await storedCopy(phone)).toMatchObject({ amount: 300, updatedAt: T + 2000 });
+    });
+
+    it('takes a later edit over the stored copy', async () => {
+      const phone = await signIn();
+      const tablet = await signIn();
+      await pushed(phone, { updatedAt: T + 1000, amount: 200 });
+
+      await pushed(tablet, { updatedAt: T + 2000, amount: 300 });
+
+      expect(await storedCopy(phone)).toMatchObject({ amount: 300, updatedAt: T + 2000 });
+    });
+
+    it('hands a losing device the winning copy even when its cursor is already past it', async () => {
+      const phone = await signIn();
+      const tablet = await signIn();
+      await pushed(phone, { updatedAt: T + 2000, amount: 300 });
+      const caughtUp = data(await sync(tablet, 0)).cursor;
+
+      const res = await sync(tablet, caughtUp, [expense(otherCategoryId(tablet.accountId), { updatedAt: T + 1000, amount: 200 })]);
+
+      expect(data(res).changes).toEqual([
+        expect.objectContaining({ entity: 'transaction', record: expect.objectContaining({ id: EXPENSE_ID, amount: 300 }) }),
+      ]);
+    });
+
+    it('keeps a deletion even when an older live copy syncs back', async () => {
+      const phone = await signIn();
+      const tablet = await signIn();
+      await pushed(phone, { updatedAt: T + 2000, deletedAt: T + 2000 });
+
+      await pushed(tablet, { updatedAt: T + 1000, amount: 999 });
+
+      expect(await storedCopy(phone)).toMatchObject({ deletedAt: T + 2000 });
+    });
+
+    it('keeps a deletion even when a later edit syncs after it', async () => {
+      const phone = await signIn();
+      const tablet = await signIn();
+      await pushed(phone, { updatedAt: T + 1000, deletedAt: T + 1000 });
+
+      await pushed(tablet, { updatedAt: T + 2000, amount: 999 });
+
+      expect(await storedCopy(phone)).toMatchObject({ deletedAt: T + 1000 });
+    });
+
+    it('deletes a record whose later edit arrived first', async () => {
+      const phone = await signIn();
+      const tablet = await signIn();
+      await pushed(tablet, { updatedAt: T + 2000, amount: 999 });
+
+      await pushed(phone, { updatedAt: T + 1000, deletedAt: T + 1000 });
+
+      expect(await storedCopy(phone)).toMatchObject({ deletedAt: T + 1000 });
+    });
+  });
 });
