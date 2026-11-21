@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { View } from 'react-native';
+import { Keyboard, Pressable, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
@@ -12,7 +12,7 @@ import { categoryIconFor } from '@/data/categoryIcons';
 import { useAccountSettings } from '@/data/useAccountSettings';
 import { localDb, localStore } from '@/db/appDatabase';
 import { useLanguage } from '@/i18n/useLanguage';
-import { AmountEntryDisplay, AmountKeypad, Button, Card, Screen, ScreenHeader, Text, TextField, useAmountEntry } from '@/ui';
+import { AmountEntryDisplay, AmountKeypad, Button, Card, Screen, ScreenHeader, Text, TextField, useAmountEntry, useKeyboardVisible } from '@/ui';
 
 const actions = categoryActions(localStore, localDb);
 
@@ -23,6 +23,8 @@ const actions = categoryActions(localStore, localDb);
  * name and icon and can't be archived or deleted; only its budget changes
  * here. The last active Category besides Other can't be archived or deleted.
  * The budget is typed on the adult keypad, which takes sums (`+ − × ÷`).
+ * While the system keyboard is open for the name, the keypad is hidden so the
+ * keyboard can't cover it; tapping the budget closes the keyboard.
  */
 export default function EditCategoryScreen() {
   const { t } = useTranslation();
@@ -46,6 +48,7 @@ export default function EditCategoryScreen() {
   const icon = pickedIcon ?? guessCategoryIcon(name);
   const { data: active } = useLiveQuery(activeCategoriesQuery(localDb));
   const confirmDelete = useConfirmDeleteCategory();
+  const typingName = useKeyboardVisible();
 
   const isOther = existing?.isOther ?? false;
   const validName = isOther ? existing!.name : categoryNameOf(name);
@@ -81,7 +84,7 @@ export default function EditCategoryScreen() {
       scroll
       footer={
         <>
-          <AmountKeypad entry={budgetEntry} numberingSystem={numberingSystem} />
+          {typingName ? null : <AmountKeypad entry={budgetEntry} numberingSystem={numberingSystem} />}
           <Button label={t('categories.save')} disabled={!canSave} onPress={save} />
           {existing && !isOther ? (
             <View className="flex-row gap-2">
@@ -125,14 +128,16 @@ export default function EditCategoryScreen() {
         <Text tone="muted" className="text-xs">
           {t('categories.budgetLabel', { month: monthName })}
         </Text>
-        <Card className="py-2">
-          <AmountEntryDisplay
-            entry={budgetEntry}
-            currency={currency}
-            numberingSystem={numberingSystem}
-            accessibilityLabel={t('categories.budgetLabel', { month: monthName })}
-          />
-        </Card>
+        <Pressable onPress={() => Keyboard.dismiss()}>
+          <Card className="py-2">
+            <AmountEntryDisplay
+              entry={budgetEntry}
+              currency={currency}
+              numberingSystem={numberingSystem}
+              accessibilityLabel={t('categories.budgetLabel', { month: monthName })}
+            />
+          </Card>
+        </Pressable>
         {budget === null && budgetEntry.result.status === 'ok' ? (
           <Text tone="negative" className="text-sm">
             {t('categories.budgetInvalid')}
