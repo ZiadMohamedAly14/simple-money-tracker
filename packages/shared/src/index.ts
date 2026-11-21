@@ -52,7 +52,7 @@ export {
   uuidv7,
 } from './sync/ids';
 export type { RandomBytes } from './sync/ids';
-export { MAX_PULLED_CHANGES, MAX_PUSHED_CHANGES, OTHER_CATEGORY, SYNC_ENTITIES, parsePushedChange } from './sync/records';
+export { CATEGORY_NAME_MAX_LENGTH, MAX_PULLED_CHANGES, MAX_PUSHED_CHANGES, OTHER_CATEGORY, SYNC_ENTITIES, parsePushedChange } from './sync/records';
 export type {
   AccountSettingsFields,
   CategoryBudgetFields,
