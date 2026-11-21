@@ -114,6 +114,9 @@ function kidTransactionJars(record: KidTransactionFields): { id: string; field: 
   return jars;
 }
 
+/** What an elevated Kid-Mode device may push: the Kid Wallet's records only. */
+const KID_WALLET_ENTITIES: ReadonlySet<SyncEntity> = new Set<SyncEntity>(['kidProfile', 'jar', 'kidTransaction']);
+
 const isDuplicateKey = (error: unknown): boolean => (error as { code?: unknown }).code === 11000;
 
 function toPulled(entity: SyncEntity, stored: StoredRecord): PulledChange {
@@ -172,6 +175,18 @@ export function createSyncService({ now, tokens }: { now: Clock; tokens: Pick<To
       if (!kidWrites?.(kidProfileId, change.record as unknown as KidScoped)) throw refused();
       const stored = await modelOf(change.entity).findOne({ _id: change.record.id, accountId: auth.accountId }).lean<StoredRecord>();
       if (stored && !kidWrites(kidProfileId, stored)) throw refused();
+    }
+  }
+
+  /**
+   * A Kid-Mode device elevated with the Parent PIN has full rights, but only
+   * over the Kid Wallet: it may push Kid Profiles, Jars and Kid Transactions,
+   * never Personal Transactions, Categories, plans or settings (ADR-0002).
+   */
+  function checkElevatedScope(changes: PushedChange[]): void {
+    if (changes.some((change) => !KID_WALLET_ENTITIES.has(change.entity))) {
+      const data: ScopeErrorData = { reason: 'kid_session' };
+      throw new ForbiddenError('A Kid-Mode device can only change Kid Wallet records', data);
     }
   }
 
@@ -344,7 +359,8 @@ export function createSyncService({ now, tokens }: { now: Clock; tokens: Pick<To
     async sync(auth: AuthContext, body: SyncRequestBody): Promise<SyncResponseData> {
       const changes = parseAll(body.changes);
       if (auth.scope === 'kid') await checkKidScope(auth, changes);
-      else if (!auth.kidProfileId) await ensureOtherCategory(auth.accountId); // not for an elevated Kid-Mode device
+      else if (auth.kidProfileId) checkElevatedScope(changes);
+      else await ensureOtherCategory(auth.accountId);
 
       // Referenced entities first, so a Category is stored before its Expenses.
       const ordered = [...changes].sort((a, b) => SYNC_ENTITIES.indexOf(a.entity) - SYNC_ENTITIES.indexOf(b.entity));
