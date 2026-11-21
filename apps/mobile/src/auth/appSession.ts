@@ -25,6 +25,14 @@ export function useAuthStatus(): AuthStatus {
   return useSyncExternalStore(authSession.subscribe, authSession.status);
 }
 
+/**
+ * A Kid-Mode device elevated with the Parent PIN (ticket 15). Re-renders when
+ * elevation starts or ends; the gate locks it when the token runs out.
+ */
+export function useElevated(): boolean {
+  return useSyncExternalStore(authSession.subscribe, authSession.elevated);
+}
+
 /** The Kid Profile this device is in Kid Mode for, or null on a Personal-Mode device (ADR-0002). */
 export function useKidModeProfileId(): string | null {
   return useSyncExternalStore(authSession.subscribe, authSession.kidProfileId);

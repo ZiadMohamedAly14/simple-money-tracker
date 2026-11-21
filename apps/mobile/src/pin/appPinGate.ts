@@ -3,6 +3,7 @@ import { AppState } from 'react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 import { authSession } from '@/auth/appSession';
+import { syncEngine } from '@/sync/appSync';
 import { createParentPinGate, forgetPinOnSignOutOrKidMode, type Biometrics, type PinGateState, type PinGateStore } from './parentPinGate';
 
 const STATE_KEY = 'parentPin.state';
@@ -73,9 +74,31 @@ function setUnlocked(next: boolean): void {
   listeners.forEach((listener) => listener());
 }
 
+let elevationTimer: ReturnType<typeof setTimeout> | null = null;
+
 export const parentArea = {
-  unlock: (): void => setUnlocked(true),
-  lock: (): void => setUnlocked(false),
+  /** Opens the Parent Area. Elevated on a Kid-Mode device, it locks itself when the elevated token runs out. */
+  unlock: (): void => {
+    setUnlocked(true);
+    const endsAt = authSession.elevationEndsAt();
+    if (endsAt === null || elevationTimer) return;
+    elevationTimer = setTimeout(() => {
+      elevationTimer = null;
+      parentArea.lock();
+    }, Math.max(0, endsAt - Date.now()));
+  },
+  /**
+   * Closes the Parent Area. On a Kid-Mode device this also ends the PIN
+   * elevation, after one last sync so the parent's Top-ups go out with full
+   * access (a Kid Session can't push them).
+   */
+  lock: (): void => {
+    setUnlocked(false);
+    if (elevationTimer) clearTimeout(elevationTimer);
+    elevationTimer = null;
+    if (authSession.elevated()) void syncEngine.sync().finally(() => authSession.endElevation());
+    else authSession.endElevation();
+  },
 };
 
 AppState.addEventListener('change', (state) => {
@@ -83,6 +106,8 @@ AppState.addEventListener('change', (state) => {
 });
 authSession.subscribe(() => {
   if (authSession.status() === 'signedOut') parentArea.lock();
+  // A Kid-Mode device's Parent Area is open only while elevated (the server may end it first).
+  if (authSession.kidProfileId() && unlocked && authSession.elevationEndsAt() === null) parentArea.lock();
 });
 
 export function useParentAreaUnlocked(): boolean {
