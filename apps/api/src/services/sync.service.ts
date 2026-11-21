@@ -137,7 +137,7 @@ export function createSyncService({ now, tokens }: { now: Clock; tokens: Pick<To
    * before the sync starts and again right before each write.
    */
   async function requireLiveAccount(accountId: string): Promise<void> {
-    if (!(await Account.exists({ _id: accountId }))) throw authFailure('session_ended');
+    if (!(await Account.exists({ _id: accountId }))) throw authFailure('account_deleted');
   }
 
   /** The Other Category exists for every Account (spec); created on the Account's first sync. */

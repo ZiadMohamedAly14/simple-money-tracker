@@ -54,7 +54,8 @@ export type AuthErrorReason =
   | 'too_many_codes' // 429, data.retryAfterSeconds
   | 'too_many_requests' // 429 per-IP limit, data.retryAfterSeconds
   | 'token_invalid' // 401: access token missing, expired or not an access token; refresh and retry
-  | 'session_ended'; // 401: signed out, revoked, or refresh token expired/reused; sign in with a new code
+  | 'session_ended' // 401: signed out, revoked, or refresh token expired/reused; sign in with a new code
+  | 'account_deleted'; // 401: the Account was deleted (on another device); wipe local data and go to sign-in
 
 /** `POST /auth/refresh` body. */
 export interface RefreshBody {

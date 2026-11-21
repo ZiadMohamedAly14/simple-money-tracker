@@ -115,11 +115,13 @@ export function createAuthSession({ client, store, localData, now = Date.now }: 
   /**
    * The server ended the session. A Personal-Mode device keeps its data and
    * waits for a new code; a Kid-Mode device (revoked by the parent) is signed
-   * out, so the kid's wallet doesn't stay on a lost phone.
+   * out, so the kid's wallet doesn't stay on a lost phone. When the server
+   * says the Account itself was deleted (`account_deleted`, from another
+   * device), every device wipes its copy and goes back to sign-in.
    */
-  async function sessionEnded(): Promise<void> {
+  async function sessionEnded(reason: unknown): Promise<void> {
     if (!current) return;
-    if (current.kidProfileId) return forget();
+    if (current.kidProfileId || reason === 'account_deleted') return forget();
     current = { ...current, tokens: null };
     await store.save(current);
     setStatus('needsSignIn');
@@ -135,7 +137,7 @@ export function createAuthSession({ client, store, localData, now = Date.now }: 
       return 'unreachable';
     }
     if (httpStatus === 401) {
-      await sessionEnded();
+      await sessionEnded(reasonOf(body));
       return 'session_ended';
     }
     if (!isApiEnvelope(body) || !body.success || !current) return 'unreachable'; // a server hiccup: try again later
@@ -228,7 +230,7 @@ export function createAuthSession({ client, store, localData, now = Date.now }: 
       if (first.status !== 'ok' || first.httpStatus !== 401) return first;
 
       if (reasonOf(first.body) !== 'token_invalid') {
-        await sessionEnded();
+        await sessionEnded(reasonOf(first.body));
         return { status: 'session_ended' };
       }
       const outcome = await refresh(tokens.accessToken);

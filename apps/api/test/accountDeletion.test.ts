@@ -186,7 +186,7 @@ describe('Account deletion (Seam A)', () => {
     expect(await recordsMentioning({ accountId: phone.accountId, email: 'sara@example.com' })).toEqual({});
   });
 
-  it('ends every session, the Kid-Mode device’s included, and leaves other Accounts alone', async () => {
+  it('ends every session, the Kid-Mode device’s included, says the Account is gone, and leaves other Accounts alone', async () => {
     const { phone, tablet, kidDevice } = await wholeAccount();
     const other = await wholeAccount('hana@example.com', NOUR);
     const otherBefore = await recordsMentioning({ accountId: other.phone.accountId, email: 'hana@example.com' });
@@ -197,9 +197,10 @@ describe('Account deletion (Seam A)', () => {
     for (const device of [phone, tablet, kidDevice]) {
       const res = await sync(device);
       expect(res.status).toBe(401);
-      expect(res.body.data).toEqual({ reason: 'session_ended' });
+      expect(res.body.data).toEqual({ reason: 'account_deleted' });
       const refreshed = await request(app).post('/auth/refresh').send({ refreshToken: device.refreshToken });
       expect(refreshed.status).toBe(401);
+      expect(refreshed.body.data).toEqual({ reason: 'account_deleted' });
     }
     expect(await recordsMentioning({ accountId: other.phone.accountId, email: 'hana@example.com' })).toEqual(otherBefore);
     expect((await sync(other.kidDevice)).status).toBe(200);

@@ -193,6 +193,7 @@ export const ar: Translations = {
       unreachable: 'تعذّر الوصول إلى الخادم. تحقّق من اتصالك.',
       token_invalid: 'يلزم تحديث تسجيل الدخول. يُرجى المحاولة مجددًا.',
       session_ended: 'انتهت جلستك. سجّل الدخول مجددًا.',
+      account_deleted: 'تم حذف هذا الحساب.',
     },
   },
   session: {

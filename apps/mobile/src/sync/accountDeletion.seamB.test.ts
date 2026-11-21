@@ -60,6 +60,12 @@ describe('Account deletion (Seam B)', () => {
     expect(await server.sessionCount()).toBe(0);
     expect(await tablet.sync()).toBe('needs_sign_in');
     expect(await kidPhone.sync()).toBe('needs_sign_in');
+    // The server says the Account is gone, so the other devices wipe their copy and go back to sign-in.
+    for (const device of [tablet, kidPhone]) {
+      expect(device.authStatus()).toBe('signedOut');
+      expect(device.heldRecords()).toEqual([]);
+      expect(device.accountId()).toBeNull();
+    }
   });
 
   it('a wrong code keeps everything and says how many tries are left', async () => {

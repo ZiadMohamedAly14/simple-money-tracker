@@ -191,6 +191,7 @@ export const en = {
       unreachable: "Can't reach the server. Check your connection.",
       token_invalid: 'Your sign-in needs refreshing. Please try again.',
       session_ended: 'Your session has ended. Sign in again.',
+      account_deleted: 'This account was deleted.',
     },
   },
   session: {
