@@ -25,5 +25,6 @@ export type { CodeBoxesProps, NumericKeypadProps, PinDotsProps } from './Keypad'
 export { Screen, ScreenHeader } from './Screen';
 export type { ScreenHeaderProps, ScreenProps } from './Screen';
 export { Text, TextField } from './Text';
+export { joinSpoken } from './spoken';
 export { useKeyboardVisible } from './useKeyboardVisible';
 export type { TextFieldProps, TextProps, TextTone } from './Text';

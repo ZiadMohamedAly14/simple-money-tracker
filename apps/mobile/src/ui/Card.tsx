@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/theme/ThemeProvider';
 import { AppIcon } from './AppIcon';
 import { Glyph, IconCircle, type GlyphName, type IconCircleTone } from './icons';
+import { joinSpoken } from './spoken';
 import { Text, type TextTone } from './Text';
 
 export interface CardProps {
@@ -13,19 +14,22 @@ export interface CardProps {
   /** Primary outline, as on a chosen option ("Who is it for?"). */
   selected?: boolean;
   accessibilityLabel?: string;
+  /** What pressing does, when the label says what the card shows ("Edit expected income"). */
+  accessibilityHint?: string;
   /** Padding, gaps, layout. Default padding is p-4. */
   className?: string;
 }
 
 /** White, rounded, no shadow or border (unless selected). */
-export function Card({ children, onPress, selected, accessibilityLabel, className = 'p-4' }: CardProps) {
+export function Card({ children, onPress, selected, accessibilityLabel, accessibilityHint, className = 'p-4' }: CardProps) {
   const classes = `rounded-theme border-2 bg-surface ${selected ? 'border-primary' : 'border-transparent'} ${className}`;
   if (!onPress) return <View className={classes}>{children}</View>;
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
-      accessibilityState={{ selected: !!selected }}
+      accessibilityHint={accessibilityHint}
+      accessibilityState={selected === undefined ? undefined : { selected }}
       onPress={onPress}
       className={`${classes} active:opacity-80`}
     >
@@ -45,13 +49,21 @@ export interface ListRowProps {
   onPress?: () => void;
   /** Primary outline plus a check mark: a chosen option. */
   selected?: boolean;
+  /**
+   * What a pressable row reads out. Default: the title, subtitle and a text
+   * `end`; pass it when `end` is an element whose text should be read.
+   */
+  accessibilityLabel?: string;
 }
 
 /** A card row: icon in a circle, title and subtitle, something at the end. */
-export function ListRow({ icon, iconTone, title, subtitle, end, endTone = 'text', onPress, selected }: ListRowProps) {
+export function ListRow({ icon, iconTone, title, subtitle, end, endTone = 'text', onPress, selected, accessibilityLabel }: ListRowProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
+  const spoken =
+    accessibilityLabel ?? joinSpoken([title, subtitle, typeof end === 'string' ? end : undefined], t('common.listSeparator'));
   return (
-    <Card onPress={onPress} selected={selected} accessibilityLabel={title} className="flex-row items-center gap-3 px-3 py-3">
+    <Card onPress={onPress} selected={selected} accessibilityLabel={spoken} className="flex-row items-center gap-3 px-3 py-3">
       <IconCircle icon={icon} tone={iconTone} />
       <View className="flex-1 gap-0.5">
         <Text weight="semibold" numberOfLines={1} className="text-base">
@@ -94,6 +106,8 @@ export function Chip({ label, selected, onPress, icon }: ChipProps) {
       accessibilityRole="button"
       accessibilityState={{ selected: !!selected }}
       onPress={onPress}
+      // 40 tall; the slop makes the touch target 48 without changing the layout (the chip rows have an 8 gap).
+      hitSlop={{ top: 4, bottom: 4 }}
       className={`min-h-10 max-w-48 flex-row items-center justify-center gap-1.5 rounded-full px-4 active:opacity-80 ${
         selected ? 'bg-primary' : 'bg-chip'
       }`}

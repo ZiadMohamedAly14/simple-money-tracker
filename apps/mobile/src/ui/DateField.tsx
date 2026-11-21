@@ -43,6 +43,8 @@ export function DateField({ value, onChange, numberingSystem }: DateFieldProps) 
         accessibilityLabel={`${t('transactions.date')}: ${dateLabel(value)}`}
         accessibilityHint={t('transactions.changeDate')}
         onPress={() => setOpen(true)}
+        // 40 tall; the slop makes the touch target 48 without changing the layout.
+        hitSlop={{ top: 4, bottom: 4 }}
         className="min-h-10 flex-row items-center gap-2 rounded-full bg-tint px-4 active:opacity-80"
       >
         <AppIcon name="calendar" size={18} color={theme.colors.text} />
@@ -72,6 +74,7 @@ export function DateField({ value, onChange, numberingSystem }: DateFieldProps) 
 function Calendar({ value, onPick, numberingSystem }: { value: string; onPick: (date: string) => void; numberingSystem?: NumberingSystem }) {
   const { t } = useTranslation();
   const language = useLanguage();
+  const dateLabel = useDateLabel(numberingSystem);
   const [month, setMonth] = useState(value.slice(0, 7));
   const today = toLocalDate(new Date());
 
@@ -113,7 +116,7 @@ function Calendar({ value, onPick, numberingSystem }: { value: string; onPick: (
       {weeks.map((week, row) => (
         <View key={row} className="flex-row">
           {week.map((day, col) => {
-            if (day === null) return <View key={col} className="h-10 flex-1" />;
+            if (day === null) return <View key={col} className="h-11 flex-1" />;
             const date = `${month}-${pad(day)}`;
             const selected = date === value;
             return (
@@ -121,9 +124,9 @@ function Calendar({ value, onPick, numberingSystem }: { value: string; onPick: (
                 key={col}
                 accessibilityRole="button"
                 accessibilityState={{ selected }}
-                accessibilityLabel={date}
+                accessibilityLabel={dateLabel(date)}
                 onPress={() => onPick(date)}
-                className="h-10 flex-1 items-center justify-center"
+                className="h-11 flex-1 items-center justify-center"
               >
                 <View
                   className={`h-9 w-9 items-center justify-center rounded-full ${
