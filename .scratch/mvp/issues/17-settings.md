@@ -4,7 +4,7 @@
 
 **Blocked by:** 04 (Session lifecycle), 07 (Personal onboarding and Month overview), 11 (Parent PIN and Parent Area gate).
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] Language (per device, with the restart flow from 02).
 - [x] Numbering system: Western or Arabic-Indic.
