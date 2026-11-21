@@ -9,12 +9,22 @@ import { createApiClient } from '@/api/client';
 import { requestCode, verifyCode } from '@/api/auth';
 import { createAuthSession, type AuthSession, type AuthedResult } from '@/auth/authSession';
 import type { SessionStore, StoredSession } from '@/auth/tokenStore';
-import { categoriesQuery, expensesQuery, recordExpense, type NewExpense } from '@/data/transactions';
+import {
+  categoriesQuery,
+  deleteExpense,
+  editExpense,
+  expensesQuery,
+  recordExpense,
+  type ExpenseChanges,
+  type NewExpense,
+} from '@/data/transactions';
 import { createLocalStore } from '@/db/localStore';
 import { migrate } from '@/db/migrations';
 import { schema } from '@/db/schema';
 import type { LocalDb } from '@/db/types';
+import { isSyncOverdue } from '@/sync/pendingSync';
 import { createSyncEngine, type SyncOutcome } from '@/sync/syncEngine';
+import { createSyncTriggers } from '@/sync/syncTriggers';
 import {
   createParentPinGate,
   forgetPinOnSignOut,
@@ -53,10 +63,33 @@ function memoryPinGateStore(): PinGateStore {
   };
 }
 
-export async function createTestDevice(server: TestServer) {
+/** A device clock that only moves when told to, so tests decide which edit is later. */
+export function createDeviceClock(start = Date.parse('2026-03-01T09:00:00Z')) {
+  let current = start;
+  return {
+    now: () => current,
+    advance: (ms: number) => {
+      current += ms;
+    },
+  };
+}
+
+export interface TestDeviceOptions {
+  /** The device clock (Unix ms); real time by default. */
+  now?: () => number;
+  /** Page size the device asks for when pulling; the server's default otherwise. */
+  pullLimit?: number;
+  /** Sync after local writes on its own, the way the app does (real timers). */
+  autoSync?: boolean;
+}
+
+export async function createTestDevice(
+  server: TestServer,
+  { now = Date.now, pullLimit, autoSync = false }: TestDeviceOptions = {},
+) {
   const db: LocalDb = drizzle(new Database(':memory:'), { schema });
   migrate(db);
-  const store = createLocalStore({ db, now: Date.now, randomBytes: (n) => new Uint8Array(randomBytes(n)) });
+  const store = createLocalStore({ db, now, randomBytes: (n) => new Uint8Array(randomBytes(n)) });
   const client = createApiClient(server.url);
   let online = true;
 
@@ -69,7 +102,9 @@ export async function createTestDevice(server: TestServer) {
   let auth = await startAuth(memorySessionStore());
   const request = (config: AxiosRequestConfig): Promise<AuthedResult> =>
     online ? auth.request(config) : Promise.resolve({ status: 'unreachable' });
-  const engine = createSyncEngine({ store, request });
+  const engine = createSyncEngine({ store, request, pullLimit });
+  const triggers = createSyncTriggers({ sync: engine.sync });
+  const stopListening = autoSync ? store.onWrite(triggers.localWrite) : () => undefined;
 
   // The Parent PIN gate: its store outlives app restarts, like SecureStore.
   let clock = Date.now();
@@ -120,8 +155,16 @@ export async function createTestDevice(server: TestServer) {
       online = true;
     },
     sync: (): Promise<SyncOutcome> => engine.sync(),
+    stopAutoSync: () => {
+      stopListening();
+      triggers.stop();
+    },
+    /** Whether the app would show the pending-sync indicator now. */
+    syncOverdue: () => isSyncOverdue(store.oldestPendingAt(), now()),
 
     recordExpense: (expense: NewExpense) => recordExpense(store, expense),
+    editExpense: (id: string, changes: ExpenseChanges) => editExpense(store, id, changes),
+    deleteExpense: (id: string) => deleteExpense(store, id),
     expenses: () => expensesQuery(db).all(),
     categories: () => categoriesQuery(db).all(),
     pendingChanges: () => store.pendingCount(),

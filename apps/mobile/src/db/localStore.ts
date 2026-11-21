@@ -1,4 +1,4 @@
-import { and, count, countDistinct, eq, inArray, lte, sql } from 'drizzle-orm';
+import { and, count, countDistinct, eq, inArray, isNull, lte, min, sql } from 'drizzle-orm';
 import type { SQLiteColumn, SQLiteTable } from 'drizzle-orm/sqlite-core';
 import {
   OTHER_CATEGORY,
@@ -23,6 +23,7 @@ const STATE = { accountId: 'accountId', cursor: 'cursor' } as const;
 /** The columns every synced table shares; drizzle can't see them through the entity union. */
 type SyncedTable = SQLiteTable & {
   id: SQLiteColumn;
+  deletedAt: SQLiteColumn;
 };
 const tableOf = (entity: SyncEntity): SyncedTable => SYNCED_TABLES[entity] as unknown as SyncedTable;
 
@@ -51,8 +52,8 @@ export interface LocalStoreDeps {
  * The device's synced data: whose it is, the rows, the outbox and the cursor.
  * Screens write through it (each write and its outbox entry in one
  * transaction) and read the tables with live queries; the sync engine uses its
- * push and pull side. Ticket 06 extends `completeSync` with last edit wins and
- * deletion markers.
+ * push and pull side. A deletion keeps the row as a marker (ADR-0001), and
+ * pulled copies are merged by last edit wins.
  */
 export function createLocalStore({ db, now, randomBytes }: LocalStoreDeps) {
   function getState(key: string, tx: Db = db): string | null {
@@ -75,6 +76,27 @@ export function createLocalStore({ db, now, randomBytes }: LocalStoreDeps) {
     const id = otherCategoryId(accountId);
     if (tx.select({ id: table.id }).from(table).where(eq(table.id, id)).get()) return;
     upsertRow(tx, 'category', { id, accountId, ...OTHER_CATEGORY, updatedAt: 0, deletedAt: null, serverVersion: 0 });
+  }
+
+  const writeListeners = new Set<() => void>();
+  const announceWrite = (): void => writeListeners.forEach((listener) => listener());
+
+  function edit(entity: SyncEntity, id: string, changes: (updatedAt: number) => object): boolean {
+    const updatedAt = now();
+    const table = tableOf(entity);
+    const edited = db.transaction((tx) => {
+      const live = tx
+        .select({ id: table.id })
+        .from(table)
+        .where(and(eq(table.id, id), isNull(table.deletedAt)))
+        .get();
+      if (!live) return false;
+      tx.update(table).set({ ...changes(updatedAt), updatedAt } as never).where(eq(table.id, id)).run();
+      tx.insert(outbox).values({ entity, recordId: id, queuedAt: updatedAt }).run();
+      return true;
+    });
+    if (edited) announceWrite();
+    return edited;
   }
 
   function requireAccount(tx: Db = db): string {
@@ -116,7 +138,32 @@ export function createLocalStore({ db, now, randomBytes }: LocalStoreDeps) {
         upsertRow(tx, entity, { ...fields, id, accountId, updatedAt, deletedAt: null, serverVersion: 0 });
         tx.insert(outbox).values({ entity, recordId: id, queuedAt: updatedAt }).run();
       });
+      announceWrite();
       return id;
+    },
+
+    /**
+     * Changes a record's fields and queues it for sync. Returns false (and
+     * changes nothing) if the record doesn't exist or has been deleted.
+     */
+    update<E extends SyncEntity>(entity: E, id: string, changes: Partial<SyncFieldsByEntity[E]>): boolean {
+      return edit(entity, id, () => changes);
+    },
+
+    /** Marks a record deleted (ADR-0001) and queues it for sync. False if it doesn't exist or is already deleted. */
+    remove(entity: SyncEntity, id: string): boolean {
+      return edit(entity, id, (updatedAt) => ({ deletedAt: updatedAt }));
+    },
+
+    /** Calls `listener` after each local write (create, update, remove) commits. Returns an unsubscribe. */
+    onWrite(listener: () => void): () => void {
+      writeListeners.add(listener);
+      return () => writeListeners.delete(listener);
+    },
+
+    /** When the oldest change not yet on the server was made (device ms), or null if none is waiting. */
+    oldestPendingAt(): number | null {
+      return db.select({ at: min(outbox.queuedAt) }).from(outbox).get()?.at ?? null;
     },
 
     /** The server version this device has pulled up to (0 = never synced). */
@@ -158,8 +205,7 @@ export function createLocalStore({ db, now, randomBytes }: LocalStoreDeps) {
      * Records a finished sync: drops the outbox entries the server stored,
      * applies the pulled changes and saves the cursor, all at once. Ignored
      * (returns false) if a different Account signed in while the sync ran.
-     * A pulled record that was edited here during the sync keeps the local
-     * edit; it goes out with the next push.
+     * Pulled copies are taken by last edit wins (see `applyPulled`).
      */
     completeSync(accountId: string, upTo: number, response: SyncResponseData): boolean {
       return db.transaction((tx) => {
@@ -172,15 +218,34 @@ export function createLocalStore({ db, now, randomBytes }: LocalStoreDeps) {
     },
   };
 
+  /**
+   * Takes a pulled copy by the server's rules (ADR-0001). A record with no
+   * local changes waiting takes the server's copy unless it's older than the
+   * one held. A record edited here since the last push (during this sync)
+   * keeps the local edit only if it is later and the pulled copy isn't a
+   * deletion; otherwise the pulled copy replaces it and the waiting change is
+   * dropped, since the server would refuse it anyway. Ties go to the server.
+   */
   function applyPulled(tx: Db, accountId: string, { entity, record }: PulledChange): void {
     if (record.accountId !== accountId) return;
-    const pending = tx
-      .select({ id: outbox.id })
-      .from(outbox)
-      .where(and(eq(outbox.entity, entity), eq(outbox.recordId, record.id)))
-      .get();
-    if (pending) return; // ticket 06: last edit wins instead
+    const table = tableOf(entity) as SyncedTable & { updatedAt: SQLiteColumn; serverVersion: SQLiteColumn };
+    const local = tx
+      .select({ updatedAt: table.updatedAt, deletedAt: table.deletedAt, serverVersion: table.serverVersion })
+      .from(table)
+      .where(eq(table.id, record.id))
+      .get() as { updatedAt: number; deletedAt: number | null; serverVersion: number } | undefined;
+    const waiting = and(eq(outbox.entity, entity), eq(outbox.recordId, record.id));
+    const pending = tx.select({ id: outbox.id }).from(outbox).where(waiting).get();
+
+    if (!pending) {
+      if (local && local.serverVersion > record.serverVersion) return;
+      upsertRow(tx, entity, record);
+      return;
+    }
+    const localWins = local && record.deletedAt == null && (local.deletedAt != null || local.updatedAt > record.updatedAt);
+    if (localWins) return;
     upsertRow(tx, entity, record);
+    tx.delete(outbox).where(waiting).run();
   }
 }
 

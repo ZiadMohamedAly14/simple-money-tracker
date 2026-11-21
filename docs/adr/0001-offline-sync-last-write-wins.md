@@ -6,3 +6,4 @@ Offline use is part of the MVP and an Account can be used on several devices. Ev
 
 - Records are never hard-deleted while any device might still sync them.
 - Totals (Remaining, Jar balances) are always derived from Transactions, never synced as stored values, so they can't drift.
+- A deletion beats any edit of the same record, even a later one, so the outcome never depends on which device syncs first. Once deleted, a record can't come back.
