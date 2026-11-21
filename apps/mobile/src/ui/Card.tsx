@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
 import { Pressable, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/theme/ThemeProvider';
+import { AppIcon } from './AppIcon';
 import { Glyph, IconCircle, type GlyphName, type IconCircleTone } from './icons';
 import { Text, type TextTone } from './Text';
 
@@ -70,7 +70,7 @@ export function ListRow({ icon, iconTone, title, subtitle, end, endTone = 'text'
       ) : (
         end
       )}
-      {selected ? <Ionicons name="checkmark" size={20} color={theme.colors.primary} /> : null}
+      {selected ? <AppIcon name="selected" size={20} color={theme.colors.primary} /> : null}
     </Card>
   );
 }
@@ -161,14 +161,20 @@ export function Notice({ text, icon }: NoticeProps) {
 }
 
 /**
- * "Pending sync": small muted text, no icon. Callers decide when to show it
- * (only after changes have waited more than a minute: `useSyncOverdue`).
+ * "Pending sync": small muted text after the small pending-sync icon. Callers
+ * decide when to show it (only after changes have waited more than a minute:
+ * `useSyncOverdue`).
  */
 export function PendingSyncLabel({ align = 'center' }: { align?: 'start' | 'center' | 'end' }) {
   const { t } = useTranslation();
+  const theme = useTheme();
+  const justify = align === 'start' ? 'justify-start' : align === 'end' ? 'justify-end' : 'justify-center';
   return (
-    <Text tone="muted" align={align} className="text-xs">
-      {t('sync.pending')}
-    </Text>
+    <View className={`flex-row items-center gap-1 ${justify}`}>
+      <AppIcon name="pending-sync" size={12} color={theme.colors.muted} />
+      <Text tone="muted" align={align} className="text-xs">
+        {t('sync.pending')}
+      </Text>
+    </View>
   );
 }

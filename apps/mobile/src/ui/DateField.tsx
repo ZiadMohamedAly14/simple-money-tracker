@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
 import { Modal, Pressable, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Ionicons } from '@expo/vector-icons';
 import { formatMonth, intlLocale, toLocalDate, type NumberingSystem } from '@money-tracker/shared';
 import { useDateLabel } from '@/i18n/useDateLabel';
 import { useLanguage } from '@/i18n/useLanguage';
 import { useTheme } from '@/theme/ThemeProvider';
+import { AppIcon } from './AppIcon';
 import { IconButton } from './Button';
 import { Text } from './Text';
 
@@ -45,7 +45,7 @@ export function DateField({ value, onChange, numberingSystem }: DateFieldProps) 
         onPress={() => setOpen(true)}
         className="min-h-10 flex-row items-center gap-2 rounded-full bg-tint px-4 active:opacity-80"
       >
-        <Ionicons name="calendar-outline" size={18} color={theme.colors.text} />
+        <AppIcon name="calendar" size={18} color={theme.colors.text} />
         <Text weight="semibold" className="text-sm">
           {dateLabel(value)}
         </Text>
@@ -97,11 +97,11 @@ function Calendar({ value, onPick, numberingSystem }: { value: string; onPick: (
   return (
     <View className="gap-3">
       <View className="flex-row items-center gap-3">
-        <IconButton icon="chevron-back" directional accessibilityLabel={t('transactions.previousMonth')} onPress={() => setMonth(shiftMonth(month, -1))} />
+        <IconButton icon="app:chevron-forward" reversed accessibilityLabel={t('transactions.previousMonth')} onPress={() => setMonth(shiftMonth(month, -1))} />
         <Text weight="bold" align="center" className="flex-1 text-lg">
           {formatMonth(month, { language, numberingSystem })}
         </Text>
-        <IconButton icon="chevron-forward" directional accessibilityLabel={t('transactions.nextMonth')} onPress={() => setMonth(shiftMonth(month, 1))} />
+        <IconButton icon="app:chevron-forward" accessibilityLabel={t('transactions.nextMonth')} onPress={() => setMonth(shiftMonth(month, 1))} />
       </View>
       <View className="flex-row">
         {weekdays.map((name, i) => (

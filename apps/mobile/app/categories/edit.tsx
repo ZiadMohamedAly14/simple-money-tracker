@@ -60,7 +60,7 @@ export default function EditCategoryScreen() {
         <>
           <AmountKeypad entry={budgetEntry} numberingSystem={numberingSystem} />
           <Button label={t('categories.save')} disabled={!canSave} onPress={save} />
-          {existing && !isOther ? <Button label={t('categories.archive')} variant="secondary" icon="archive-outline" onPress={archive} /> : null}
+          {existing && !isOther ? <Button label={t('categories.archive')} variant="secondary" icon="app:archive" onPress={archive} /> : null}
         </>
       }
     >
