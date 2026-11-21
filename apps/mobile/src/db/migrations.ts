@@ -110,6 +110,11 @@ const MIGRATIONS: readonly string[][] = [
     )`,
     `CREATE INDEX kid_transactions_kid_profile ON kid_transactions (kid_profile_id, date)`,
   ],
+  [
+    // Kid Expenses (jar_id) and Jar Transfers (jar_id → to_jar_id), ticket 13.
+    `ALTER TABLE kid_transactions ADD COLUMN jar_id TEXT`,
+    `ALTER TABLE kid_transactions ADD COLUMN to_jar_id TEXT`,
+  ],
 ];
 
 /** Brings the database up to the latest schema. Safe to call on every app start. */

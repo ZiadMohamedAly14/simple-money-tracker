@@ -32,11 +32,16 @@ import {
 } from '@/data/transactions';
 import {
   addJar,
+  addJarTransfer,
+  addKidExpense,
   addTopUp,
   archiveJar,
   completeKidOnboarding,
   createKidProfile,
+  deleteJarTransfer,
+  deleteKidExpense,
   deleteTopUp,
+  editKidExpense,
   editTopUp,
   jarsQuery,
   kidProfilesQuery,
@@ -45,7 +50,10 @@ import {
   suggestedSplitOf,
   topUpJarsOf,
   walletOf,
+  type KidExpenseChanges,
   type KidOnboarding,
+  type NewJarTransfer,
+  type NewKidExpense,
   type NewKidProfile,
   type NewTopUp,
   type TopUpChanges,
@@ -249,6 +257,13 @@ export async function createTestDevice(
     editTopUp: (id: string, changes: TopUpChanges) => editTopUp(store, db, id, changes),
     deleteTopUp: (id: string) => deleteTopUp(store, id),
     topUps: (kidProfileId: string) => kidTransactionsQuery(db, kidProfileId).all(),
+    addKidExpense: (expense: NewKidExpense) => addKidExpense(store, db, expense),
+    editKidExpense: (id: string, changes: KidExpenseChanges) => editKidExpense(store, db, id, changes),
+    deleteKidExpense: (id: string) => deleteKidExpense(store, db, id),
+    addJarTransfer: (transfer: NewJarTransfer) => addJarTransfer(store, db, transfer),
+    deleteJarTransfer: (id: string) => deleteJarTransfer(store, db, id),
+    /** The Kid Wallet's history: every live Kid Transaction, newest first. */
+    history: (kidProfileId: string) => kidTransactionsQuery(db, kidProfileId).all(),
     wallet: (kidProfileId: string) =>
       walletOf(store.accountId(), jarsQuery(db, kidProfileId).all(), kidTransactionsQuery(db, kidProfileId).all()),
     suggestedSplit: (kidProfileId: string, total: number) =>
