@@ -36,7 +36,7 @@ describe('Months created lazily (Seam B)', () => {
 
   it("opening a new Month copies the previous Month's Expected Income and Category Budgets; nothing carries over", async () => {
     const phone = await onboardedPhone();
-    const housing = idOf(phone, 'housing');
+    const housing = idOf(phone, 'bills');
     const food = idOf(phone, 'food');
     phone.setCategoryBudgets(MARCH, { [housing]: 500000, [food]: 200000 });
     phone.recordExpense({ amount: 30000, date: '2026-03-10', categoryId: food });
@@ -69,7 +69,7 @@ describe('Months created lazily (Seam B)', () => {
   it('an Archived Category stays in the past Months it was used in, and its budget is not copied into new Months', async () => {
     const phone = await onboardedPhone();
     const food = idOf(phone, 'food');
-    const transport = idOf(phone, 'transport');
+    const transport = idOf(phone, 'shopping');
     phone.setCategoryBudgets(MARCH, { [food]: 200000, [transport]: 50000 });
     phone.recordExpense({ amount: 4500, date: '2026-03-04', categoryId: transport });
     phone.archiveCategory(transport);

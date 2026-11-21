@@ -1,5 +1,6 @@
-import { and, asc, eq, isNull, like } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, like } from 'drizzle-orm';
 import {
+  DEFAULT_CATEGORY_ICONS,
   DEFAULT_CATEGORY_KEYS,
   DEFAULT_NUMBERING_SYSTEM,
   accountSettingsId,
@@ -79,7 +80,7 @@ export function accountBasics(
       (key, order): KnownRecord => ({
         entity: 'category',
         id: defaultCategoryId(accountId, key),
-        fields: { name: categoryNames[key], order, isOther: false, archivedAt: null },
+        fields: { name: categoryNames[key], order, isOther: false, archivedAt: null, icon: DEFAULT_CATEGORY_ICONS[key] },
       }),
     ),
   ];
@@ -181,12 +182,23 @@ export function monthPlansQuery(db: LocalDb, month?: Month) {
     .orderBy(monthPlans.month);
 }
 
-/** Live-queryable: a Month's Category Budgets. */
+/**
+ * Live-queryable: a Month's Category Budgets. A budget whose Category is
+ * deleted doesn't count (one set offline on another device can outlive the
+ * Category's deletion).
+ */
 export function categoryBudgetsQuery(db: LocalDb, month: Month) {
+  const liveCategories = db.select({ id: categories.id }).from(categories).where(isNull(categories.deletedAt));
   return db
     .select()
     .from(categoryBudgets)
-    .where(and(isNull(categoryBudgets.deletedAt), eq(categoryBudgets.month, month)));
+    .where(
+      and(
+        isNull(categoryBudgets.deletedAt),
+        eq(categoryBudgets.month, month),
+        inArray(categoryBudgets.categoryId, liveCategories),
+      ),
+    );
 }
 
 /** Live-queryable: the Transactions dated in a Month. */

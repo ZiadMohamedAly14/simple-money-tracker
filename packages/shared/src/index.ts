@@ -39,7 +39,7 @@ export type { CurrencyCode, MoneyFormatOptions } from './money/money';
 export { toLocalDate } from './dates/localDate';
 export { addMonths, currentMonth, formatMonth, monthOf } from './dates/month';
 export type { Month } from './dates/month';
-export { DEFAULT_CATEGORY_KEYS } from './budget/defaultCategories';
+export { DEFAULT_CATEGORY_ICONS, DEFAULT_CATEGORY_KEYS, EARLIER_DEFAULT_CATEGORY_ICONS } from './budget/defaultCategories';
 export type { DefaultCategoryKey } from './budget/defaultCategories';
 export { monthFigures } from './budget/monthFigures';
 export type { MonthFigures, MonthFiguresInput } from './budget/monthFigures';
