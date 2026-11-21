@@ -27,7 +27,7 @@ export default function PurposeScreen() {
         </Text>
       </View>
       <ListRow
-        icon="wallet-outline"
+        icon="app:wallet"
         title={t('onboarding.purposeMe')}
         subtitle={t('onboarding.purposeMeBody')}
         selected={purpose === 'me'}

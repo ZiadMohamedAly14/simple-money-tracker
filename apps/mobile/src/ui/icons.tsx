@@ -3,9 +3,37 @@ import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { DirectionalIcon } from '@/theme/DirectionalIcon';
 import { useTheme } from '@/theme/ThemeProvider';
+import { AppIcon } from './AppIcon';
+import type { AppIconName } from './appIcons';
 
 /** Any Ionicons name. Use the outline variants to match the design. */
 export type IconName = ComponentProps<typeof Ionicons>['name'];
+
+/**
+ * A custom icon from `assets/icon/`, written `app:<file name>`. The prefix keeps
+ * it apart from Ionicons names that clash ("add", "wallet").
+ */
+export type AppIconRef = `app:${AppIconName}`;
+
+/** What icon props across the UI kit take: an Ionicons name or an `app:` custom icon. */
+export type GlyphName = IconName | AppIconRef;
+
+export interface GlyphProps {
+  name: GlyphName;
+  size: number;
+  color: string;
+  /** Mirror in right-to-left. Custom arrows (app:back) mirror on their own. */
+  directional?: boolean;
+}
+
+/** Draws a GlyphName: the custom SVG for `app:` names, Ionicons otherwise. */
+export function Glyph({ name, size, color, directional }: GlyphProps) {
+  if (name.startsWith('app:')) {
+    return <AppIcon name={name.slice(4) as AppIconName} size={size} color={color} directional={directional} />;
+  }
+  const Icon = directional ? DirectionalIcon : Ionicons;
+  return <Icon name={name as IconName} size={size} color={color} />;
+}
 
 export type IconCircleTone = 'tint' | 'primary' | 'accent' | 'jar-save' | 'jar-spend' | 'jar-give';
 
@@ -25,7 +53,8 @@ const CIRCLE_SIZE = {
 } as const;
 
 export interface IconCircleProps {
-  icon: IconName;
+  /** An Ionicons name or an `app:` custom icon ("app:wallet"). */
+  icon: GlyphName;
   /** tint (default) for list and category rows; jar-* for the kid's Jars. */
   tone?: IconCircleTone;
   size?: keyof typeof CIRCLE_SIZE;
@@ -38,10 +67,9 @@ export function IconCircle({ icon, tone = 'tint', size = 'md', directional }: Ic
   const theme = useTheme();
   const color = tone === 'tint' ? theme.colors.primary : tone === 'primary' ? theme.colors['on-primary'] : theme.colors.text;
   const { className, icon: iconSize } = CIRCLE_SIZE[size];
-  const Icon = directional ? DirectionalIcon : Ionicons;
   return (
     <View className={`items-center justify-center rounded-full ${CIRCLE_CLASS[tone]} ${className}`}>
-      <Icon name={icon} size={iconSize} color={color} />
+      <Glyph name={icon} size={iconSize} color={color} directional={directional} />
     </View>
   );
 }

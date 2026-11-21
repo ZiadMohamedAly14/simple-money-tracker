@@ -1,5 +1,5 @@
 import { View } from 'react-native';
-import { IconCircle, type IconCircleTone, type IconName } from './icons';
+import { IconCircle, type GlyphName, type IconCircleTone } from './icons';
 import { Text, type TextTone } from './Text';
 
 const AMOUNT_SIZE = {
@@ -71,7 +71,7 @@ export function ProgressBar({ progress, tone = 'primary' }: ProgressBarProps) {
 }
 
 export interface ProgressRowProps {
-  icon: IconName;
+  icon: GlyphName;
   iconTone?: IconCircleTone;
   title: string;
   progress: number;
