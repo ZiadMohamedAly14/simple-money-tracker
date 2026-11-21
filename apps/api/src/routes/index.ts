@@ -24,7 +24,7 @@ export function apiRoutes(env: Env, { mailer, now }: AppDeps): Router {
   const router = Router();
   router.use('/health', healthRoutes());
   router.use('/auth', authRoutes(auth, tokens));
-  router.use('/sync', syncRoutes(createSyncService({ now }), tokens));
+  router.use('/sync', syncRoutes(createSyncService({ now, tokens }), tokens));
   router.use('/account/onboarding', onboardingRoutes(createOnboardingService({ now }), tokens));
   const pins = createParentPinService({ now });
   router.use('/account/pin', parentPinRoutes(pins, tokens));
