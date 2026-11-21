@@ -114,6 +114,8 @@ export const en = {
     spending: 'Spending',
     unallocated: 'Unallocated',
     incomeOfExpected: '{{income}} of {{expected}} expected',
+    noExpectedIncome: 'No expected income set for this month',
+    figure: '{{label}}, {{amount}}',
     overPlan: 'Plan is {{amount}} over expected income',
     freshTitle: 'A fresh month',
     freshBody: 'Add your income, then tap + to log your first expense.',
