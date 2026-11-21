@@ -41,6 +41,37 @@ const MIGRATIONS: readonly string[][] = [
     `CREATE INDEX outbox_record ON outbox (entity, record_id)`,
     `CREATE TABLE device_state (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL)`,
   ],
+  [
+    `CREATE TABLE account_settings (
+      id TEXT PRIMARY KEY NOT NULL,
+      account_id TEXT NOT NULL,
+      updated_at INTEGER NOT NULL,
+      deleted_at INTEGER,
+      server_version INTEGER NOT NULL DEFAULT 0,
+      currency TEXT NOT NULL,
+      numbering_system TEXT NOT NULL
+    )`,
+    `CREATE TABLE month_plans (
+      id TEXT PRIMARY KEY NOT NULL,
+      account_id TEXT NOT NULL,
+      updated_at INTEGER NOT NULL,
+      deleted_at INTEGER,
+      server_version INTEGER NOT NULL DEFAULT 0,
+      month TEXT NOT NULL,
+      expected_income INTEGER NOT NULL
+    )`,
+    `CREATE TABLE category_budgets (
+      id TEXT PRIMARY KEY NOT NULL,
+      account_id TEXT NOT NULL,
+      updated_at INTEGER NOT NULL,
+      deleted_at INTEGER,
+      server_version INTEGER NOT NULL DEFAULT 0,
+      month TEXT NOT NULL,
+      category_id TEXT NOT NULL,
+      amount INTEGER NOT NULL
+    )`,
+    `CREATE INDEX category_budgets_month ON category_budgets (month)`,
+  ],
 ];
 
 /** Brings the database up to the latest schema. Safe to call on every app start. */
