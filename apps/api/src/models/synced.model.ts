@@ -24,6 +24,14 @@ function syncedSchema(fields: SchemaDefinition) {
   return schema;
 }
 
+export const AccountSettings = model(
+  'AccountSettings',
+  syncedSchema({
+    currency: { type: String, required: true },
+    numberingSystem: { type: String, enum: ['western', 'arabic-indic'], required: true },
+  }),
+);
+
 export const Category = model(
   'Category',
   syncedSchema({
@@ -45,5 +53,28 @@ export const Transaction = model(
   }),
 );
 
+export const MonthPlan = model(
+  'MonthPlan',
+  syncedSchema({
+    month: { type: String, required: true },
+    expectedIncome: { type: Number, required: true },
+  }),
+);
+
+export const CategoryBudget = model(
+  'CategoryBudget',
+  syncedSchema({
+    month: { type: String, required: true },
+    categoryId: { type: String, required: true },
+    amount: { type: Number, required: true },
+  }),
+);
+
 /** The collection behind each synced entity. Add new synced entities here and to `SYNC_ENTITIES`. */
-export const SYNCED_MODELS = { category: Category, transaction: Transaction } satisfies Record<SyncEntity, unknown>;
+export const SYNCED_MODELS = {
+  accountSettings: AccountSettings,
+  category: Category,
+  monthPlan: MonthPlan,
+  categoryBudget: CategoryBudget,
+  transaction: Transaction,
+} satisfies Record<SyncEntity, unknown>;

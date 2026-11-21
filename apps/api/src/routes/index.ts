@@ -5,6 +5,8 @@ import { createAuthService } from '../services/auth.service';
 import { createTokenService } from '../services/token.service';
 import { authRoutes } from './auth.routes';
 import { healthRoutes } from './health.routes';
+import { createOnboardingService } from '../services/onboarding.service';
+import { onboardingRoutes } from './onboarding.routes';
 import { createSyncService } from '../services/sync.service';
 import { syncRoutes } from './sync.routes';
 
@@ -17,5 +19,6 @@ export function apiRoutes(env: Env, { mailer, now }: AppDeps): Router {
   router.use('/health', healthRoutes());
   router.use('/auth', authRoutes(auth, tokens));
   router.use('/sync', syncRoutes(createSyncService({ now }), tokens));
+  router.use('/account/onboarding', onboardingRoutes(createOnboardingService({ now }), tokens));
   return router;
 }

@@ -2,6 +2,9 @@ import type { Model } from 'mongoose';
 import {
   OTHER_CATEGORY,
   SYNC_ENTITIES,
+  accountSettingsId,
+  categoryBudgetId,
+  monthPlanId,
   otherCategoryId,
   parsePushedChange,
   type PulledChange,
@@ -29,12 +32,35 @@ interface Reference {
   field: string;
 }
 
+interface EntityRules {
+  kidCanRead: boolean;
+  kidCanWrite: boolean;
+  references(change: PushedChange): Reference[];
+  /** For records with a deterministic ID (spec, Data model): the only ID the record may have. */
+  requiredId?(accountId: string, change: PushedChange): string;
+}
+
 /**
  * Per-entity sync rules. Ticket 14 fills in what a Kid Session may read and
  * write (ADR-0002); the Kid Wallet entities add their references here.
  */
-const RULES: { [E in SyncEntity]: { kidCanRead: boolean; kidCanWrite: boolean; references(change: PushedChange): Reference[] } } = {
+const RULES: { [E in SyncEntity]: EntityRules } = {
+  accountSettings: { kidCanRead: false, kidCanWrite: false, references: () => [], requiredId: (accountId) => accountSettingsId(accountId) },
   category: { kidCanRead: false, kidCanWrite: false, references: () => [] },
+  monthPlan: {
+    kidCanRead: false,
+    kidCanWrite: false,
+    references: () => [],
+    requiredId: (accountId, change) => (change.entity === 'monthPlan' ? monthPlanId(accountId, change.record.month) : ''),
+  },
+  categoryBudget: {
+    kidCanRead: false,
+    kidCanWrite: false,
+    references: (change) =>
+      change.entity === 'categoryBudget' ? [{ entity: 'category', id: change.record.categoryId, field: 'categoryId' }] : [],
+    requiredId: (accountId, change) =>
+      change.entity === 'categoryBudget' ? categoryBudgetId(accountId, change.record.month, change.record.categoryId) : '',
+  },
   transaction: {
     kidCanRead: false,
     kidCanWrite: false,
@@ -101,6 +127,18 @@ export function createSyncService({ now }: { now: Clock }) {
     }
   }
 
+  /** A record with a deterministic ID must carry the one derived from its Account and fields. */
+  function checkDerivedIds(accountId: string, changes: PushedChange[]): void {
+    const problems: SyncProblem[] = [];
+    changes.forEach((change, index) => {
+      const required = RULES[change.entity].requiredId?.(accountId, change);
+      if (required !== undefined && change.record.id !== required) {
+        problems.push({ field: fieldOf(index, 'id'), message: `must be ${required} for this ${change.entity}` });
+      }
+    });
+    if (problems.length > 0) throw new ValidationError(problems);
+  }
+
   /** References must point at this Account's records, stored already or pushed in the same sync. */
   async function checkReferences(accountId: string, changes: PushedChange[]): Promise<void> {
     const pushed = new Set(changes.map((c) => `${c.entity}:${c.record.id}`));
@@ -159,6 +197,7 @@ export function createSyncService({ now }: { now: Clock }) {
 
       // Referenced entities first, so a Category is stored before its Expenses.
       const ordered = [...changes].sort((a, b) => SYNC_ENTITIES.indexOf(a.entity) - SYNC_ENTITIES.indexOf(b.entity));
+      checkDerivedIds(auth.accountId, changes);
       await checkOwnership(auth.accountId, ordered);
       await checkReferences(auth.accountId, changes);
       for (const change of ordered) await apply(auth.accountId, change);
