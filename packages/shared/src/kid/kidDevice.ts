@@ -3,6 +3,7 @@
  * phone (a full session) confirms the Parent PIN and picks a Kid Profile; the
  * server ends that full session and starts a Kid Session in its place.
  */
+import type { ScopeErrorReason } from '../auth/scope';
 
 /** `POST /kid-devices` body. */
 export interface StartKidSessionBody {
@@ -28,7 +29,7 @@ export interface KidSessionData {
  *   uses the same reason for a change a Kid Session may not make.
  */
 export interface KidSessionErrorData {
-  reason: 'wrong_pin' | 'pin_locked' | 'no_pin' | 'kid_not_found' | 'kid_session';
+  reason: 'wrong_pin' | 'pin_locked' | 'no_pin' | 'kid_not_found' | ScopeErrorReason;
   attemptsRemaining?: number;
   retryAfterSeconds?: number;
 }

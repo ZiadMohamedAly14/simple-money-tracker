@@ -1,5 +1,5 @@
 import { Router, type Request, type Response } from 'express';
-import { authOf, requireAuth } from '../middleware/requireAuth';
+import { authOf, requireAuth, requireFullScope } from '../middleware/requireAuth';
 import type { OnboardingService } from '../services/onboarding.service';
 import type { TokenService } from '../services/token.service';
 import { asyncHandler } from '../utils/asyncHandler';
@@ -12,6 +12,7 @@ export function onboardingRoutes(onboarding: OnboardingService, tokens: TokenSer
   router.post(
     '/',
     requireAuth(tokens),
+    requireFullScope,
     asyncHandler(async (req: Request, res: Response) => {
       sendSuccess(res, await onboarding.complete(authOf(req)), 'Onboarding complete');
     }),

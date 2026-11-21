@@ -354,6 +354,7 @@ describe('Kid-Mode device (Seam A)', () => {
       expect(pin.status).toBe(403);
       const onboarding = await request(app).post('/account/onboarding').set('Authorization', `Bearer ${kid.accessToken}`);
       expect(onboarding.status).toBe(403);
+      expect(onboarding.body.data).toEqual({ reason: 'kid_session' });
     });
   });
 });

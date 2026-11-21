@@ -1,4 +1,6 @@
-import { sha256Hex } from './sha256';
+import { sha256 } from '@noble/hashes/sha2';
+import { utf8ToBytes } from '@noble/hashes/utils';
+import type { Month } from '../dates/month';
 
 /** `n` cryptographically random bytes. The device passes expo-crypto's; Node tests pass node:crypto's. */
 export type RandomBytes = (n: number) => Uint8Array;
@@ -67,18 +69,18 @@ export function accountSettingsId(accountId: string): string {
  */
 function derivedId(kind: string, accountId: string, ...parts: string[]): string {
   if (!/^[0-9a-f]{24}$/.test(accountId)) throw new Error(`Not an Account id: ${accountId}`);
-  const h = sha256Hex([kind, accountId, ...parts].join('\n'));
+  const h = hex(sha256(utf8ToBytes([kind, accountId, ...parts].join('\n'))));
   const variant = ((parseInt(h[16]!, 16) & 0x3) | 0x8).toString(16);
   return hyphenate(`${h.slice(0, 12)}8${h.slice(13, 16)}${variant}${h.slice(17, 32)}`);
 }
 
 /** The ID of an Account's plan for a Month (`YYYY-MM`). */
-export function monthPlanId(accountId: string, month: string): string {
+export function monthPlanId(accountId: string, month: Month): string {
   return derivedId('monthPlan', accountId, month);
 }
 
 /** The ID of an Account's budget for one Category in one Month. */
-export function categoryBudgetId(accountId: string, month: string, categoryId: string): string {
+export function categoryBudgetId(accountId: string, month: Month, categoryId: string): string {
   return derivedId('categoryBudget', accountId, month, categoryId);
 }
 

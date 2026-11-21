@@ -8,7 +8,7 @@ import {
   monthPlanId,
   otherCategoryId,
   parsePushedChange,
-  type KidSessionErrorData,
+  type ScopeErrorData,
   type KidTransactionFields,
   type PulledChange,
   type PushedChange,
@@ -162,7 +162,7 @@ export function createSyncService({ now, tokens }: { now: Clock; tokens: Pick<To
    */
   async function checkKidScope(auth: AuthContext, changes: PushedChange[]): Promise<void> {
     const refused = (): Error => {
-      const data: KidSessionErrorData = { reason: 'kid_session' };
+      const data: ScopeErrorData = { reason: 'kid_session' };
       return new ForbiddenError('A Kid Session cannot change these records', data);
     };
     const kidProfileId = auth.kidProfileId;

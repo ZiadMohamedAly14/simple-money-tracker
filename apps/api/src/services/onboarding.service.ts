@@ -1,6 +1,6 @@
 import type { OnboardingData } from '@money-tracker/shared';
 import { Account } from '../models/account.model';
-import { ForbiddenError, NotFoundError } from '../utils/AppError';
+import { NotFoundError } from '../utils/AppError';
 import type { Clock } from '../utils/clock';
 import type { AuthContext } from './token.service';
 
@@ -13,7 +13,6 @@ export function createOnboardingService({ now }: { now: Clock }) {
   return {
     /** Marks the caller's Account onboarded. The first time is kept; repeating it is harmless. */
     async complete(auth: AuthContext): Promise<OnboardingData> {
-      if (auth.scope !== 'full') throw new ForbiddenError('A Kid Session cannot finish onboarding');
       const account = await Account.findOneAndUpdate(
         { _id: auth.accountId, onboardingCompletedAt: null },
         { $set: { onboardingCompletedAt: now() } },
