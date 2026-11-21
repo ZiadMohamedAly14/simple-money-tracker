@@ -31,7 +31,7 @@ describe('Kid Expenses, Jar Transfers and history (Seam B)', () => {
     const phone = await createTestDevice(server, { now: clock.now });
     await phone.signIn('sara@example.com');
     phone.onboardPersonal({ currency: 'EGP', expectedIncome: 0, month: '2026-03', categoryNames: CATEGORY_NAMES });
-    const kid = phone.createKidProfile({ name: 'Omar', avatar: null, jarNames: JAR_NAMES });
+    const kid = phone.createKidProfile({ name: 'Omar', jarNames: JAR_NAMES });
     const jars = phone.jarIds(kid);
     phone.addTopUp({
       kidProfileId: kid,

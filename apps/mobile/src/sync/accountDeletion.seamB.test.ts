@@ -32,7 +32,7 @@ describe('Account deletion (Seam B)', () => {
     phone.onboardPersonal({ currency: 'EGP', expectedIncome: 500000, month: '2026-03', categoryNames: CATEGORY_NAMES });
     phone.recordExpense({ amount: 2500, date: '2026-03-02' });
     expect(await phone.pinGate.setPin(PIN)).toEqual({ status: 'ok' });
-    const omar = phone.createKidProfile({ name: 'Omar', avatar: null, jarNames: JAR_NAMES });
+    const omar = phone.createKidProfile({ name: 'Omar', jarNames: JAR_NAMES });
     expect(await phone.sync()).toBe('synced');
 
     const tablet = await createTestDevice(server);

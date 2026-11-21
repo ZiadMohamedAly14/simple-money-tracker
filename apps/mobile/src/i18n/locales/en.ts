@@ -317,8 +317,6 @@ export const en = {
       title: 'Add a kid',
       nameLabel: "Kid's name",
       namePlaceholder: 'e.g. Omar',
-      avatarLabel: 'Avatar (optional)',
-      noAvatar: 'Use the first letter',
       create: 'Create',
     },
     wallet: {

@@ -319,8 +319,6 @@ export const ar: Translations = {
       title: 'أضف طفلًا',
       nameLabel: 'اسم الطفل',
       namePlaceholder: 'مثلًا عمر',
-      avatarLabel: 'الصورة الرمزية (اختياري)',
-      noAvatar: 'استخدم الحرف الأول',
       create: 'إنشاء',
     },
     wallet: {

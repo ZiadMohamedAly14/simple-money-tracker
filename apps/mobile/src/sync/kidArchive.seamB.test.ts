@@ -30,8 +30,8 @@ describe('Archiving a Kid Profile (Seam B)', () => {
     await phone.signIn(EMAIL);
     phone.onboardPersonal({ currency: 'EGP', expectedIncome: 0, month: '2026-03', categoryNames: CATEGORY_NAMES });
     expect(await phone.pinGate.setPin(PIN)).toEqual({ status: 'ok' });
-    const omar = phone.createKidProfile({ name: 'Omar', avatar: null, jarNames: JAR_NAMES });
-    const lina = phone.createKidProfile({ name: 'Lina', avatar: null, jarNames: JAR_NAMES });
+    const omar = phone.createKidProfile({ name: 'Omar', jarNames: JAR_NAMES });
+    const lina = phone.createKidProfile({ name: 'Lina', jarNames: JAR_NAMES });
     phone.addTopUp({ kidProfileId: omar, amount: 5000, splits: [{ jarId: phone.jarIds(omar).spend, amount: 5000 }], date: '2026-03-01' });
     expect(await phone.sync()).toBe('synced');
     const tablet = await createTestDevice(server);

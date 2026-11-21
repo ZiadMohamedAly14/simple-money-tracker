@@ -170,7 +170,7 @@ All money is virtual. Everything works offline, and changes sync between devices
   - **Month plan:** Month, Expected Income.
   - **Category Budget:** Month, Category, amount.
   - **Transaction:** income or expense, amount, Category for expenses, date, note.
-  - **Kid Profile:** name, avatar, archived time.
+  - **Kid Profile:** name, archived time. Its avatar is the first letter of the name (an `avatar` field stays in the record for compatibility and is always null; photos are after the MVP).
   - **Jar:** Kid Profile, name, order, archived time.
   - **Kid Transaction:** Top-up with splits, Kid Expense with Jar and amount, or Jar Transfer with source Jar, target Jar and amount.
 - Month plans and Category Budgets get deterministic IDs worked out from the Account and Month (and Category), so that two offline devices creating the same Month end up with one record. This rule was introduced after the design discussion.

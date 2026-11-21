@@ -11,7 +11,7 @@ import { parentPinGate } from '@/pin/appPinGate';
 import { Button, Screen, ScreenHeader, Text } from '@/ui';
 
 /**
- * Kid path, step 3: the first Kid Profile (name, optional avatar). Next
+ * Kid path, step 3: the first Kid Profile (name; the avatar is its first letter). Next
  * finishes onboarding on this device, offline if need be: currency, the
  * default Categories (the Personal Budget is there for later) and the Kid
  * Profile with Save, Spend and Give. Then the Parent PIN, then an optional
@@ -21,7 +21,7 @@ export default function KidProfileStep() {
   const { t } = useTranslation();
   const jarNames = useJarNames();
   const currency = useLocalSearchParams<{ currency?: string }>().currency ?? FALLBACK_CURRENCY;
-  const [draft, setDraft] = useState<KidProfileDraft>({ name: '', avatar: null });
+  const [draft, setDraft] = useState<KidProfileDraft>({ name: '' });
   const [busy, setBusy] = useState(false);
 
   async function next() {

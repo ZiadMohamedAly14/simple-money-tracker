@@ -67,7 +67,7 @@ function KidWallet({ id }: { id: string }) {
     <Screen scroll>
       <View className="min-h-11 flex-row items-center gap-3 pt-2">
         <IconButton icon="app:back" directional accessibilityLabel={t('common.back')} onPress={() => router.back()} />
-        <KidAvatar name={kid.name} avatar={kid.avatar} />
+        <KidAvatar name={kid.name} />
         <Text weight="bold" accessibilityRole="header" numberOfLines={1} className="flex-1 text-2xl">
           {kid.name}
         </Text>

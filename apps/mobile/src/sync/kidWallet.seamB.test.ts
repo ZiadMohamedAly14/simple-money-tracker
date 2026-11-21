@@ -41,7 +41,7 @@ describe('Kid Profiles, Jars and Top-ups (Seam B)', () => {
     const kid = phone.onboardKid({
       currency: 'SAR',
       categoryNames: CATEGORY_NAMES,
-      kid: { name: 'Omar', avatar: '🦊', jarNames: JAR_NAMES },
+      kid: { name: 'Omar', jarNames: JAR_NAMES },
     });
 
     expect(phone.onboarding()).toBe('unreported');
@@ -49,7 +49,7 @@ describe('Kid Profiles, Jars and Top-ups (Seam B)', () => {
     // The Personal Budget still exists for later (spec, story 16).
     expect(phone.categories().map((c) => (c.isOther ? '(Other)' : c.name))).toEqual(['food', 'bills', 'shopping', '(Other)']);
     expect(phone.categories().map((c) => c.icon)).toEqual(['food-groceries', 'bills-utilities', 'shopping-spend', 'other']);
-    expect(phone.kidProfiles()).toEqual([expect.objectContaining({ id: kid, name: 'Omar', avatar: '🦊' })]);
+    expect(phone.kidProfiles()).toEqual([expect.objectContaining({ id: kid, name: 'Omar', avatar: null })]);
     expect(balancesOf(phone, kid)).toEqual([
       ['Save', 0],
       ['Spend', 0],
@@ -71,9 +71,9 @@ describe('Kid Profiles, Jars and Top-ups (Seam B)', () => {
   it('a parent adds several Kid Profiles, each with its own Jars', async () => {
     const clock = createDeviceClock();
     const phone = await onboardedPhone({ now: clock.now });
-    const omar = phone.createKidProfile({ name: 'Omar', avatar: null, jarNames: JAR_NAMES });
+    const omar = phone.createKidProfile({ name: 'Omar', jarNames: JAR_NAMES });
     clock.advance(1000);
-    const lina = phone.createKidProfile({ name: 'Lina', avatar: '🐼', jarNames: JAR_NAMES });
+    const lina = phone.createKidProfile({ name: 'Lina', jarNames: JAR_NAMES });
 
     expect(phone.kidProfiles().map((k) => k.name)).toEqual(['Omar', 'Lina']);
     phone.addTopUp({ kidProfileId: omar, amount: 5000, splits: [{ jarId: phone.jarIds(omar).spend, amount: 5000 }], date: '2026-03-02' });
@@ -84,7 +84,7 @@ describe('Kid Profiles, Jars and Top-ups (Seam B)', () => {
 
   it('a Top-up split across Jars fills each Jar, and the other device shows the same balances', async () => {
     const phone = await onboardedPhone();
-    const kid = phone.createKidProfile({ name: 'Omar', avatar: null, jarNames: JAR_NAMES });
+    const kid = phone.createKidProfile({ name: 'Omar', jarNames: JAR_NAMES });
     const jars = phone.jarIds(kid);
     phone.goOffline();
 
@@ -116,7 +116,7 @@ describe('Kid Profiles, Jars and Top-ups (Seam B)', () => {
 
   it('refuses a split that does not add up to the total, and saves nothing', async () => {
     const phone = await onboardedPhone();
-    const kid = phone.createKidProfile({ name: 'Omar', avatar: null, jarNames: JAR_NAMES });
+    const kid = phone.createKidProfile({ name: 'Omar', jarNames: JAR_NAMES });
     const pending = phone.pendingChanges();
 
     const result = phone.addTopUp({
@@ -134,7 +134,7 @@ describe('Kid Profiles, Jars and Top-ups (Seam B)', () => {
   it('suggests all to Spend for the first Top-up, then remembers the last split', async () => {
     const clock = createDeviceClock();
     const phone = await onboardedPhone({ now: clock.now });
-    const kid = phone.createKidProfile({ name: 'Omar', avatar: null, jarNames: JAR_NAMES });
+    const kid = phone.createKidProfile({ name: 'Omar', jarNames: JAR_NAMES });
     const jars = phone.jarIds(kid);
 
     expect(phone.suggestedSplit(kid, 5000)).toEqual([{ jarId: jars.spend, amount: 5000 }]);
@@ -165,7 +165,7 @@ describe('Kid Profiles, Jars and Top-ups (Seam B)', () => {
   it('Jars can be added, renamed and archived; an archived Jar leaves new Top-ups but keeps its money', async () => {
     const clock = createDeviceClock();
     const phone = await onboardedPhone({ now: clock.now });
-    const kid = phone.createKidProfile({ name: 'Omar', avatar: null, jarNames: JAR_NAMES });
+    const kid = phone.createKidProfile({ name: 'Omar', jarNames: JAR_NAMES });
     const jars = phone.jarIds(kid);
     phone.addTopUp({ kidProfileId: kid, amount: 2000, splits: [{ jarId: jars.give, amount: 2000 }], date: '2026-03-02' });
 
@@ -194,7 +194,7 @@ describe('Kid Profiles, Jars and Top-ups (Seam B)', () => {
   it('a parent edits and deletes a Top-up offline, and the other device follows', async () => {
     const clock = createDeviceClock();
     const phone = await onboardedPhone({ now: clock.now });
-    const kid = phone.createKidProfile({ name: 'Omar', avatar: null, jarNames: JAR_NAMES });
+    const kid = phone.createKidProfile({ name: 'Omar', jarNames: JAR_NAMES });
     const jars = phone.jarIds(kid);
     const first = phone.addTopUp({ kidProfileId: kid, amount: 5000, splits: [{ jarId: jars.spend, amount: 5000 }], date: '2026-03-02' });
     const second = phone.addTopUp({ kidProfileId: kid, amount: 1000, splits: [{ jarId: jars.save, amount: 1000 }], date: '2026-03-03' });
@@ -233,7 +233,7 @@ describe('Kid Profiles, Jars and Top-ups (Seam B)', () => {
 
   it('the default Jars are recognised by their fixed IDs, so Spend stays Spend after a rename', async () => {
     const phone = await onboardedPhone();
-    const kid = phone.createKidProfile({ name: 'Omar', avatar: null, jarNames: JAR_NAMES });
+    const kid = phone.createKidProfile({ name: 'Omar', jarNames: JAR_NAMES });
     const accountId = phone.accountId()!;
     expect(phone.jarIds(kid).spend).toBe(defaultJarId(accountId, kid, 'spend'));
     phone.renameJar(phone.jarIds(kid).spend, 'Fun money');

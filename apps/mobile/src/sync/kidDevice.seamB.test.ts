@@ -32,8 +32,8 @@ describe('Kid-Mode device (Seam B)', () => {
     phone.onboardPersonal({ currency: 'EGP', expectedIncome: 500000, month: '2026-03', categoryNames: CATEGORY_NAMES });
     phone.recordExpense({ amount: 2500, categoryId: phone.categories()[0]!.id, date: '2026-03-02', note: 'Groceries' });
     expect(await phone.pinGate.setPin(PIN)).toEqual({ status: 'ok' });
-    const omar = phone.createKidProfile({ name: 'Omar', avatar: null, jarNames: JAR_NAMES });
-    const lina = phone.createKidProfile({ name: 'Lina', avatar: null, jarNames: JAR_NAMES });
+    const omar = phone.createKidProfile({ name: 'Omar', jarNames: JAR_NAMES });
+    const lina = phone.createKidProfile({ name: 'Lina', jarNames: JAR_NAMES });
     const omarJars = phone.jarIds(omar);
     const linaJars = phone.jarIds(lina);
     phone.addTopUp({ kidProfileId: omar, amount: 5000, splits: [{ jarId: omarJars.spend, amount: 5000 }], date: '2026-03-01' });
@@ -129,7 +129,7 @@ describe('Kid-Mode device (Seam B)', () => {
     await parentsPhone();
     const kidPhone = await signedInKidPhone();
 
-    const noor = kidPhone.createKidProfile({ name: 'Noor', avatar: '🦊', jarNames: JAR_NAMES });
+    const noor = kidPhone.createKidProfile({ name: 'Noor', jarNames: JAR_NAMES });
     expect(await kidPhone.setUpKidDevice({ kidProfileId: noor, pin: PIN })).toEqual({ status: 'ok' });
 
     expect(kidPhone.kidProfiles().map((k) => k.name)).toEqual(['Noor']);

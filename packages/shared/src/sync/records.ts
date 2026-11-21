@@ -99,7 +99,7 @@ export interface TransactionFields {
 /** A child under the Account (GLOSSARY). Owns one Kid Wallet: its Jars and Kid Transactions. */
 export interface KidProfileFields {
   name: string;
-  /** One of the avatar choices the app offers (an emoji), or null for the initial. */
+  /** Unused: the avatar is the name's first letter, and this app always writes null. Kept so older records and apps still sync. */
   avatar: string | null;
   archivedAt: number | null;
 }

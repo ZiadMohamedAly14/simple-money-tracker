@@ -90,7 +90,7 @@ export default function ParentAreaScreen() {
             className="gap-3 p-4"
           >
             <View className="flex-row items-center gap-3">
-              <KidAvatar name={kid.name} avatar={kid.avatar} />
+              <KidAvatar name={kid.name} />
               <Text weight="bold" numberOfLines={1} className="flex-1 text-lg">
                 {kid.name}
               </Text>

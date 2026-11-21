@@ -12,7 +12,7 @@ import { Button, Screen, ScreenHeader } from '@/ui';
 export default function NewKidProfileScreen() {
   const { t } = useTranslation();
   const jarNames = useJarNames();
-  const [draft, setDraft] = useState<KidProfileDraft>({ name: '', avatar: null });
+  const [draft, setDraft] = useState<KidProfileDraft>({ name: '' });
 
   function create() {
     if (!draft.name.trim()) return;

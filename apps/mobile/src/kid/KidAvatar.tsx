@@ -6,13 +6,13 @@ const SIZE = {
   lg: { circle: 'h-16 w-16', text: 'text-3xl' },
 } as const;
 
-/** A Kid Profile's avatar: the chosen emoji, or the name's first letter, on the orange accent circle. */
-export function KidAvatar({ name, avatar, size = 'md' }: { name: string; avatar: string | null; size?: keyof typeof SIZE }) {
+/** A Kid Profile's avatar: the name's first letter on the orange accent circle ("?" before a name is typed). */
+export function KidAvatar({ name, size = 'md' }: { name: string; size?: keyof typeof SIZE }) {
   const { circle, text } = SIZE[size];
   return (
     <View className={`items-center justify-center rounded-full bg-accent ${circle}`} accessible={false}>
       <Text weight="bold" tone="on-accent" className={text}>
-        {avatar ?? (Array.from(name.trim())[0] ?? '').toLocaleUpperCase()}
+        {(Array.from(name.trim())[0] ?? '?').toLocaleUpperCase()}
       </Text>
     </View>
   );

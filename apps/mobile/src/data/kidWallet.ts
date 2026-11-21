@@ -32,18 +32,13 @@ function requireAccount(store: LocalStore): string {
 
 export interface NewKidProfile {
   name: string;
-  /** One of `KID_AVATARS`, or null for the name's initial. */
-  avatar: string | null;
   /** The default Jars' names in the device language (from the `kid.jars` strings). */
   jarNames: Record<DefaultJarKey, string>;
 }
 
-/** The avatars a parent can pick for a Kid Profile. */
-export const KID_AVATARS = ['🦊', '🐼', '🦁', '🐸', '🐙', '🦄', '🐢', '🚀'] as const;
-
-function kidProfileRecords(accountId: string, id: string, { name, avatar, jarNames }: NewKidProfile): KnownRecord[] {
+function kidProfileRecords(accountId: string, id: string, { name, jarNames }: NewKidProfile): KnownRecord[] {
   return [
-    { entity: 'kidProfile', id, fields: { name: name.trim(), avatar, archivedAt: null } },
+    { entity: 'kidProfile', id, fields: { name: name.trim(), avatar: null, archivedAt: null } },
     ...DEFAULT_JAR_KEYS.map(
       (key, order): KnownRecord => ({
         entity: 'jar',

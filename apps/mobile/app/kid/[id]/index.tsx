@@ -68,7 +68,7 @@ function KidHome({ id }: { id: string }) {
         {isKidModeHome ? null : (
           <IconButton icon="app:back" directional accessibilityLabel={t('common.back')} onPress={() => router.back()} />
         )}
-        <KidAvatar name={kid.name} avatar={kid.avatar} />
+        <KidAvatar name={kid.name} />
         <Text weight="bold" accessibilityRole="header" numberOfLines={1} className="flex-1 text-2xl">
           {t('kid.home.hi', { name: kid.name })}
         </Text>
