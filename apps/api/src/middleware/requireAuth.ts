@@ -1,5 +1,7 @@
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
+import type { ParentPinErrorData } from '@money-tracker/shared';
 import { authFailure, type AuthContext, type TokenService } from '../services/token.service';
+import { ForbiddenError } from '../utils/AppError';
 
 declare module 'express-serve-static-core' {
   interface Request {
@@ -31,3 +33,12 @@ export function authOf(req: Request): AuthContext {
   if (!req.auth) throw new Error('requireAuth must run before this handler');
   return req.auth;
 }
+
+/**
+ * After `requireAuth`: lets only full (Personal-Mode) sessions through. A Kid
+ * Session gets 403 `kid_session` (ADR-0002).
+ */
+export const requireFullScope: RequestHandler = (req, _res, next) => {
+  const data: ParentPinErrorData = { reason: 'kid_session' };
+  next(authOf(req).scope === 'full' ? undefined : new ForbiddenError('Not available on a Kid-Mode device', data));
+};

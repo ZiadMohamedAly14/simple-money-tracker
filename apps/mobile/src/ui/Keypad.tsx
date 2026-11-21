@@ -112,3 +112,32 @@ export function CodeBoxes({ value, length, numberingSystem, accessibilityLabel }
     </View>
   );
 }
+
+export interface PinDotsProps {
+  /** How many digits have been typed. The digits themselves are never shown. */
+  count: number;
+  /** Dots to show; filled ones beyond it still appear. */
+  slots: number;
+  accessibilityLabel?: string;
+}
+
+/** A PIN being typed, as dots (filled = typed). Always left to right. */
+export function PinDots({ count, slots, accessibilityLabel }: PinDotsProps) {
+  const total = Math.max(slots, count);
+  return (
+    <View
+      accessible
+      accessibilityLabel={accessibilityLabel}
+      accessibilityValue={{ min: 0, max: total, now: count }}
+      className="flex-row justify-center gap-4 py-4"
+      style={{ direction: 'ltr' }}
+    >
+      {Array.from({ length: total }, (_, index) => (
+        <View
+          key={index}
+          className={`h-4 w-4 rounded-full border-2 border-primary ${index < count ? 'bg-primary' : 'bg-transparent'}`}
+        />
+      ))}
+    </View>
+  );
+}
