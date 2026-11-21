@@ -46,6 +46,15 @@ export type { MonthFigures, MonthFiguresInput } from './budget/monthFigures';
 export { newMonthPlan } from './budget/newMonthPlan';
 export type { NewMonthPlan, NewMonthPlanInput } from './budget/newMonthPlan';
 export { categoryBreakdown } from './budget/categoryBreakdown';
+export {
+  CATEGORY_ICON_CHOICES,
+  CATEGORY_ICON_MAX_LENGTH,
+  FALLBACK_CATEGORY_ICON,
+  OTHER_CATEGORY_ICON,
+  guessCategoryIcon,
+  isCategoryIconName,
+} from './budget/categoryIcon';
+export type { CategoryIconChoice } from './budget/categoryIcon';
 export type { CategoryBreakdownInput, CategoryFigures } from './budget/categoryBreakdown';
 export { DEFAULT_JAR_KEYS } from './kid/defaultJars';
 export type { DefaultJarKey } from './kid/defaultJars';
