@@ -4,7 +4,7 @@
 
 **Blocked by:** 05 (Sync tracer bullet).
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] Conflicts on the same record go to the latest edit (ADR-0001).
 - [x] Deletions are kept as markers, and an older copy syncing back can't undo them.
