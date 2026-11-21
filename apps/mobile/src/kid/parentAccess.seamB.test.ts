@@ -135,6 +135,51 @@ describe('Parent access on a kid device (Seam B)', () => {
     });
   });
 
+  describe('a Kid-Mode phone whose Kid Session ends', () => {
+    /** Signed out with nothing left: back to sign-in, no wallet, no Kid Mode. */
+    const expectSignedOutAndWiped = (device: TestDevice) => {
+      expect(device.authStatus()).toBe('signedOut');
+      expect(device.kidProfileId()).toBeNull();
+      expect(device.accountId()).toBeNull();
+      expect(device.heldRecords()).toEqual([]);
+      expect(device.pendingChanges()).toBe(0);
+    };
+
+    it('is wiped and back at sign-in when revoked, even while elevated', async () => {
+      const { phone, omar } = await parentsPhone();
+      const omars = await kidPhone(omar, 'Omar');
+      await omars.elevate(PIN);
+      const listed = await phone.kidDevices();
+      await phone.revokeKidDevice(listed.status === 'ok' ? listed.devices[0]!.id : '');
+
+      expect(await omars.sync()).toBe('needs_sign_in');
+      expectSignedOutAndWiped(omars);
+      expect(omars.elevated()).toBe(false);
+    });
+
+    it('is wiped and back at sign-in when its kid is archived', async () => {
+      const { phone, omar } = await parentsPhone();
+      const omars = await kidPhone(omar, 'Omar');
+      await omars.elevate(PIN); // an elevation from it ends too
+      phone.archiveKidProfile(omar);
+      expect(await phone.sync()).toBe('synced');
+
+      expect(await omars.sync()).toBe('needs_sign_in');
+      expectSignedOutAndWiped(omars);
+    });
+
+    it('is wiped and back at sign-in when the Account is deleted', async () => {
+      const { phone, omar } = await parentsPhone();
+      const omars = await kidPhone(omar, 'Omar');
+      omars.addKidExpense({ kidProfileId: omar, jarId: omars.jarIds(omar).spend, amount: 500, date: '2026-03-06', note: 'Juice' });
+      expect(await phone.requestDeletionCode()).toEqual({ status: 'ok' });
+      expect(await phone.deleteAccount(server.mailer.lastCodeFor(EMAIL))).toEqual({ status: 'ok' });
+
+      expect(await omars.sync()).toBe('needs_sign_in');
+      expectSignedOutAndWiped(omars);
+    });
+  });
+
   describe('leaving Kid Mode', () => {
     it('needs the Parent PIN; then the kid’s phone is signed out and its Kid Session ended', async () => {
       const { phone, omar } = await parentsPhone();

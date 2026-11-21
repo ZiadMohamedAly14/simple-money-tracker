@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, isNull } from 'drizzle-orm';
+import { and, asc, desc, eq, isNotNull, isNull } from 'drizzle-orm';
 import {
   DEFAULT_JAR_KEYS,
   defaultJarId,
@@ -300,6 +300,30 @@ export function editJarTransfer(
 export function deleteJarTransfer(store: LocalStore, db: LocalDb, id: string): boolean {
   if (liveKidTransaction(db, id)?.kind !== 'jarTransfer') return false;
   return store.remove('kidTransaction', id);
+}
+
+/**
+ * Hides a Kid Profile from the Parent Area and kid choices. Its wallet and
+ * history stay, and once synced the server signs out its Kid-Mode devices.
+ */
+export function archiveKidProfile(store: LocalStore, db: LocalDb, id: string): boolean {
+  const row = kidProfileQuery(db, id).get();
+  return row?.archivedAt === null ? store.update('kidProfile', id, (now) => ({ archivedAt: now })) : false;
+}
+
+/** Brings an archived Kid Profile back, with the wallet it had. */
+export function restoreKidProfile(store: LocalStore, db: LocalDb, id: string): boolean {
+  const row = kidProfileQuery(db, id).get();
+  return row && row.archivedAt !== null ? store.update('kidProfile', id, { archivedAt: null }) : false;
+}
+
+/** Live-queryable: archived Kid Profiles, oldest first. */
+export function archivedKidProfilesQuery(db: LocalDb) {
+  return db
+    .select()
+    .from(kidProfiles)
+    .where(and(isNull(kidProfiles.deletedAt), isNotNull(kidProfiles.archivedAt)))
+    .orderBy(asc(kidProfiles.id));
 }
 
 /** Live-queryable: Kid Profiles that aren't archived, oldest first. */

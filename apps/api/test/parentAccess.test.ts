@@ -252,6 +252,17 @@ describe('Parent access on a kid device (Seam A)', () => {
       expect((await sync(elevated, 0)).status).toBe(401);
     });
 
+    it("ends the device's elevation too when its kid is archived", async () => {
+      const parent = await family();
+      const kid = await kidDevice();
+      const elevated = (await elevate(kid, PIN)).body.data as { accessToken: string };
+      const archived = { ...kidProfile(OMAR, 'Omar'), record: { ...kidProfile(OMAR, 'Omar').record, updatedAt: meta.updatedAt + 1, archivedAt: meta.updatedAt + 1 } };
+      expect((await sync(parent, 0, [archived])).status).toBe(200);
+
+      expect((await sync(kid, 0)).status).toBe(401);
+      expect((await sync(elevated, 0)).status).toBe(401);
+    });
+
     it("can be done from the kid's phone, elevated", async () => {
       await family();
       const omars = await kidDevice(OMAR, 'Omar');

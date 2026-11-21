@@ -385,6 +385,15 @@ export const en = {
       },
     },
   },
+  kidArchive: {
+    archive: 'Archive {{name}}',
+    archiveTitle: 'Archive {{name}}?',
+    archiveBody:
+      '{{name}} will be hidden from the Parent Area. The wallet and its history are kept, and you can restore them later. Kid phones set up for {{name}} are signed out once this phone syncs.',
+    archivedNotice: '{{name}} is archived. The wallet and its history are kept.',
+    restore: 'Restore {{name}}',
+    archivedKids: 'Archived kids',
+  },
   settings: {
     title: 'Settings',
     numberingLabel: 'Digits',
@@ -399,6 +408,14 @@ export const en = {
     signOutTitle: 'Sign out?',
     signOutBody: 'Your data will be removed from this phone. It stays in your Account.',
     signOutPendingBody: 'Some changes have not synced yet and will be lost. Your other data stays in your Account.',
+    deleteAccount: 'Delete account',
+    deleteTitle: 'Delete your account?',
+    deleteBody:
+      'This permanently deletes your budget, your kids’ wallets and all their history, on every device. Kid phones are signed out. It can’t be undone.',
+    deleteSendCode: 'Email me a code',
+    deleteCodeIntro: 'Enter the code we sent to {{email}} to delete your account.',
+    deleteConfirm: 'Delete my account',
+    deleteOffline: 'Deleting your account needs the internet. Connect and try again.',
   },
   language: {
     label: 'Language',

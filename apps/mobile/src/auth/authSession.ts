@@ -318,6 +318,12 @@ export function createAuthSession({ client, store, localData, now = Date.now }: 
       if (current?.tokens) await this.request({ method: 'POST', url: '/auth/logout' });
       await forget();
     },
+
+    /**
+     * Forgets the session and wipes the local records without telling the
+     * server, for when the server already ended it (the Account was deleted).
+     */
+    forget,
   };
 }
 

@@ -3,20 +3,21 @@ import { router } from 'expo-router';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useTranslation } from 'react-i18next';
 import { formatMoneyParts } from '@money-tracker/shared';
-import { allJarsQuery, allKidTransactionsQuery, kidProfilesQuery, walletOf } from '@/data/kidWallet';
+import { allJarsQuery, allKidTransactionsQuery, archivedKidProfilesQuery, kidProfilesQuery, walletOf } from '@/data/kidWallet';
 import { useAccountSettings } from '@/data/useAccountSettings';
 import { localDb, localStore } from '@/db/appDatabase';
 import { useLanguage } from '@/i18n/useLanguage';
 import { KidAvatar } from '@/kid/KidAvatar';
 import { jarStyle } from '@/kid/useKidWallet';
 import { parentArea } from '@/pin/appPinGate';
-import { AppIcon, Button, Card, Glyph, Notice, Screen, ScreenHeader, Text } from '@/ui';
+import { AppIcon, Button, Card, Glyph, ListRow, Notice, Screen, ScreenHeader, Text } from '@/ui';
 import { useTheme } from '@/theme/ThemeProvider';
 
 /**
  * The Parent Area, once the gate is open (PDF page 11): each Kid Profile with
  * its wallet total and Jar balances, worked out from the local database.
- * Tap a kid for their wallet, Top-ups and Jars. Works offline.
+ * Tap a kid for their wallet, Top-ups and Jars. Archived kids are listed
+ * last, with their totals, to open their history or restore them. Works offline.
  */
 export default function ParentAreaScreen() {
   const { t } = useTranslation();
@@ -24,6 +25,7 @@ export default function ParentAreaScreen() {
   const theme = useTheme();
   const { currency, numberingSystem } = useAccountSettings();
   const { data: kids } = useLiveQuery(kidProfilesQuery(localDb));
+  const { data: archivedKids } = useLiveQuery(archivedKidProfilesQuery(localDb));
   const { data: jars } = useLiveQuery(allJarsQuery(localDb));
   const { data: transactions } = useLiveQuery(allKidTransactionsQuery(localDb));
   const accountId = localStore.accountId();
@@ -89,6 +91,31 @@ export default function ParentAreaScreen() {
           </Card>
         );
       })}
+      {archivedKids.length > 0 ? (
+        <View className="gap-3">
+          <Text weight="semibold" accessibilityRole="header" tone="muted">
+            {t('kidArchive.archivedKids')}
+          </Text>
+          {archivedKids.map((kid) => {
+            const total = parts(
+              walletOf(
+                accountId,
+                jars.filter((jar) => jar.kidProfileId === kid.id),
+                transactions.filter((tx) => tx.kidProfileId === kid.id),
+              ).total,
+            );
+            return (
+              <ListRow
+                key={kid.id}
+                icon="app:archive"
+                title={kid.name}
+                end={`${total.amount} ${total.currency}`}
+                onPress={() => router.push({ pathname: '/parent/kids/[id]', params: { id: kid.id } })}
+              />
+            );
+          })}
+        </View>
+      ) : null}
       <View className="gap-3">
         <Button label={t('parentArea.addKid')} icon="app:add" onPress={() => router.push('/parent/kids/new')} />
         <Button

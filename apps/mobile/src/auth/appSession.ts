@@ -2,6 +2,7 @@ import { useSyncExternalStore } from 'react';
 import { createApiClient } from '@/api/client';
 import { API_URL } from '@/config';
 import { localStore } from '@/db/appDatabase';
+import { createAccountDeletion } from './accountDeletion';
 import { createAuthSession, type AuthStatus } from './authSession';
 import { secureSessionStore } from './tokenStore';
 
@@ -15,6 +16,9 @@ export const authSession = createAuthSession({
   store: secureSessionStore,
   localData: localStore,
 });
+
+/** Settings → Delete account. */
+export const accountDeletion = createAccountDeletion({ request: (config) => authSession.request(config), auth: authSession });
 
 /** Re-renders when the device signs in, out, or needs a new code. */
 export function useAuthStatus(): AuthStatus {
