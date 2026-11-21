@@ -188,13 +188,21 @@ const isActive = () => and(isNull(categories.deletedAt), isNull(categories.archi
  * Categories (as `activeCategoriesQuery`), most recently recorded-against
  * first (by the Expense's UUIDv7 ID, which sorts by when it was recorded, on
  * whichever device), then the never-used ones in display order, Other last.
+ * An Expense whose Category is deleted counts as a use of Other, as it shows
+ * under Other everywhere else.
  */
 export function categoryChoicesQuery(db: LocalDb) {
   const lastUse = sql`(
     select max(${transactions.id}) from ${transactions}
-    where ${transactions.categoryId} = ${categories.id}
-      and ${transactions.kind} = 'expense'
+    where ${transactions.kind} = 'expense'
       and ${transactions.deletedAt} is null
+      and (
+        ${transactions.categoryId} = ${categories.id}
+        or (${categories.isOther} = 1 and not exists (
+          select 1 from ${categories} as live
+          where live.id = ${transactions.categoryId} and live.deleted_at is null
+        ))
+      )
   )`;
   return db
     .select()

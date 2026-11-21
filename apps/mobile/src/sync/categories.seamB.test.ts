@@ -197,6 +197,20 @@ describe('Categories and Category Budgets (Seam B)', () => {
       }
     });
 
+    it('chip order credits a deleted Category’s Expenses to Other', async () => {
+      const clock = createDeviceClock();
+      const phone = await onboardedPhone(clock);
+      const other = otherCategoryId(phone.accountId()!);
+      const food = idOf(phone, 'food');
+      const bills = idOf(phone, 'bills');
+      phone.recordExpense({ amount: 900, date: '2026-03-01', categoryId: bills });
+      clock.advance(1000);
+      phone.recordExpense({ amount: 1200, date: '2026-03-02', categoryId: food });
+      phone.deleteCategory(food);
+
+      expect(phone.categoryChoices().map((c) => c.id).slice(0, 2)).toEqual([other, bills]);
+    });
+
     it('saving an Expense whose Category was deleted files it under Other', async () => {
       const phone = await onboardedPhone();
       const other = otherCategoryId(phone.accountId()!);
