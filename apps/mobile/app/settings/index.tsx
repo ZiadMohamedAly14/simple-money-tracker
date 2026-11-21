@@ -120,7 +120,7 @@ function SettingsScreen() {
 
       {biometrics !== 'hidden' ? (
         <ListRow
-          icon="finger-print"
+          icon="app:fingerprint-biometrics"
           title={t('settings.biometricsLabel')}
           subtitle={t('settings.biometricsBody')}
           end={
