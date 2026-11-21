@@ -3,7 +3,7 @@ import { Pressable, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/theme/ThemeProvider';
-import { Glyph, IconCircle, type GlyphName, type IconCircleTone, type IconName } from './icons';
+import { Glyph, IconCircle, type GlyphName, type IconCircleTone } from './icons';
 import { Text, type TextTone } from './Text';
 
 export interface CardProps {
@@ -144,7 +144,7 @@ export function SegmentedControl<T extends string>({ options, value, onChange, a
 
 export interface NoticeProps {
   text: string;
-  icon?: IconName;
+  icon?: GlyphName;
 }
 
 /** Warning-surface banner: over-plan, low Jar, "went below zero". */
@@ -152,7 +152,7 @@ export function Notice({ text, icon }: NoticeProps) {
   const theme = useTheme();
   return (
     <View accessibilityRole="alert" className="flex-row items-center gap-2 rounded-theme bg-warning px-3 py-2.5">
-      {icon ? <Ionicons name={icon} size={18} color={theme.colors['on-warning']} /> : null}
+      {icon ? <Glyph name={icon} size={18} color={theme.colors['on-warning']} /> : null}
       <Text weight="medium" tone="on-warning" className="flex-1 text-sm">
         {text}
       </Text>

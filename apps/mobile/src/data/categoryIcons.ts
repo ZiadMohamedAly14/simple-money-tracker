@@ -14,8 +14,8 @@ const DEFAULT_ICONS: Record<DefaultCategoryKey, GlyphName> = {
 
 /**
  * The icon for each Category of `accountId`: the default Categories have their
- * own (found by their fixed IDs), Other has its own, and Categories the adult
- * added get a tag.
+ * own custom icon (found by their fixed IDs), Other has `app:other`, and
+ * Categories the adult added get a tag (the custom set has no generic one).
  */
 export function categoryIconFor(accountId: string | null) {
   const byId = new Map<string, GlyphName>(

@@ -188,6 +188,42 @@ describe('POST /sync', () => {
     expect(omarsCopy?.record).toMatchObject({ amount: 12550, accountId: omar.accountId });
   });
 
+  describe('the Other Category', () => {
+    const otherChange = (accountId: string, patch: object = {}): PushedChange =>
+      ({
+        entity: 'category',
+        record: { id: otherCategoryId(accountId), updatedAt: 1772355600000, deletedAt: null, name: 'Other', order: 9999, isOther: true, archivedAt: null, ...patch },
+      }) as PushedChange;
+
+    it.each([
+      ['archived', { archivedAt: 1772355600000 }, 'archivedAt'],
+      ['deleted', { deletedAt: 1772355600000 }, 'deletedAt'],
+      ['no longer flagged as Other', { isOther: false }, 'isOther'],
+    ])("can't be %s", async (_label, patch, field) => {
+      const sara = await signIn();
+      await sync(sara, 0);
+      const res = await sync(sara, 0, [otherChange(sara.accountId, patch)]);
+      expect(res.status).toBe(422);
+      expect(res.body.data).toEqual([{ field: `changes[0].record.${field}`, message: expect.any(String) }]);
+    });
+
+    it('is the only Category flagged as Other', async () => {
+      const sara = await signIn();
+      const res = await sync(sara, 0, [
+        otherChange(sara.accountId, { id: '019ca8a0-3e80-7000-8000-0000000000cb', name: 'Misc' }),
+      ]);
+      expect(res.status).toBe(422);
+      expect(res.body.data).toEqual([{ field: 'changes[0].record.isOther', message: expect.any(String) }]);
+    });
+
+    it('takes other edits, like any Category', async () => {
+      const sara = await signIn();
+      await sync(sara, 0);
+      const res = await sync(sara, 0, [otherChange(sara.accountId, { updatedAt: Date.now() + 1000 })]);
+      expect(res.status).toBe(200);
+    });
+  });
+
   describe('Account settings, Month plans and Category Budgets', () => {
     const meta = { updatedAt: 1772355600000, deletedAt: null };
     const settings = (accountId: string, patch: object = {}): PushedChange =>

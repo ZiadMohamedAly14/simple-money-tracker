@@ -11,6 +11,7 @@ import { createAuthSession, type AuthSession, type AuthedResult } from '@/auth/a
 import type { SessionStore, StoredSession } from '@/auth/tokenStore';
 import {
   accountSettingsQuery,
+  categoryBudgetsQuery,
   changeAccountSettings,
   completePersonalOnboarding,
   type AccountSettingsChanges,
@@ -35,6 +36,12 @@ import {
   type NewExpense,
   type NewIncome,
 } from '@/data/transactions';
+import {
+  activeCategoriesQuery,
+  archivedCategoriesQuery,
+  categoryActions,
+  readCategoryBreakdown,
+} from '@/data/categories';
 import { createLocalStore } from '@/db/localStore';
 import { migrate } from '@/db/migrations';
 import { schema } from '@/db/schema';
@@ -143,6 +150,7 @@ export async function createTestDevice(
     return gate;
   };
   let pinGate = startPinGate();
+  const categoryActionsOf = categoryActions(store, db);
 
   return {
     store,
@@ -198,6 +206,16 @@ export async function createTestDevice(
     changeAccountSettings: (changes: AccountSettingsChanges) => changeAccountSettings(store, db, changes),
     monthPlans: () => monthPlansQuery(db).all(),
     monthOverview: (month: string) => readMonthOverview(db, month),
+    categoryBudgets: (month: string) => categoryBudgetsQuery(db, month).all(),
+
+    addCategory: (name: string) => categoryActionsOf.add(name),
+    renameCategory: (id: string, name: string) => categoryActionsOf.rename(id, name),
+    reorderCategories: (ids: readonly string[]) => categoryActionsOf.reorder(ids),
+    archiveCategory: (id: string) => categoryActionsOf.archive(id),
+    restoreCategory: (id: string) => categoryActionsOf.restore(id),
+    activeCategories: () => activeCategoriesQuery(db).all(),
+    archivedCategories: () => archivedCategoriesQuery(db).all(),
+    categoryBreakdown: (month: string) => readCategoryBreakdown(db, month),
 
     get pinGate(): ParentPinGate {
       return pinGate;
