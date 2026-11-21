@@ -4,7 +4,7 @@
 
 **Blocked by:** 07 (Personal onboarding and Month overview).
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] Categories can be added, renamed and reordered. They can be archived (hidden from new Months, kept in history), except Other.
 - [x] A Category Budget can be set per Month. Category Budgets use a deterministic ID worked out from the Account, Month and Category.
