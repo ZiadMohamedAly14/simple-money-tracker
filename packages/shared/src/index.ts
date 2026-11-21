@@ -40,6 +40,8 @@ export { DEFAULT_CATEGORY_KEYS } from './budget/defaultCategories';
 export type { DefaultCategoryKey } from './budget/defaultCategories';
 export { monthFigures } from './budget/monthFigures';
 export type { MonthFigures, MonthFiguresInput } from './budget/monthFigures';
+export { categoryBreakdown } from './budget/categoryBreakdown';
+export type { CategoryBreakdownInput, CategoryFigures } from './budget/categoryBreakdown';
 export {
   accountSettingsId,
   categoryBudgetId,
