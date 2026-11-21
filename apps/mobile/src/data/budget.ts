@@ -11,7 +11,9 @@ import {
   type DefaultCategoryKey,
   type Month,
   type MonthFigures,
+  type NumberingSystem,
 } from '@money-tracker/shared';
+import { FALLBACK_CURRENCY } from './currency';
 import { ONBOARDING_STATE_KEY, type KnownRecord, type LocalStore } from '@/db/localStore';
 import { accountSettings, categoryBudgets, deviceState, monthPlans, transactions } from '@/db/schema';
 import type { LocalDb } from '@/db/types';
@@ -82,6 +84,31 @@ export function setCategoryBudgets(store: LocalStore, month: Month, amounts: Rec
       fields: { month, categoryId, amount },
     })),
   );
+}
+
+export interface AccountSettingsChanges {
+  currency?: CurrencyCode;
+  numberingSystem?: NumberingSystem;
+}
+
+/**
+ * Changes the Account's currency label and/or numbering system (Settings).
+ * Amounts are stored in minor units and never converted: a new currency only
+ * relabels them. Synced like any record, so every device follows.
+ */
+export function changeAccountSettings(store: LocalStore, db: LocalDb, changes: AccountSettingsChanges): void {
+  const accountId = requireAccount(store);
+  const current = accountSettingsQuery(db).get();
+  store.put([
+    {
+      entity: 'accountSettings',
+      id: accountSettingsId(accountId),
+      fields: {
+        currency: changes.currency ?? current?.currency ?? FALLBACK_CURRENCY,
+        numberingSystem: changes.numberingSystem ?? current?.numberingSystem ?? DEFAULT_NUMBERING_SYSTEM,
+      },
+    },
+  ]);
 }
 
 /** Live-queryable: the Account's settings (one row, or none before onboarding or first sync). */

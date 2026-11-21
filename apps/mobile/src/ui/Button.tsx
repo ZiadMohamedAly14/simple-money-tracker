@@ -1,9 +1,7 @@
 import { ActivityIndicator, Pressable, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { DirectionalIcon } from '@/theme/DirectionalIcon';
 import { useTheme } from '@/theme/ThemeProvider';
 import type { ColorToken } from '@/theme/themes';
-import type { IconName } from './icons';
+import { Glyph, type GlyphName } from './icons';
 import { Text, type TextTone } from './Text';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'dark' | 'danger';
@@ -22,7 +20,7 @@ export interface ButtonProps {
   label: string;
   onPress?: () => void;
   variant?: ButtonVariant;
-  icon?: IconName;
+  icon?: GlyphName;
   /** Mirror the icon in right-to-left (arrows). */
   directionalIcon?: boolean;
   disabled?: boolean;
@@ -50,7 +48,6 @@ export function Button({
   const theme = useTheme();
   const style = VARIANT[variant];
   const color = theme.colors[style.color];
-  const Icon = directionalIcon ? DirectionalIcon : Ionicons;
   const inactive = disabled || loading;
   return (
     <Pressable
@@ -67,7 +64,7 @@ export function Button({
         <ActivityIndicator color={color} />
       ) : (
         <View className="flex-row items-center gap-3">
-          {icon ? <Icon name={icon} size={large ? 24 : 20} color={color} /> : null}
+          {icon ? <Glyph name={icon} size={large ? 24 : 20} color={color} directional={directionalIcon} /> : null}
           <Text weight="bold" tone={style.tone} align="center" className={large ? 'text-xl' : 'text-base'}>
             {label}
           </Text>
@@ -78,7 +75,7 @@ export function Button({
 }
 
 export interface IconButtonProps {
-  icon: IconName;
+  icon: GlyphName;
   /** Required: the button has no visible text. */
   accessibilityLabel: string;
   onPress?: () => void;
@@ -91,7 +88,6 @@ export interface IconButtonProps {
 /** Round tint button for back, close and month arrows. */
 export function IconButton({ icon, accessibilityLabel, onPress, directional, disabled, className = '' }: IconButtonProps) {
   const theme = useTheme();
-  const Icon = directional ? DirectionalIcon : Ionicons;
   return (
     <Pressable
       accessibilityRole="button"
@@ -104,7 +100,7 @@ export function IconButton({ icon, accessibilityLabel, onPress, directional, dis
         disabled ? 'opacity-40' : ''
       } ${className}`}
     >
-      <Icon name={icon} size={22} color={theme.colors.text} />
+      <Glyph name={icon} size={22} color={theme.colors.text} directional={directional} />
     </Pressable>
   );
 }
@@ -112,11 +108,11 @@ export function IconButton({ icon, accessibilityLabel, onPress, directional, dis
 export interface FabProps {
   accessibilityLabel: string;
   onPress?: () => void;
-  icon?: IconName;
+  icon?: GlyphName;
 }
 
 /** Round primary "+" pinned to the bottom end corner of its (relative) parent. */
-export function Fab({ accessibilityLabel, onPress, icon = 'add' }: FabProps) {
+export function Fab({ accessibilityLabel, onPress, icon = 'app:add' }: FabProps) {
   const theme = useTheme();
   return (
     <Pressable
@@ -125,7 +121,7 @@ export function Fab({ accessibilityLabel, onPress, icon = 'add' }: FabProps) {
       onPress={onPress}
       className="absolute bottom-6 end-6 h-16 w-16 items-center justify-center rounded-full bg-primary active:opacity-80"
     >
-      <Ionicons name={icon} size={32} color={theme.colors['on-primary']} />
+      <Glyph name={icon} size={32} color={theme.colors['on-primary']} />
     </Pressable>
   );
 }

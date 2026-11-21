@@ -143,6 +143,16 @@ export function createParentPinGate({ request, accountId, store, biometrics, now
       return !!(await load())?.biometrics && (await biometrics.isEnrolled());
     },
 
+    /**
+     * What the Settings switch shows: `hidden` until a Parent PIN exists, or on
+     * a device without biometrics enrolled; otherwise whether it is on.
+     */
+    async biometricsSetting(): Promise<'hidden' | 'on' | 'off'> {
+      const state = await load();
+      if (!state?.pinHash || !(await biometrics.isEnrolled())) return 'hidden';
+      return state.biometrics ? 'on' : 'off';
+    },
+
     /** Turns biometrics on for this device, after one successful scan. True if it is now on. */
     async enableBiometrics(prompt: string): Promise<boolean> {
       if (!(await biometrics.isEnrolled()) || !(await biometrics.authenticate(prompt))) return false;

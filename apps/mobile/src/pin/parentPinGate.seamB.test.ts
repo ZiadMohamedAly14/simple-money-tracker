@@ -187,6 +187,20 @@ describe('Parent PIN gate on a Personal-Mode device', () => {
       expect(await phone.pinGate.unlockWithBiometrics('Open')).toBe(false);
     });
 
+    it('the Settings switch is shown only once a Parent PIN exists, on a device with biometrics', async () => {
+      const phone = await signedInPhone();
+      expect(await phone.pinGate.biometricsSetting()).toBe('hidden');
+
+      await phone.pinGate.setPin('2580');
+      expect(await phone.pinGate.biometricsSetting()).toBe('off');
+
+      await phone.pinGate.enableBiometrics('Turn on');
+      expect(await phone.pinGate.biometricsSetting()).toBe('on');
+
+      phone.biometrics.enrolled = false;
+      expect(await phone.pinGate.biometricsSetting()).toBe('hidden');
+    });
+
     it('a successful scan clears the wrong PIN count', async () => {
       const phone = await signedInPhone();
       await phone.pinGate.setPin('2580');
