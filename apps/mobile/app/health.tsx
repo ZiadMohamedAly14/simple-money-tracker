@@ -11,14 +11,15 @@ import { switchLanguage } from '@/i18n/i18n';
 import { useFormatMoney } from '@/i18n/useFormatMoney';
 import { useLanguage } from '@/i18n/useLanguage';
 import { useTheme } from '@/theme/ThemeProvider';
-import { AmountDisplay, Button, Card, IconCircle, Screen, SegmentedControl, Text } from '@/ui';
+import { AmountDisplay, Button, Card, IconCircle, Screen, ScreenHeader, SegmentedControl, Text } from '@/ui';
 
 /**
  * Walking-skeleton health screen: proves the app can reach the API, and
  * doubles as the right-to-left check for the shell (text, a sample amount and
- * the language switch).
+ * the language switch). Reached from the home screen's settings button until
+ * the Settings screen (ticket 17) takes over language and sign-out.
  */
-export default function HomeScreen() {
+export default function HealthRoute() {
   // Signed-out devices go to sign-in first. A device whose session ended keeps
   // showing its data (HealthScreen shows a sign-in-again notice instead).
   const status = useAuthStatus();
@@ -57,9 +58,7 @@ function HealthScreen() {
   return (
     <Screen scroll className="pt-4">
       <View className="gap-1">
-        <Text weight="bold" accessibilityRole="header" className="text-3xl">
-          {t('common.appName')}
-        </Text>
+        <ScreenHeader title={t('home.settings')} onBack={() => router.back()} />
         <Text tone="muted">{t('health.title')}</Text>
       </View>
 
@@ -110,9 +109,6 @@ function HealthScreen() {
           accessibilityLabel={t('language.label')}
         />
       </Card>
-
-      {/* Sync tracer bullet (ticket 05); the Month overview (ticket 07) replaces this screen. */}
-      <Button label={t('expenses.open')} variant="secondary" onPress={() => router.push('/expenses')} />
 
       <Button label={t('session.signOut')} variant="danger" onPress={() => void authSession.signOut()} />
     </Screen>
