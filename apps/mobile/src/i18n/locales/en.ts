@@ -458,6 +458,7 @@ export const en = {
     currencyLabel: 'Currency',
     currencyTitle: 'Change currency',
     currencyNote: 'Only the label changes. Amounts are not converted.',
+    settingsNotReady: 'Your settings haven’t downloaded to this phone yet. Connect to the internet, pull to refresh on the home screen, then try again.',
     biometricsLabel: 'Biometrics for the Parent Area',
     biometricsBody: 'On this phone only. Your PIN always works too.',
     connection: 'Connection',

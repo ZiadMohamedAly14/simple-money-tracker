@@ -15,7 +15,6 @@ import {
   type MonthFigures,
   type NumberingSystem,
 } from '@money-tracker/shared';
-import { FALLBACK_CURRENCY } from './currency';
 import { ONBOARDING_STATE_KEY, type KnownRecord, type LocalStore } from '@/db/localStore';
 import { accountSettings, categories, categoryBudgets, deviceState, monthPlans, transactions } from '@/db/schema';
 import type { LocalDb } from '@/db/types';
@@ -146,21 +145,27 @@ export interface AccountSettingsChanges {
 /**
  * Changes the Account's currency label and/or numbering system (Settings).
  * Amounts are stored in minor units and never converted: a new currency only
- * relabels them. Synced like any record, so every device follows.
+ * relabels them. Synced like any record, so every device follows. Returns
+ * `not_ready` and writes nothing while the device hasn't received the
+ * Account settings yet (e.g. a new device offline before its first sync).
  */
-export function changeAccountSettings(store: LocalStore, db: LocalDb, changes: AccountSettingsChanges): void {
+export function changeAccountSettings(store: LocalStore, db: LocalDb, changes: AccountSettingsChanges): 'saved' | 'not_ready' {
   const accountId = requireAccount(store);
   const current = accountSettingsQuery(db).get();
+  // The record holds both fields and last edit wins (ADR-0001), so writing it
+  // with a guessed field could overwrite a choice made on another device.
+  if (!current) return 'not_ready';
   store.put([
     {
       entity: 'accountSettings',
       id: accountSettingsId(accountId),
       fields: {
-        currency: changes.currency ?? current?.currency ?? FALLBACK_CURRENCY,
-        numberingSystem: changes.numberingSystem ?? current?.numberingSystem ?? DEFAULT_NUMBERING_SYSTEM,
+        currency: changes.currency ?? current.currency,
+        numberingSystem: changes.numberingSystem ?? current.numberingSystem,
       },
     },
   ]);
+  return 'saved';
 }
 
 /** Live-queryable: the Account's settings (one row, or none before onboarding or first sync). */

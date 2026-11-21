@@ -113,7 +113,11 @@ function SettingsScreen() {
         <SegmentedControl<NumberingSystem>
           options={numberingSystems}
           value={numberingSystem}
-          onChange={(next) => changeAccountSettings(localStore, localDb, { numberingSystem: next })}
+          onChange={(next) => {
+            if (changeAccountSettings(localStore, localDb, { numberingSystem: next }) === 'not_ready') {
+              Alert.alert(t('settings.settingsNotReady'));
+            }
+          }}
           accessibilityLabel={t('settings.numberingLabel')}
         />
       </Card>

@@ -63,6 +63,30 @@ describe('Settings: Account settings and sign-out (Seam B)', () => {
     expect(tablet.accountSettings()).toMatchObject({ currency: 'SAR', numberingSystem: 'arabic-indic' });
   });
 
+  it('a device that has not received the Account settings yet changes nothing, so it can’t overwrite a digits choice made elsewhere', async () => {
+    const phone = await createTestDevice(server);
+    await phone.signIn('sara@example.com');
+    phone.onboardPersonal({ currency: 'SAR', expectedIncome: 0, month: '2026-03', categoryNames: NAMES });
+    phone.changeAccountSettings({ numberingSystem: 'arabic-indic' });
+    await phone.sync();
+
+    const tablet = await createTestDevice(server);
+    await tablet.signIn('sara@example.com');
+    tablet.goOffline();
+    expect(tablet.accountSettings()).toBeUndefined();
+
+    expect(tablet.changeAccountSettings({ currency: 'USD' })).toBe('not_ready');
+    expect(tablet.accountSettings()).toBeUndefined();
+    expect(tablet.pendingChanges()).toBe(0);
+
+    tablet.goOnline();
+    await tablet.sync();
+    expect(tablet.changeAccountSettings({ currency: 'USD' })).toBe('saved');
+    expect(await tablet.sync()).toBe('synced');
+    await phone.sync();
+    expect(phone.accountSettings()).toMatchObject({ currency: 'USD', numberingSystem: 'arabic-indic' });
+  });
+
   it('signing out ends the session on the server and clears the Account’s data from the device', async () => {
     const phone = await createTestDevice(server);
     await phone.signIn('sara@example.com');

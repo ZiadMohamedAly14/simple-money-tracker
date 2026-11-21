@@ -460,6 +460,7 @@ export const ar: Translations = {
     currencyLabel: 'العملة',
     currencyTitle: 'تغيير العملة',
     currencyNote: 'يتغيّر الاسم فقط. لا تُحوَّل المبالغ.',
+    settingsNotReady: 'لم تصل إعداداتك إلى هذا الهاتف بعد. اتصل بالإنترنت واسحب للتحديث في الشاشة الرئيسية، ثم حاول مرة أخرى.',
     biometricsLabel: 'البصمة لمنطقة الوالدين',
     biometricsBody: 'على هذا الهاتف فقط. رمزك السري يعمل دائمًا أيضًا.',
     connection: 'الاتصال',
