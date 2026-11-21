@@ -122,7 +122,7 @@ function MonthOverview() {
 
         {transactions.length === 0 ? (
           <Card className="items-center gap-3 px-6 py-12">
-            <IconCircle icon="wallet-outline" size="lg" />
+            <IconCircle icon="app:wallet" size="lg" />
             <Text weight="bold" align="center" className="text-xl">
               {t('home.freshTitle')}
             </Text>
@@ -135,7 +135,7 @@ function MonthOverview() {
         {/* Sync tracer bullet (ticket 05) until the Transactions screen (ticket 08). */}
         <Button label={t('expenses.open')} variant="secondary" onPress={() => router.push('/expenses')} />
         {/* PIN-gated Parent Area (ticket 11); the kid wallet entry point (ticket 12) will lead here. */}
-        <Button label={t('parentArea.open')} variant="secondary" icon="lock-closed-outline" onPress={() => router.push('/parent')} />
+        <Button label={t('parentArea.open')} variant="secondary" icon="app:lock-pin" onPress={() => router.push('/parent')} />
       </ScrollView>
       <Fab accessibilityLabel={t('expenses.add')} onPress={() => router.push('/expenses/new')} />
     </SafeAreaView>

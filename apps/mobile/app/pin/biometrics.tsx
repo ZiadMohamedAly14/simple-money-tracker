@@ -27,13 +27,13 @@ export default function BiometricsOfferScreen() {
     <Screen
       footer={
         <>
-          <Button label={t('pin.biometricsOn')} icon="finger-print" loading={busy} onPress={() => void turnOn()} />
+          <Button label={t('pin.biometricsOn')} icon="app:fingerprint-biometrics" loading={busy} onPress={() => void turnOn()} />
           <Button label={t('pin.biometricsSkip')} variant="secondary" disabled={busy} onPress={proceed} />
         </>
       }
     >
       <View className="flex-1 items-center justify-center gap-4">
-        <IconCircle icon="finger-print" />
+        <IconCircle icon="app:fingerprint-biometrics" />
         <Text weight="bold" accessibilityRole="header" align="center" className="text-2xl">
           {t('pin.biometricsTitle')}
         </Text>
