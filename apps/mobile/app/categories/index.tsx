@@ -3,7 +3,6 @@ import { View } from 'react-native';
 import { router } from 'expo-router';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useTranslation } from 'react-i18next';
-import { Ionicons } from '@expo/vector-icons';
 import { currentMonth, formatMonth } from '@money-tracker/shared';
 import { activeCategoriesQuery, archivedCategoriesQuery, categoryActions } from '@/data/categories';
 import { categoryIconFor } from '@/data/categoryIcons';
@@ -13,7 +12,7 @@ import { localDb, localStore } from '@/db/appDatabase';
 import { useFormatMoney } from '@/i18n/useFormatMoney';
 import { useLanguage } from '@/i18n/useLanguage';
 import { useTheme } from '@/theme/ThemeProvider';
-import { Button, Card, IconButton, IconCircle, ListRow, Screen, ScreenHeader, Text } from '@/ui';
+import { Button, Card, Glyph, IconButton, IconCircle, ListRow, Screen, ScreenHeader, Text } from '@/ui';
 
 const actions = categoryActions(localStore, localDb);
 
@@ -51,7 +50,7 @@ export default function CategoriesScreen() {
   const edit = (id?: string) => router.push({ pathname: '/categories/edit', params: id ? { id, month } : { month } });
 
   return (
-    <Screen scroll footer={<Button label={t('categories.add')} icon="add" onPress={() => edit()} />}>
+    <Screen scroll footer={<Button label={t('categories.add')} icon="app:add" onPress={() => edit()} />}>
       <ScreenHeader title={t('categories.title')} onBack={() => router.back()} />
       <Text tone="muted">{t('categories.subtitle', { month: monthName })}</Text>
 
@@ -60,11 +59,18 @@ export default function CategoriesScreen() {
           <Text tone="muted">{t('categories.expectedIncome')}</Text>
           <View className="flex-row items-center gap-2">
             <Text weight="bold">{formatMoney(figures.expectedIncome, currency)}</Text>
-            <Ionicons name="create-outline" size={16} color={theme.colors.primary} />
+            <Glyph name="create-outline" size={16} color={theme.colors.primary} />
           </View>
         </View>
         <View className="flex-row items-center justify-between gap-2">
-          <Text tone="muted">{t('home.unallocated')}</Text>
+          <View className="flex-row items-center gap-2">
+            <Glyph
+              name={figures.unallocated < 0 ? 'app:gentle-warning' : 'app:unallocated'}
+              size={16}
+              color={figures.unallocated < 0 ? theme.colors.negative : theme.colors.primary}
+            />
+            <Text tone="muted">{t('home.unallocated')}</Text>
+          </View>
           <Text weight="bold" tone={figures.unallocated < 0 ? 'negative' : 'text'}>
             {formatMoney(figures.unallocated, currency)}
           </Text>
@@ -89,7 +95,7 @@ export default function CategoriesScreen() {
               <Text weight="bold">{formatMoney(budgetOf.get(category.id) ?? 0, currency)}</Text>
               {category.isOther ? (
                 <View accessible accessibilityLabel={t('categories.otherLocked')} className="h-11 w-11 items-center justify-center">
-                  <Ionicons name="lock-closed-outline" size={18} color={theme.colors.muted} />
+                  <Glyph name="app:lock-pin" size={18} color={theme.colors.muted} />
                 </View>
               ) : (
                 <View className="flex-row">

@@ -3,7 +3,6 @@ import { RefreshControl, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Redirect, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Ionicons } from '@expo/vector-icons';
 import { currentMonth, formatMonth, formatMoneyParts, ltrIsolate } from '@money-tracker/shared';
 import { useAuthStatus } from '@/auth/appSession';
 import { categoryIconFor } from '@/data/categoryIcons';
@@ -15,8 +14,8 @@ import { useLanguage } from '@/i18n/useLanguage';
 import { syncTriggers } from '@/sync/appSync';
 import { useSyncOverdue } from '@/sync/useSyncOverdue';
 import { useTheme } from '@/theme/ThemeProvider';
-import { AmountDisplay, Button, Card, Fab, IconButton, IconCircle, Notice, PendingSyncLabel, ProgressRow, Text } from '@/ui';
-import type { IconName } from '@/ui';
+import { AmountDisplay, Button, Card, Fab, Glyph, IconButton, IconCircle, Notice, PendingSyncLabel, ProgressRow, Text } from '@/ui';
+import type { GlyphName } from '@/ui';
 
 /**
  * Home: signed-out devices go to sign-in and new Accounts to onboarding. A
@@ -98,10 +97,10 @@ function MonthOverview() {
         </View>
 
         <View className="flex-row gap-3">
-          <FigureTile icon="cash-outline" label={t('home.income')} value={number(figures.income)} />
+          <FigureTile icon="app:income-money" label={t('home.income')} value={number(figures.income)} />
           <FigureTile icon="bag-handle-outline" label={t('home.spending')} value={number(figures.spending)} />
           <FigureTile
-            icon="pie-chart-outline"
+            icon={figures.unallocated < 0 ? 'app:gentle-warning' : 'app:unallocated'}
             label={t('home.unallocated')}
             value={number(figures.unallocated)}
             warning={figures.unallocated < 0}
@@ -116,7 +115,7 @@ function MonthOverview() {
         </Text>
 
         {figures.unallocated < 0 ? (
-          <Notice text={t('home.overPlan', { amount: formatMoney(-figures.unallocated, currency) })} />
+          <Notice icon="app:gentle-warning" text={t('home.overPlan', { amount: formatMoney(-figures.unallocated, currency) })} />
         ) : null}
 
         {transactionCount === 0 ? (
@@ -168,7 +167,7 @@ function MonthOverview() {
 }
 
 interface FigureTileProps {
-  icon: IconName;
+  icon: GlyphName;
   label: string;
   value: string;
   /** Warning surface: Unallocated below zero. */
@@ -184,7 +183,7 @@ function FigureTile({ icon, label, value, warning }: FigureTileProps) {
       className={`flex-1 gap-1 rounded-theme p-3 ${warning ? 'bg-warning' : 'bg-surface'}`}
     >
       <View className="flex-row items-center gap-1">
-        <Ionicons name={icon} size={14} color={warning ? theme.colors['on-warning'] : theme.colors.primary} />
+        <Glyph name={icon} size={14} color={warning ? theme.colors['on-warning'] : theme.colors.primary} />
         <Text tone={warning ? 'on-warning' : 'muted'} numberOfLines={1} className="flex-1 text-xs">
           {label}
         </Text>
