@@ -3,6 +3,9 @@ import {
   DEFAULT_JAR_KEYS,
   defaultJarId,
   jarBalances,
+  negativeJarIds,
+  spendableFrom,
+  type JarBalances,
   suggestTopUpSplit,
   topUpSplitProblem,
   type CurrencyCode,
@@ -115,7 +118,16 @@ const cleanSplits = (splits: readonly JarSplit[]): JarSplit[] => splits.map(({ j
 export function addTopUp(store: LocalStore, { kidProfileId, amount, splits, date, note = null }: NewTopUp): TopUpResult {
   const problem = topUpSplitProblem(amount, splits);
   if (problem) return { status: 'invalid_split', problem };
-  const id = store.create('kidTransaction', { kidProfileId, kind: 'topUp', amount, splits: cleanSplits(splits), date, note });
+  const id = store.create('kidTransaction', {
+    kidProfileId,
+    kind: 'topUp',
+    amount,
+    splits: cleanSplits(splits),
+    jarId: null,
+    toJarId: null,
+    date,
+    note,
+  });
   return { status: 'ok', id };
 }
 
@@ -147,6 +159,146 @@ export function editTopUp(
 
 /** Deletes a Top-up: it stays as a deletion marker so the deletion syncs (ADR-0001). */
 export function deleteTopUp(store: LocalStore, id: string): boolean {
+  return store.remove('kidTransaction', id);
+}
+
+/** Live (not deleted) Kid Transactions of one wallet, for working out balances. */
+function walletTransactions(db: LocalDb, kidProfileId: string): KidTransactionRow[] {
+  return kidTransactionsQuery(db, kidProfileId).all();
+}
+
+function liveKidTransaction(db: LocalDb, id: string): KidTransactionRow | undefined {
+  return db
+    .select()
+    .from(kidTransactions)
+    .where(and(eq(kidTransactions.id, id), isNull(kidTransactions.deletedAt)))
+    .get();
+}
+
+/** Each Jar's balance in a wallet right now (archived Jars included). */
+function balancesNow(db: LocalDb, kidProfileId: string): JarBalances {
+  return jarBalances(
+    jarsQuery(db, kidProfileId)
+      .all()
+      .map((jar) => jar.id),
+    walletTransactions(db, kidProfileId),
+  );
+}
+
+export interface NewKidExpense {
+  kidProfileId: string;
+  jarId: string;
+  /** Positive, in minor units. */
+  amount: number;
+  /** Local calendar date `YYYY-MM-DD`. */
+  date: string;
+  note?: string | null;
+}
+
+/** `not_enough`: the Jar can't cover it; `available` is the most it can (0 for a Jar below zero). */
+export type KidExpenseResult = { status: 'ok'; id: string } | { status: 'not_enough'; available: number };
+
+/**
+ * Records a Kid Expense from one Jar. The app blocks one larger than the
+ * Jar's balance, and spending from a Jar below zero (spec); nothing is saved
+ * then. The server never rejects one, so two offline devices can still take
+ * a Jar below zero.
+ */
+export function addKidExpense(
+  store: LocalStore,
+  db: LocalDb,
+  { kidProfileId, jarId, amount, date, note = null }: NewKidExpense,
+): KidExpenseResult {
+  const available = spendableFrom(balancesNow(db, kidProfileId), jarId);
+  if (amount > available) return { status: 'not_enough', available };
+  const id = store.create('kidTransaction', { kidProfileId, kind: 'kidExpense', amount, splits: [], jarId, toJarId: null, date, note });
+  return { status: 'ok', id };
+}
+
+export type KidExpenseChanges = Partial<Pick<NewKidExpense, 'jarId' | 'amount' | 'date' | 'note'>>;
+
+/**
+ * Changes a Kid Expense (the kid's own, or the parent's fix). The money it
+ * already took from its Jar counts as available again. A kid can't change
+ * Top-ups or Jar Transfers, so anything else is `not_a_kid_expense`.
+ */
+export function editKidExpense(
+  store: LocalStore,
+  db: LocalDb,
+  id: string,
+  changes: KidExpenseChanges,
+): KidExpenseResult | { status: 'deleted' } | { status: 'not_a_kid_expense' } {
+  const current = liveKidTransaction(db, id);
+  if (!current) return { status: 'deleted' };
+  if (current.kind !== 'kidExpense') return { status: 'not_a_kid_expense' };
+  const jarId = changes.jarId ?? current.jarId!;
+  const amount = changes.amount ?? current.amount;
+  const available = spendableFrom(balancesNow(db, current.kidProfileId), jarId, current);
+  if (amount > available) return { status: 'not_enough', available };
+  const saved = store.update('kidTransaction', id, { ...changes, jarId, amount });
+  return saved ? { status: 'ok', id } : { status: 'deleted' };
+}
+
+/** Deletes a Kid Expense (a deletion marker that syncs). False for anything that isn't a live Kid Expense. */
+export function deleteKidExpense(store: LocalStore, db: LocalDb, id: string): boolean {
+  if (liveKidTransaction(db, id)?.kind !== 'kidExpense') return false;
+  return store.remove('kidTransaction', id);
+}
+
+export interface NewJarTransfer {
+  kidProfileId: string;
+  fromJarId: string;
+  toJarId: string;
+  /** Positive, in minor units. */
+  amount: number;
+  /** Local calendar date `YYYY-MM-DD`. */
+  date: string;
+  note?: string | null;
+}
+
+export type JarTransferResult = { status: 'ok'; id: string } | { status: 'not_enough'; available: number } | { status: 'same_jar' };
+
+/**
+ * A parent moves money from one Jar to another of the same wallet (only from
+ * the Parent Area). It can't move more than the source Jar holds.
+ */
+export function addJarTransfer(
+  store: LocalStore,
+  db: LocalDb,
+  { kidProfileId, fromJarId, toJarId, amount, date, note = null }: NewJarTransfer,
+): JarTransferResult {
+  if (fromJarId === toJarId) return { status: 'same_jar' };
+  const available = spendableFrom(balancesNow(db, kidProfileId), fromJarId);
+  if (amount > available) return { status: 'not_enough', available };
+  const id = store.create('kidTransaction', { kidProfileId, kind: 'jarTransfer', amount, splits: [], jarId: fromJarId, toJarId, date, note });
+  return { status: 'ok', id };
+}
+
+export type JarTransferChanges = Partial<Pick<NewJarTransfer, 'fromJarId' | 'toJarId' | 'amount' | 'date' | 'note'>>;
+
+/** Changes a Jar Transfer (parents only). The money it already moved counts as available again. */
+export function editJarTransfer(
+  store: LocalStore,
+  db: LocalDb,
+  id: string,
+  { fromJarId, ...changes }: JarTransferChanges,
+): JarTransferResult | { status: 'deleted' } | { status: 'not_a_jar_transfer' } {
+  const current = liveKidTransaction(db, id);
+  if (!current) return { status: 'deleted' };
+  if (current.kind !== 'jarTransfer') return { status: 'not_a_jar_transfer' };
+  const jarId = fromJarId ?? current.jarId!;
+  const toJarId = changes.toJarId ?? current.toJarId!;
+  const amount = changes.amount ?? current.amount;
+  if (jarId === toJarId) return { status: 'same_jar' };
+  const available = spendableFrom(balancesNow(db, current.kidProfileId), jarId, current);
+  if (amount > available) return { status: 'not_enough', available };
+  const saved = store.update('kidTransaction', id, { ...changes, jarId, toJarId, amount });
+  return saved ? { status: 'ok', id } : { status: 'deleted' };
+}
+
+/** Deletes a Jar Transfer (parents only), putting the money back. */
+export function deleteJarTransfer(store: LocalStore, db: LocalDb, id: string): boolean {
+  if (liveKidTransaction(db, id)?.kind !== 'jarTransfer') return false;
   return store.remove('kidTransaction', id);
 }
 
@@ -209,6 +361,11 @@ export interface Wallet {
   /** Live Jars in order, then archived Jars that still hold money. */
   jars: WalletJar[];
   total: number;
+  /**
+   * Jars below zero after a sync (two devices spent the same money). The app
+   * shows them, blocks spending from them and flags them in the Parent Area.
+   */
+  negativeJarIds: string[];
 }
 
 /** Which default Jar `jarId` is, if any. */
@@ -221,7 +378,7 @@ export function defaultJarKeyOf(accountId: string | null, kidProfileId: string, 
 export function walletOf(
   accountId: string | null,
   jarRows: readonly JarRow[],
-  transactions: readonly Pick<KidTransactionRow, 'kind' | 'amount' | 'splits'>[],
+  transactions: readonly Pick<KidTransactionRow, 'kind' | 'amount' | 'splits' | 'jarId' | 'toJarId'>[],
 ): Wallet {
   const balances = jarBalances(
     jarRows.map((jar) => jar.id),
@@ -237,7 +394,7 @@ export function walletOf(
   const live = jarRows.filter((jar) => jar.archivedAt === null).map(toWalletJar);
   const archived = jarRows.filter((jar) => jar.archivedAt !== null).map(toWalletJar).filter((jar) => jar.balance !== 0);
   const total = Object.values(balances).reduce((sum, balance) => sum + balance, 0);
-  return { jars: [...live, ...archived], total };
+  return { jars: [...live, ...archived], total, negativeJarIds: negativeJarIds(balances) };
 }
 
 /** The Jars a new Top-up can go into: the live ones, in order. */

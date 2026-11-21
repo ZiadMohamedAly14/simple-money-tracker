@@ -74,6 +74,10 @@ export const kidTransactions = sqliteTable('kid_transactions', {
   amount: integer('amount').notNull(),
   /** A Top-up's split, stored as JSON text. */
   splits: text('splits', { mode: 'json' }).$type<JarSplit[]>().notNull(),
+  /** A Kid Expense's Jar, or a Jar Transfer's source. */
+  jarId: text('jar_id'),
+  /** A Jar Transfer's target. */
+  toJarId: text('to_jar_id'),
   date: text('date').notNull(),
   note: text('note'),
 });

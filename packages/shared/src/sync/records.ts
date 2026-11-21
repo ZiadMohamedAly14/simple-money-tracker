@@ -108,8 +108,9 @@ export interface JarFields {
   archivedAt: number | null;
 }
 
-/** Ticket 13 adds Kid Expenses and Jar Transfers. */
-export type KidTransactionKind = 'topUp';
+/** Top-up (parent adds money), Kid Expense (kid spends from a Jar), Jar Transfer (parent moves money between Jars). */
+export const KID_TRANSACTION_KINDS = ['topUp', 'kidExpense', 'jarTransfer'] as const;
+export type KidTransactionKind = (typeof KID_TRANSACTION_KINDS)[number];
 
 /** One Jar's share of a Top-up, in minor units. */
 export interface JarSplit {
@@ -122,8 +123,12 @@ export interface KidTransactionFields {
   kind: KidTransactionKind;
   /** Positive, in minor units. For a Top-up, its splits add up to exactly this. */
   amount: number;
-  /** A Top-up's split across Jars of the same Kid Wallet: each positive, each Jar once. */
+  /** A Top-up's split across Jars of the same Kid Wallet: each positive, each Jar once. Empty for the other kinds. */
   splits: JarSplit[];
+  /** The Jar the money comes out of: a Kid Expense's Jar, or a Jar Transfer's source. Null for a Top-up. */
+  jarId: string | null;
+  /** A Jar Transfer's target Jar. Null for the other kinds. */
+  toJarId: string | null;
   /** Local calendar date `YYYY-MM-DD`. */
   date: string;
   note: string | null;
@@ -329,14 +334,25 @@ const FIELD_PARSERS: { [E in SyncEntity]: (read: FieldReader) => SyncFieldsByEnt
   }),
   kidTransaction: (read) => {
     const kidProfileId = read.uuid('kidProfileId');
-    const kind = read.oneOf('kind', ['topUp'] as const);
+    const kind = read.oneOf('kind', KID_TRANSACTION_KINDS);
     const amount = read.positiveAmount('amount');
-    const splits = read.splits('splits');
-    if (amount > 0 && read.problems.every((p) => p.field !== 'splits')) {
-      const problem = topUpSplitProblem(amount, splits);
-      if (problem) read.problem('splits', problem);
+    let splits: JarSplit[] = [];
+    let jarId: string | null = null;
+    let toJarId: string | null = null;
+    if (kind === 'topUp') {
+      splits = read.splits('splits');
+      if (amount > 0 && read.problems.every((p) => p.field !== 'splits')) {
+        const problem = topUpSplitProblem(amount, splits);
+        if (problem) read.problem('splits', problem);
+      }
+    } else {
+      jarId = read.uuid('jarId');
+      if (kind === 'jarTransfer') {
+        toJarId = read.uuid('toJarId');
+        if (jarId && toJarId === jarId) read.problem('toJarId', 'must be a different Jar from jarId');
+      }
     }
-    return { kidProfileId, kind, amount, splits, date: read.localDate('date'), note: read.optionalText('note', 500) };
+    return { kidProfileId, kind, amount, splits, jarId, toJarId, date: read.localDate('date'), note: read.optionalText('note', 500) };
   },
 };
 

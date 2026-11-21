@@ -48,7 +48,7 @@ export { categoryBreakdown } from './budget/categoryBreakdown';
 export type { CategoryBreakdownInput, CategoryFigures } from './budget/categoryBreakdown';
 export { DEFAULT_JAR_KEYS } from './kid/defaultJars';
 export type { DefaultJarKey } from './kid/defaultJars';
-export { jarBalances } from './kid/jarBalances';
+export { jarBalances, negativeJarIds, spendableFrom } from './kid/jarBalances';
 export type { JarBalances } from './kid/jarBalances';
 export { suggestTopUpSplit, topUpSplitProblem } from './kid/topUpSplit';
 export type { SuggestSplitOptions } from './kid/topUpSplit';
@@ -63,7 +63,7 @@ export {
   uuidv7,
 } from './sync/ids';
 export type { RandomBytes } from './sync/ids';
-export { CATEGORY_NAME_MAX_LENGTH, MAX_PULLED_CHANGES, MAX_PUSHED_CHANGES, OTHER_CATEGORY, SYNC_ENTITIES, parsePushedChange } from './sync/records';
+export { CATEGORY_NAME_MAX_LENGTH, KID_TRANSACTION_KINDS, MAX_PULLED_CHANGES, MAX_PUSHED_CHANGES, OTHER_CATEGORY, SYNC_ENTITIES, parsePushedChange } from './sync/records';
 export type {
   AccountSettingsFields,
   CategoryBudgetFields,
