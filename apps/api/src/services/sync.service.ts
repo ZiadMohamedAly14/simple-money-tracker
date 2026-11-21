@@ -294,14 +294,19 @@ export function createSyncService({ now }: { now: Clock }) {
     throw new Error(`Sync could not store ${entity} ${id}: other syncs kept changing it`);
   }
 
-  /** Up to `limit` changes after `cursor`, oldest first. */
+  /**
+   * Up to `limit` changes after `cursor`, oldest first. A Kid-Mode device pulls
+   * only its Kid Profile's records, even while elevated with the Parent PIN to
+   * full access, so it never holds Personal data (ADR-0002).
+   */
   async function pull(auth: AuthContext, cursor: number, limit: number): Promise<SyncResponseData> {
     // Stop below any version still being written, or a late commit would fall behind the cursor.
     const committed = await committedServerVersion(now().getTime());
+    const kidProfileId = auth.kidProfileId;
     const readable = SYNC_ENTITIES.flatMap((entity) => {
-      if (auth.scope === 'full') return [{ entity, scope: {} }];
+      if (!kidProfileId) return auth.scope === 'full' ? [{ entity, scope: {} }] : [];
       const kidReads = RULES[entity].kidReads;
-      return kidReads && auth.kidProfileId ? [{ entity, scope: kidReads(auth.kidProfileId) }] : [];
+      return kidReads ? [{ entity, scope: kidReads(kidProfileId) }] : [];
     });
     const batches = await Promise.all(
       readable.map(async ({ entity, scope }) => {
@@ -323,8 +328,8 @@ export function createSyncService({ now }: { now: Clock }) {
   return {
     async sync(auth: AuthContext, body: SyncRequestBody): Promise<SyncResponseData> {
       const changes = parseAll(body.changes);
-      if (auth.scope === 'full') await ensureOtherCategory(auth.accountId);
-      else await checkKidScope(auth, changes);
+      if (auth.scope === 'kid') await checkKidScope(auth, changes);
+      else if (!auth.kidProfileId) await ensureOtherCategory(auth.accountId); // not for an elevated Kid-Mode device
 
       // Referenced entities first, so a Category is stored before its Expenses.
       const ordered = [...changes].sort((a, b) => SYNC_ENTITIES.indexOf(a.entity) - SYNC_ENTITIES.indexOf(b.entity));
