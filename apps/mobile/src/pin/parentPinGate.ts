@@ -2,8 +2,13 @@ import {
   isApiEnvelope,
   pinRetryAfterSeconds,
   verifyParentPin,
+  type AuthErrorData,
+  type Language,
   type ParentPinData,
   type ParentPinErrorData,
+  type RequestCodeData,
+  type RequestPinResetBody,
+  type ResetParentPinBody,
   type SetParentPinBody,
 } from '@money-tracker/shared';
 import type { AuthSession, AuthedResult } from '@/auth/authSession';
@@ -63,6 +68,18 @@ export type SetPinResult =
   | { status: 'session_ended' }
   | { status: 'failed' };
 
+/** Asking for a PIN reset code. `wait`: a code was sent recently; try again after `retryAfterSeconds`. */
+export type RequestResetResult =
+  | { status: 'ok'; resendAfterSeconds: number }
+  | { status: 'wait'; retryAfterSeconds: number }
+  | { status: 'unreachable' | 'session_ended' | 'failed' };
+
+/** Setting a new PIN with the emailed code. */
+export type ResetPinResult =
+  | { status: 'ok' }
+  | { status: 'invalid_code'; attemptsRemaining: number }
+  | { status: 'code_expired' | 'too_many_guesses' | 'unreachable' | 'session_ended' | 'failed' };
+
 const errorData = (body: unknown): Partial<ParentPinErrorData> =>
   isApiEnvelope(body) && typeof body.data === 'object' && body.data !== null ? (body.data as ParentPinErrorData) : {};
 
@@ -115,6 +132,34 @@ export function createParentPinGate({ request, accountId, store, biometrics, now
       const data = errorData(result.body);
       if (data.reason === 'wrong_pin') return { status: 'wrong_pin', attemptsRemaining: data.attemptsRemaining ?? 0 };
       if (data.reason === 'pin_locked') return { status: 'locked', retryAfterSeconds: data.retryAfterSeconds ?? 60 };
+      return { status: 'failed' };
+    },
+
+    /** Emails a code for resetting a forgotten PIN to the Account's address. Needs the internet; not on a Kid-Mode device. */
+    async requestReset(language: Language): Promise<RequestResetResult> {
+      const body: RequestPinResetBody = { language };
+      const result = await request({ method: 'POST', url: '/account/pin/reset-code', data: body });
+      if (result.status !== 'ok') return { status: result.status };
+      if (result.httpStatus === 200 && isApiEnvelope(result.body) && result.body.success) {
+        return { status: 'ok', resendAfterSeconds: (result.body.data as RequestCodeData).resendAfterSeconds };
+      }
+      const data = errorData(result.body) as Partial<AuthErrorData>;
+      if (result.httpStatus === 429 && data.retryAfterSeconds) return { status: 'wait', retryAfterSeconds: data.retryAfterSeconds };
+      return { status: 'failed' };
+    },
+
+    /** Sets a new PIN with the emailed code in place of the forgotten one; clears this device's wrong-PIN wait. */
+    async resetPin(code: string, pin: string): Promise<ResetPinResult> {
+      const body: ResetParentPinBody = { code, pin };
+      const result = await request({ method: 'POST', url: '/account/pin/reset', data: body });
+      if (result.status !== 'ok') return { status: result.status };
+      if (result.httpStatus === 200 && isApiEnvelope(result.body) && result.body.success) {
+        await update({ pinHash: (result.body.data as ParentPinData).pinHash, failures: 0, lockedUntil: null });
+        return { status: 'ok' };
+      }
+      const data = errorData(result.body) as Partial<AuthErrorData>;
+      if (data.reason === 'invalid_code') return { status: 'invalid_code', attemptsRemaining: data.attemptsRemaining ?? 0 };
+      if (data.reason === 'code_expired' || data.reason === 'too_many_guesses') return { status: data.reason };
       return { status: 'failed' };
     },
 
