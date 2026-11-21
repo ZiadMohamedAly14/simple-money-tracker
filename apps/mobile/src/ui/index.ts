@@ -13,6 +13,9 @@ export type { CardProps, ChipProps, ListRowProps, NoticeProps, SegmentedControlP
 export { AppIcon } from './AppIcon';
 export type { AppIconProps } from './AppIcon';
 export { DateField } from './DateField';
+export { DialogHost } from './Dialog';
+export { showDialog } from './dialogStore';
+export type { DialogButton, DialogButtonStyle } from './dialogStore';
 export type { DateFieldProps } from './DateField';
 export type { AppIconName } from './appIcons';
 export { Glyph, IconCircle } from './icons';

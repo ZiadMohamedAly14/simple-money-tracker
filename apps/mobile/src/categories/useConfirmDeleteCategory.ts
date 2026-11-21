@@ -1,11 +1,11 @@
 import { useCallback } from 'react';
-import { Alert, type AlertButton } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { intlLocale, type Month } from '@money-tracker/shared';
 import { categoryActions, categoryDeletionImpact } from '@/data/categories';
 import { useAccountSettings } from '@/data/useAccountSettings';
 import { localDb, localStore } from '@/db/appDatabase';
 import { useLanguage } from '@/i18n/useLanguage';
+import { showDialog, type DialogButton } from '@/ui/dialogStore';
 
 const actions = categoryActions(localStore, localDb);
 
@@ -26,7 +26,7 @@ export function useConfirmDeleteCategory() {
     (category: { id: string; name: string; archivedAt: number | null }, month: Month, done?: () => void) => {
       const { expenseCount, hasBudgetThisMonth } = categoryDeletionImpact(localDb, category.id, month);
       const title = t('categories.deleteTitle', { name: category.name });
-      const remove: AlertButton = {
+      const remove: DialogButton = {
         text: t('categories.delete'),
         style: 'destructive',
         onPress: () => {
@@ -34,9 +34,9 @@ export function useConfirmDeleteCategory() {
           done?.();
         },
       };
-      const cancel: AlertButton = { text: t('common.cancel'), style: 'cancel' };
+      const cancel: DialogButton = { text: t('common.cancel'), style: 'cancel' };
       if (expenseCount === 0) {
-        Alert.alert(title, undefined, [cancel, remove]);
+        showDialog(title, undefined, [cancel, remove]);
         return;
       }
       const count = new Intl.NumberFormat(intlLocale(language, numberingSystem)).format(expenseCount);
@@ -47,14 +47,14 @@ export function useConfirmDeleteCategory() {
       ]
         .filter((line) => line !== null)
         .join('\n\n');
-      const archiveInstead: AlertButton = {
+      const archiveInstead: DialogButton = {
         text: t('categories.archiveInstead'),
         onPress: () => {
           actions.archive(category.id);
           done?.();
         },
       };
-      Alert.alert(title, body, category.archivedAt === null ? [cancel, archiveInstead, remove] : [cancel, remove]);
+      showDialog(title, body, category.archivedAt === null ? [cancel, archiveInstead, remove] : [cancel, remove]);
     },
     [t, language, numberingSystem],
   );

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { formatMoneyParts, fromMinorUnits, spendableFrom, toLocalDate } from '@money-tracker/shared';
@@ -10,6 +10,7 @@ import type { KidTransactionRow } from '@/db/schema';
 import { useLanguage } from '@/i18n/useLanguage';
 import { useKidWallet } from '@/kid/useKidWallet';
 import { AmountEntryDisplay, AmountKeypad, Button, Chip, Notice, Screen, ScreenHeader, Text, useAmountEntry } from '@/ui';
+import { showDialog } from '@/ui/dialogStore';
 
 /**
  * Jar Transfer from the Parent Area ("Transfer between jars", PDF page 11): an amount
@@ -69,7 +70,7 @@ function JarTransferForm({ kidProfileId, kidName, editing }: { kidProfileId: str
 
   function confirmDelete() {
     if (!editing) return;
-    Alert.alert(t('kid.transfer.deleteTitle'), t('kid.transfer.deleteBody', { jar: jarName(editing.jarId ?? undefined) }), [
+    showDialog(t('kid.transfer.deleteTitle'), t('kid.transfer.deleteBody', { jar: jarName(editing.jarId ?? undefined) }), [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('kid.transfer.delete'),

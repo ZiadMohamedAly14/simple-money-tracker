@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Alert, Switch, View } from 'react-native';
+import { Switch, View } from 'react-native';
 import { Redirect, router, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SUPPORTED_LANGUAGES, type Language, type NumberingSystem } from '@money-tracker/shared';
@@ -14,6 +14,7 @@ import type { Appearance } from '@/theme/appearance';
 import { setAppearance, useAppearance } from '@/theme/appearanceStore';
 import { useTheme } from '@/theme/ThemeProvider';
 import { AppIcon, Button, Card, ListRow, Screen, ScreenHeader, SegmentedControl, Text } from '@/ui';
+import { showDialog } from '@/ui/dialogStore';
 
 /**
  * Settings (PDF pages 7–8): language and appearance (this device), digits and
@@ -60,7 +61,7 @@ function SettingsScreen() {
 
   function confirmSignOut() {
     const body = localStore.pendingCount() > 0 ? t('settings.signOutPendingBody') : t('settings.signOutBody');
-    Alert.alert(t('settings.signOutTitle'), body, [
+    showDialog(t('settings.signOutTitle'), body, [
       { text: t('common.cancel'), style: 'cancel' },
       { text: t('session.signOut'), style: 'destructive', onPress: () => void authSession.signOut() },
     ]);
@@ -115,7 +116,7 @@ function SettingsScreen() {
           value={numberingSystem}
           onChange={(next) => {
             if (changeAccountSettings(localStore, localDb, { numberingSystem: next }) === 'not_ready') {
-              Alert.alert(t('settings.settingsNotReady'));
+              showDialog(t('settings.settingsNotReady'));
             }
           }}
           accessibilityLabel={t('settings.numberingLabel')}

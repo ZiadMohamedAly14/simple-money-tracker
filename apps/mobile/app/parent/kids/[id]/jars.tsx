@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { addJar, archiveJar, renameJar, topUpJarsOf, walletOf } from '@/data/kidWallet';
 import { localStore } from '@/db/appDatabase';
 import { jarStyle, useKidWallet } from '@/kid/useKidWallet';
 import { Button, Card, IconCircle, Screen, ScreenHeader, TextField } from '@/ui';
+import { showDialog } from '@/ui/dialogStore';
 
 /**
  * Manage a Kid Wallet's Jars (no mockup; reuses the card and field patterns):
@@ -29,7 +30,7 @@ export default function ManageJarsScreen() {
   }
 
   function confirmArchive(jarId: string, name: string) {
-    Alert.alert(t('kid.jarsScreen.archiveTitle', { jar: name }), t('kid.jarsScreen.archiveBody'), [
+    showDialog(t('kid.jarsScreen.archiveTitle', { jar: name }), t('kid.jarsScreen.archiveBody'), [
       { text: t('common.cancel'), style: 'cancel' },
       { text: t('kid.jarsScreen.archive'), style: 'destructive', onPress: () => archiveJar(localStore, jarId) },
     ]);

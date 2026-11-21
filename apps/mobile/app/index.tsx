@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Redirect, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -17,6 +17,7 @@ import { useSyncOverdue } from '@/sync/useSyncOverdue';
 import { useTheme } from '@/theme/ThemeProvider';
 import { Button, Card, Fab, Glyph, IconButton, IconCircle, Notice, PendingSyncLabel, ProgressBar, ProgressRow, Text } from '@/ui';
 import type { GlyphName } from '@/ui';
+import { showDialog } from '@/ui/dialogStore';
 
 /**
  * Home: a Kid-Mode device goes to its kid's wallet, signed-out devices to
@@ -318,7 +319,7 @@ function InfoButton({ label, info, color }: InfoButtonProps) {
       accessibilityRole="button"
       accessibilityLabel={t('home.aboutFigure', { label })}
       hitSlop={12}
-      onPress={() => Alert.alert(label, info, [{ text: t('common.ok') }])}
+      onPress={() => showDialog(label, info, [{ text: t('common.ok') }])}
       className="active:opacity-60"
     >
       <Glyph name="app:info" size={16} color={color} />

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Alert } from 'react-native';
+
 import { router, useLocalSearchParams, type Href } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { formatCountdown, isValidParentPin } from '@money-tracker/shared';
@@ -8,6 +8,7 @@ import { parentArea, parentPinGate } from '@/pin/appPinGate';
 import type { SetPinResult } from '@/pin/parentPinGate';
 import { PinPad } from '@/pin/PinPad';
 import { ScreenHeader } from '@/ui';
+import { showDialog } from '@/ui/dialogStore';
 
 type Step = 'current' | 'new' | 'confirm';
 
@@ -74,7 +75,7 @@ export default function SetPinScreen() {
     }
 
     if (changing) {
-      Alert.alert(t('pin.changed'));
+      showDialog(t('pin.changed'));
       router.back();
       return;
     }

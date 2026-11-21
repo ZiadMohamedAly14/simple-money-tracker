@@ -1,4 +1,3 @@
-import { Alert } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useTranslation } from 'react-i18next';
@@ -8,6 +7,7 @@ import { useAccountSettings } from '@/data/useAccountSettings';
 import { localDb, localStore } from '@/db/appDatabase';
 import { TransactionForm } from '@/transactions/TransactionForm';
 import { Button, Screen, ScreenHeader, Text } from '@/ui';
+import { showDialog } from '@/ui/dialogStore';
 
 /**
  * Edits or deletes any Income or Expense. Delete is a button here, not only a
@@ -35,7 +35,7 @@ export default function EditTransactionScreen() {
   const isIncome = transaction.kind === 'income';
 
   function confirmDelete() {
-    Alert.alert(t('transactions.deleteTitle'), t('transactions.deleteBody'), [
+    showDialog(t('transactions.deleteTitle'), t('transactions.deleteBody'), [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('transactions.delete'),

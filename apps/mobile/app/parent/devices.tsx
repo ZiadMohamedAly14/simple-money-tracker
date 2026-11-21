@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, RefreshControl } from 'react-native';
+import { RefreshControl } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { toLocalDate, type KidDeviceSummary } from '@money-tracker/shared';
@@ -9,6 +9,7 @@ import { useDateLabel } from '@/i18n/useDateLabel';
 import { listKidDevices, revokeKidDevice, type KidDevicesResult } from '@/kid/kidDevices';
 import { useTheme } from '@/theme/ThemeProvider';
 import { AppIcon, Button, Card, IconButton, ListRow, Notice, Screen, ScreenHeader, Text } from '@/ui';
+import { showDialog } from '@/ui/dialogStore';
 
 const request = authSession.request.bind(authSession);
 
@@ -39,7 +40,7 @@ export default function KidDevicesScreen() {
 
   function confirmRevoke(device: KidDeviceSummary) {
     const name = device.deviceLabel ?? t('parentAccess.unnamedDevice');
-    Alert.alert(t('parentAccess.revokeTitle', { name }), t('parentAccess.revokeBody'), [
+    showDialog(t('parentAccess.revokeTitle', { name }), t('parentAccess.revokeBody'), [
       { text: t('common.cancel'), style: 'cancel' },
       { text: t('parentAccess.revoke'), style: 'destructive', onPress: () => void revoke(device) },
     ]);
@@ -48,7 +49,7 @@ export default function KidDevicesScreen() {
   async function revoke(device: KidDeviceSummary) {
     const outcome = await revokeKidDevice(request, device.id);
     if (outcome.status !== 'ok' && outcome.status !== 'not_found') {
-      Alert.alert(t(outcome.status === 'unreachable' ? 'parentAccess.devicesOffline' : 'pin.errors.failed'));
+      showDialog(t(outcome.status === 'unreachable' ? 'parentAccess.devicesOffline' : 'pin.errors.failed'));
     }
     await load();
   }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import {
@@ -22,6 +22,7 @@ import { useLanguage } from '@/i18n/useLanguage';
 import { useKidWallet } from '@/kid/useKidWallet';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 import { AmountDisplay, Button, Chip, Notice, NumericKeypad, Screen, ScreenHeader, Text, TextField } from '@/ui';
+import { showDialog } from '@/ui/dialogStore';
 
 /**
  * "I spent money" (PDF page 9): about three taps, open, type the amount and
@@ -90,7 +91,7 @@ function SpendForm({ kidProfileId, editing }: { kidProfileId: string; editing?: 
 
   function confirmDelete() {
     if (!editing) return;
-    Alert.alert(t('kid.spend.deleteTitle'), t('kid.spend.deleteBody', { jar: jar?.name ?? '' }), [
+    showDialog(t('kid.spend.deleteTitle'), t('kid.spend.deleteBody', { jar: jar?.name ?? '' }), [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('kid.spend.delete'),

@@ -3,7 +3,7 @@ import { getLocales } from 'expo-localization';
 import { reloadAppAsync } from 'expo';
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
-import { Alert, I18nManager } from 'react-native';
+import { I18nManager } from 'react-native';
 import {
   SUPPORTED_LANGUAGES,
   directionChanges,
@@ -13,6 +13,7 @@ import {
 } from '@money-tracker/shared';
 import { ar } from './locales/ar';
 import { en } from './locales/en';
+import { showDialog } from '@/ui/dialogStore';
 
 /**
  * Language is per device and never synced (spec, Localization). It defaults
@@ -88,7 +89,7 @@ export async function switchLanguage(next: Language): Promise<void> {
   }
 
   const t = i18n.getFixedT(next);
-  Alert.alert(t('language.restartTitle'), t('language.restartBody'), [
+  showDialog(t('language.restartTitle'), t('language.restartBody'), [
     { text: t('common.cancel'), style: 'cancel' },
     {
       text: t('language.restart'),

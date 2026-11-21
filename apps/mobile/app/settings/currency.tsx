@@ -1,4 +1,4 @@
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { changeAccountSettings } from '@/data/budget';
@@ -6,6 +6,7 @@ import { ONBOARDING_CURRENCIES } from '@/data/currency';
 import { useAccountSettings } from '@/data/useAccountSettings';
 import { localDb, localStore } from '@/db/appDatabase';
 import { ListRow, Notice, Screen, ScreenHeader } from '@/ui';
+import { showDialog } from '@/ui/dialogStore';
 
 /**
  * Relabels the Account's currency (spec story 79). Amounts are stored in minor
@@ -17,7 +18,7 @@ export default function SettingsCurrencyScreen() {
 
   function choose(code: string) {
     if (code !== currency && changeAccountSettings(localStore, localDb, { currency: code }) === 'not_ready') {
-      Alert.alert(t('settings.settingsNotReady'));
+      showDialog(t('settings.settingsNotReady'));
       return;
     }
     router.back();

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 import { router } from 'expo-router';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useTranslation } from 'react-i18next';
@@ -16,6 +16,7 @@ import { jarStyle } from '@/kid/useKidWallet';
 import { parentArea } from '@/pin/appPinGate';
 import { AppIcon, Button, Card, Glyph, ListRow, Notice, Screen, ScreenHeader, Text } from '@/ui';
 import { useTheme } from '@/theme/ThemeProvider';
+import { showDialog } from '@/ui/dialogStore';
 
 /**
  * The Parent Area, once the gate is open (PDF page 11): each Kid Profile with
@@ -44,7 +45,7 @@ export default function ParentAreaScreen() {
 
   /** Leaving Kid Mode: the PIN already elevated this device to open the Parent Area. */
   function confirmLeave() {
-    Alert.alert(t('parentAccess.leaveTitle'), t('parentAccess.leaveBody'), [
+    showDialog(t('parentAccess.leaveTitle'), t('parentAccess.leaveBody'), [
       { text: t('common.cancel'), style: 'cancel' },
       { text: t('parentAccess.leaveConfirm'), style: 'destructive', onPress: () => void leave() },
     ]);
@@ -60,7 +61,7 @@ export default function ParentAreaScreen() {
       return;
     }
     if (result.status === 'locked') return lock();
-    Alert.alert(t(result.status === 'unreachable' ? 'parentAccess.needsInternet' : 'pin.errors.failed'));
+    showDialog(t(result.status === 'unreachable' ? 'parentAccess.needsInternet' : 'pin.errors.failed'));
   }
 
   return (

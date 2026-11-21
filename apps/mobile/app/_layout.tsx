@@ -13,6 +13,7 @@ import { FONT_ASSETS } from '@/theme/fontAssets';
 import { startAppearance } from '@/theme/appearanceStore';
 import { SystemBars } from '@/theme/SystemBars';
 import { ThemeProvider } from '@/theme/ThemeProvider';
+import { DialogHost } from '@/ui/Dialog';
 
 // The splash (Background colour, light or dark by the phone) stays up until
 // the stored Appearance, language and fonts are loaded, so nothing flashes.
@@ -66,6 +67,7 @@ export default function RootLayout() {
       {/* Transparent so the theme's background shows through each screen. */}
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }} />
       <SystemBars />
+      <DialogHost />
     </ThemeProvider>
   );
 }

@@ -1,4 +1,3 @@
-import { Alert } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { deleteTopUp } from '@/data/kidWallet';
@@ -6,6 +5,7 @@ import { localStore } from '@/db/appDatabase';
 import { TopUpForm } from '@/kid/TopUpForm';
 import { useKidWallet } from '@/kid/useKidWallet';
 import { Button, Screen, ScreenHeader, Text } from '@/ui';
+import { showDialog } from '@/ui/dialogStore';
 
 /**
  * Adds a Top-up (PDF page 11, "Top-up split"), or with `topUpId` edits or
@@ -32,7 +32,7 @@ export default function TopUpScreen() {
 
   function confirmDelete() {
     if (!editing) return;
-    Alert.alert(t('kid.topUp.deleteTitle'), t('kid.topUp.deleteBody'), [
+    showDialog(t('kid.topUp.deleteTitle'), t('kid.topUp.deleteBody'), [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('kid.topUp.delete'),

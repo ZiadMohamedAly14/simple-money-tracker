@@ -1,4 +1,4 @@
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { formatMoneyParts } from '@money-tracker/shared';
@@ -11,6 +11,7 @@ import { KidAvatar } from '@/kid/KidAvatar';
 import { jarStyle, useKidWallet } from '@/kid/useKidWallet';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 import { AmountDisplay, Card, IconButton, ListRow, Notice, ProgressRow, Screen, Text } from '@/ui';
+import { showDialog } from '@/ui/dialogStore';
 
 /**
  * A kid's wallet seen from the Parent Area, in the Kid theme (PDF pages 1
@@ -45,7 +46,7 @@ function KidWallet({ id }: { id: string }) {
   const archived = kid.archivedAt !== null;
 
   function confirmArchive() {
-    Alert.alert(t('kidArchive.archiveTitle', { name: kid!.name }), t('kidArchive.archiveBody', { name: kid!.name }), [
+    showDialog(t('kidArchive.archiveTitle', { name: kid!.name }), t('kidArchive.archiveBody', { name: kid!.name }), [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('kidArchive.archive', { name: kid!.name }),
