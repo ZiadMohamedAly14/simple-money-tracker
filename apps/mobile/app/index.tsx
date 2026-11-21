@@ -3,11 +3,12 @@ import { RefreshControl, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Redirect, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { currentMonth, formatMonth, formatMoneyParts, ltrIsolate } from '@money-tracker/shared';
+import { formatMonth, formatMoneyParts, ltrIsolate } from '@money-tracker/shared';
 import { useAuthStatus } from '@/auth/appSession';
 import { categoryIconFor } from '@/data/categoryIcons';
 import { useAccountSettings, useOnboardingState } from '@/data/useAccountSettings';
 import { useMonthBudget } from '@/data/useMonthBudget';
+import { useMonthSwitcher } from '@/data/useMonthSwitcher';
 import { localStore } from '@/db/appDatabase';
 import { useFormatMoney } from '@/i18n/useFormatMoney';
 import { useLanguage } from '@/i18n/useLanguage';
@@ -31,10 +32,11 @@ export default function HomeRoute() {
 }
 
 /**
- * This Month's Remaining, Income, Spending and Unallocated (PDF pages 1 and
- * 13), and each Category's budget, spent and remaining, all worked out from
- * the local database by `monthFigures` and `categoryBreakdown`. The Month
- * switcher is ticket 10.
+ * A Month's Remaining, Income, Spending and Unallocated (PDF pages 1 and 13),
+ * and each Category's budget, spent and remaining, all worked out from the
+ * local database by `monthFigures` and `categoryBreakdown`. The arrows beside
+ * the Month's name go back to earlier Months and forward to the current one;
+ * a past Month also lists the Archived Categories it used.
  */
 function MonthOverview() {
   const { t } = useTranslation();
@@ -43,7 +45,7 @@ function MonthOverview() {
   const needsSignIn = useAuthStatus() === 'needsSignIn';
   const { currency, numberingSystem } = useAccountSettings();
   const formatMoney = useFormatMoney(numberingSystem);
-  const month = currentMonth(new Date());
+  const { month, canGoBack, canGoForward, goBack, goForward } = useMonthSwitcher();
   const { figures, rows, transactionCount } = useMonthBudget(month);
   const iconOf = useMemo(() => categoryIconFor(localStore.accountId()), []);
   const syncOverdue = useSyncOverdue();
@@ -68,10 +70,32 @@ function MonthOverview() {
           <RefreshControl refreshing={syncing} onRefresh={() => void refresh()} colors={[theme.colors.primary]} />
         }
       >
-        <View className="min-h-11 flex-row items-center gap-3">
-          <Text weight="bold" accessibilityRole="header" numberOfLines={1} className="flex-1 text-xl">
+        <View className="min-h-11 flex-row items-center gap-2">
+          <IconButton
+            icon="chevron-back"
+            directional
+            accessibilityLabel={t('home.previousMonth')}
+            disabled={!canGoBack}
+            onPress={goBack}
+          />
+          <Text
+            weight="bold"
+            accessibilityRole="header"
+            accessibilityLiveRegion="polite"
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            align="center"
+            className="flex-1 text-xl"
+          >
             {formatMonth(month, { language, numberingSystem })}
           </Text>
+          <IconButton
+            icon="chevron-forward"
+            directional
+            accessibilityLabel={t('home.nextMonth')}
+            disabled={!canGoForward}
+            onPress={goForward}
+          />
           {syncOverdue ? <PendingSyncLabel align="end" /> : null}
           <IconButton icon="settings-outline" accessibilityLabel={t('home.settings')} onPress={() => router.push('/settings')} />
         </View>
@@ -122,10 +146,10 @@ function MonthOverview() {
           <Card className="items-center gap-3 px-6 py-12">
             <IconCircle icon="app:wallet" size="lg" />
             <Text weight="bold" align="center" className="text-xl">
-              {t('home.freshTitle')}
+              {t(canGoForward ? 'home.emptyPastTitle' : 'home.freshTitle')}
             </Text>
             <Text tone="muted" align="center">
-              {t('home.freshBody')}
+              {t(canGoForward ? 'home.emptyPastBody' : 'home.freshBody')}
             </Text>
           </Card>
         ) : null}
@@ -135,7 +159,7 @@ function MonthOverview() {
             <Text weight="bold" accessibilityRole="header" className="text-lg">
               {t('home.categories')}
             </Text>
-            <IconButton icon="create-outline" accessibilityLabel={t('categories.manage')} onPress={() => router.push('/categories')} />
+            <IconButton icon="create-outline" accessibilityLabel={t('categories.manage')} onPress={() => router.push({ pathname: '/categories', params: { month } })} />
           </View>
           <Card className="gap-4 p-4">
             {rows.map((row) => {
@@ -162,14 +186,18 @@ function MonthOverview() {
             variant="secondary"
             icon="app:income-money"
             className="flex-1"
-            onPress={() => router.push({ pathname: '/transactions/new', params: { kind: 'income' } })}
+            onPress={() => router.push({ pathname: '/transactions/new', params: { kind: 'income', month } })}
           />
-          <Button label={t('transactions.open')} variant="secondary" icon="app:reorder-history" className="flex-1" onPress={() => router.push('/transactions')} />
+          <Button label={t('transactions.open')} variant="secondary" icon="app:reorder-history" className="flex-1" onPress={() => router.push({ pathname: '/transactions', params: { month } })} />
         </View>
         {/* PIN-gated Parent Area (ticket 11); the kid wallet entry point (ticket 12) will lead here. */}
         <Button label={t('parentArea.open')} variant="secondary" icon="app:lock-pin" onPress={() => router.push('/parent')} />
       </ScrollView>
-      <Fab icon="app:add" accessibilityLabel={t('transactions.addExpense')} onPress={() => router.push('/transactions/new')} />
+      <Fab
+        icon="app:add"
+        accessibilityLabel={t('transactions.addExpense')}
+        onPress={() => router.push({ pathname: '/transactions/new', params: { month } })}
+      />
     </SafeAreaView>
   );
 }

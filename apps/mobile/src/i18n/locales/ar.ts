@@ -100,6 +100,10 @@ export const ar: Translations = {
     freshTitle: 'شهر جديد',
     freshBody: 'أضف دخلك، ثم اضغط + لتسجيل أول مصروف.',
     categories: 'الفئات',
+    previousMonth: 'الشهر السابق',
+    nextMonth: 'الشهر التالي',
+    emptyPastTitle: 'لا شيء مسجّل',
+    emptyPastBody: 'لا توجد معاملات في هذا الشهر. لا يزال بإمكانك إضافة معاملة بتاريخ من هذا الشهر.',
   },
   transactions: {
     title: 'المعاملات',

@@ -16,6 +16,7 @@ import {
   completePersonalOnboarding,
   type AccountSettingsChanges,
   monthPlansQuery,
+  openMonth,
   readMonthOverview,
   setCategoryBudgets,
   setExpectedIncome,
@@ -208,12 +209,12 @@ export async function createTestDevice(
     /** Whether the app would show the pending-sync indicator now. */
     syncOverdue: () => isSyncOverdue(store.oldestPendingAt(), now()),
 
-    recordExpense: (expense: NewExpense) => recordExpense(store, expense),
-    editExpense: (id: string, changes: ExpenseChanges) => editExpense(store, id, changes),
-    editIncome: (id: string, changes: IncomeChanges) => editIncome(store, id, changes),
+    recordExpense: (expense: NewExpense) => recordExpense(store, db, expense),
+    editExpense: (id: string, changes: ExpenseChanges) => editExpense(store, db, id, changes),
+    editIncome: (id: string, changes: IncomeChanges) => editIncome(store, db, id, changes),
     deleteTransaction: (id: string) => deleteTransaction(store, id),
     expenses: () => expensesQuery(db).all(),
-    recordIncome: (income: NewIncome) => recordIncome(store, income),
+    recordIncome: (income: NewIncome) => recordIncome(store, db, income),
     monthTransactions: (month: string) => monthTransactionListQuery(db, month).all(),
     categories: () => categoriesQuery(db).all(),
     categoryChoices: () => categoryChoicesQuery(db).all(),
@@ -226,6 +227,7 @@ export async function createTestDevice(
     accountSettings: () => accountSettingsQuery(db).get(),
     changeAccountSettings: (changes: AccountSettingsChanges) => changeAccountSettings(store, db, changes),
     monthPlans: () => monthPlansQuery(db).all(),
+    openMonth: (month: string) => openMonth(store, db, month),
     monthOverview: (month: string) => readMonthOverview(db, month),
     categoryBudgets: (month: string) => categoryBudgetsQuery(db, month).all(),
 

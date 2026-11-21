@@ -117,6 +117,23 @@ describe('recording Transactions (Seam B)', () => {
     expect(phone.categoryChoices()[0]).toMatchObject({ id: id('health') });
   });
 
+  it("Income recorded in, or moved by its date into, a Month with no plan yet creates that Month from the previous plan", async () => {
+    const [phone, tablet] = await twoDevices(); // March's plan: Expected Income 1,000,000
+    phone.goOffline();
+    const bonus = phone.recordIncome({ amount: 20_000, date: '2026-04-03' });
+    expect(phone.monthOverview('2026-04')).toMatchObject({ expectedIncome: 1_000_000, income: 20_000 });
+
+    expect(phone.editIncome(bonus, { date: '2026-05-01' })).toBe(true);
+    expect(phone.monthOverview('2026-05')).toMatchObject({ expectedIncome: 1_000_000, income: 20_000 });
+    expect(phone.monthOverview('2026-04')).toMatchObject({ income: 0 });
+
+    phone.goOnline();
+    await phone.sync();
+    await tablet.sync();
+    expect(tablet.monthPlans().map((p) => p.month)).toEqual(['2026-03', '2026-04', '2026-05']);
+    expect(tablet.monthOverview('2026-05')).toMatchObject({ expectedIncome: 1_000_000, income: 20_000 });
+  });
+
   it('deleting an Income or an Expense offline removes it from the Month on both devices', async () => {
     const [phone, tablet] = await twoDevices();
     const salary = phone.recordIncome({ amount: 850_000, date: '2026-03-01' });

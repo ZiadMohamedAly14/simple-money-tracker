@@ -24,6 +24,13 @@ export function formatMonth(month: Month, { language, numberingSystem }: { langu
   }).format(new Date(Date.UTC(year, monthNumber - 1, 1)));
 }
 
+/** The Month `count` Months after `month` (before it when negative): the Month switcher's steps. */
+export function addMonths(month: Month, count: number): Month {
+  const [year, monthNumber] = month.split('-').map(Number) as [number, number];
+  const index = year * 12 + (monthNumber - 1) + count;
+  return `${String(Math.floor(index / 12)).padStart(4, '0')}-${String((index % 12) + 1).padStart(2, '0')}`;
+}
+
 /** The Month the device's calendar is in at `moment`. */
 export function currentMonth(moment: Date): Month {
   return monthOf(toLocalDate(moment));

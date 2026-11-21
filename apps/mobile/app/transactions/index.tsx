@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Redirect, router } from 'expo-router';
+import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useTranslation } from 'react-i18next';
 import { currentMonth, formatMonth, formatMoneyParts, ltrIsolate } from '@money-tracker/shared';
@@ -20,8 +20,9 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { Button, Fab, ListRow, PendingSyncLabel, ScreenHeader, Text, type GlyphName } from '@/ui';
 
 /**
- * This Month's Transactions, newest first (PDF pages 7–8), read live from the
- * local database. Tap one to edit or delete it. Switching Months is ticket 10.
+ * A Month's Transactions, newest first (PDF pages 7–8), read live from the
+ * local database: the Month chosen on home (`month` param), or this one. Tap
+ * one to edit or delete it. Adding from here dates it into that Month.
  */
 export default function TransactionsScreen() {
   const status = useAuthStatus();
@@ -37,7 +38,8 @@ function TransactionList() {
   const { currency, numberingSystem } = useAccountSettings();
   const formatMoney = useFormatMoney(numberingSystem);
   const dateLabel = useDateLabel(numberingSystem);
-  const month = currentMonth(new Date());
+  const params = useLocalSearchParams<{ month?: string }>();
+  const month = params.month ?? currentMonth(new Date());
   const { data: transactions } = useLiveQuery(monthTransactionListQuery(localDb, month), [month]);
   const { data: categories } = useLiveQuery(allCategoriesQuery(localDb));
   const syncOverdue = useSyncOverdue();
@@ -70,7 +72,7 @@ function TransactionList() {
           label={t('transactions.addIncome')}
           variant="secondary"
           icon="app:income-money"
-          onPress={() => router.push({ pathname: '/transactions/new', params: { kind: 'income' } })}
+          onPress={() => router.push({ pathname: '/transactions/new', params: { kind: 'income', month } })}
         />
       </View>
       <ScrollView
@@ -115,7 +117,11 @@ function TransactionList() {
           })
         )}
       </ScrollView>
-      <Fab icon="app:add" accessibilityLabel={t('transactions.addExpense')} onPress={() => router.push('/transactions/new')} />
+      <Fab
+        icon="app:add"
+        accessibilityLabel={t('transactions.addExpense')}
+        onPress={() => router.push({ pathname: '/transactions/new', params: { month } })}
+      />
     </SafeAreaView>
   );
 }

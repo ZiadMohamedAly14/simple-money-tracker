@@ -34,6 +34,8 @@ export interface TransactionFormProps {
   title: string;
   /** The amount as decimal text (fromMinorUnits) and the other fields, when editing. */
   initial?: { amount: string; date: string; note: string | null; categoryId: string | null };
+  /** The date a new Transaction starts with; today if not given. */
+  defaultDate?: string;
   onSave: (values: TransactionValues) => void;
   onClose: () => void;
   /** Shows a Delete button (editing). */
@@ -46,11 +48,11 @@ export interface TransactionFormProps {
  * (most recently used first), so a new one is +, amount, chip, Save. The date
  * defaults to today and the note is optional. Income has no Category.
  */
-export function TransactionForm({ kind, title, initial, onSave, onClose, onDelete }: TransactionFormProps) {
+export function TransactionForm({ kind, title, initial, defaultDate, onSave, onClose, onDelete }: TransactionFormProps) {
   const { t } = useTranslation();
   const { currency, numberingSystem } = useAccountSettings();
   const entry = useAmountEntry(currency, initial?.amount);
-  const [date, setDate] = useState(initial?.date ?? toLocalDate(new Date()));
+  const [date, setDate] = useState(initial?.date ?? defaultDate ?? toLocalDate(new Date()));
   const [note, setNote] = useState(initial?.note ?? '');
   const [categoryId, setCategoryId] = useState<string | null>(initial?.categoryId ?? null);
   const { data: choices } = useLiveQuery(categoryChoicesQuery(localDb));

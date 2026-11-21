@@ -63,8 +63,8 @@ export default function EditTransactionScreen() {
       onClose={() => router.back()}
       onDelete={confirmDelete}
       onSave={({ amount, date, note, categoryId }) => {
-        if (isIncome) editIncome(localStore, id, { amount, date, note });
-        else editExpense(localStore, id, { amount, date, note, categoryId: categoryId ?? undefined });
+        if (isIncome) editIncome(localStore, localDb, id, { amount, date, note });
+        else editExpense(localStore, localDb, id, { amount, date, note, categoryId: categoryId ?? undefined });
         router.back();
       }}
     />
