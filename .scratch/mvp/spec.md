@@ -48,6 +48,7 @@ All money is virtual. Everything works offline, and changes sync between devices
 
 18. As an adult, I want the home screen to show this Month's Income, Spending and Remaining, so that I know where I stand at a glance.
 19. As an adult, I want to see Unallocated, which can go negative, so that I notice when my Category Budgets exceed my Expected Income.
+19a. As an adult who earns more than expected (for example freelance work on top of my salary), I want to see Income against my Expected Income, so that I notice the extra and can raise Expected Income if I want to budget it.
 20. As an adult, I want each Category to show its budget, amount spent and amount remaining, so that I know where my money is going.
 21. As an adult, I want to switch to previous Months and see their figures, so that I can review my history.
 22. As an adult, I want a new Month to start with my previous Month's Expected Income and Category Budgets, so that I don't have to set them up again.
@@ -59,6 +60,7 @@ All money is virtual. Everything works offline, and changes sync between devices
 
 26. As an adult, I want to record an Expense in about three taps (open, type the amount and pick a Category, save), so that logging spending is effortless.
 27. As an adult, I want my most recently used Categories shown first when recording, so that the usual choice is one tap away.
+27a. As an adult, I want to type simple sums like `120+35` or `300÷3` on the amount keypad, so that I can add up a receipt or split a bill without leaving the app.
 28. As an adult, I want the date to default to today and the note to be optional, so that I only fill in extras when I need them.
 29. As an adult, I want to record an Expense with an earlier date, including in a previous Month, so that I can catch up on things I forgot.
 30. As an adult, I want to record Income with an amount, a date and an optional note, so that Remaining reflects what actually came in.
@@ -84,6 +86,7 @@ All money is virtual. Everything works offline, and changes sync between devices
 44. As a parent, I want to edit or delete Top-ups, so that I can fix mistakes. My child can't change them.
 45. As a parent, I want to review my child's Jars and full history, so that I know how they use their money.
 46. As a parent, I want the Parent Area protected by a PIN or my device's biometrics, so that my child can't top themselves up.
+46a. As a parent who just set a PIN, I want to be offered biometrics as an optional, skippable shortcut that I can change later in settings, so that opening the Parent Area is quick.
 47. As a parent, I want to manage my kids' wallets fully offline from my own phone, so that a lack of signal never blocks a Top-up.
 48. As a parent, I want to see when a Jar has gone below zero after sync, so that I can sort it out with my child.
 49. As a parent who forgot the PIN, I want to reset it with an email code, so that I'm never locked out and my child can't reset it.
@@ -149,6 +152,7 @@ All money is virtual. Everything works offline, and changes sync between devices
 - A Month is created lazily, the first time it is opened or receives a Transaction, by copying the previous Month's Expected Income and Category Budgets.
 - Every Expense has a Category. Other always exists and can't be archived. Archived Categories are hidden from new Months but kept in history. Income has no Category.
 - Category Budgets can add up to any amount, so Unallocated may go negative.
+- Adult amount keypads accept `+ − × ÷` with normal calculator order and no brackets. The expression is evaluated in whole minor units, rounded half-up, and only the result is stored. The child's keypad has no operators.
 - A Kid Wallet is a running balance with no Months. A Top-up carries a split across Jars that must add up to its total. A Kid Expense comes out of exactly one Jar. A Jar Transfer moves an amount between two Jars of the same wallet and can only be made by a parent.
 - The app blocks a Kid Expense larger than its Jar's balance. The server never rejects one, so a Jar can go negative after sync. The app then shows the negative balance, blocks further spending from that Jar, and flags it in the Parent Area.
 - Adults can edit and delete anything. Kids can edit and delete only their own Kid Expenses.
@@ -251,13 +255,14 @@ All money is virtual. Everything works offline, and changes sync between devices
   - Month calculation from local dates, including around midnight and month ends;
   - creating a new Month by copying the previous one;
   - money conversion to and from the smallest unit, and formatting in both locales and both numbering systems;
-  - Top-up split validation.
+  - Top-up split validation;
+  - keypad expression evaluation (operator order, rounding, incomplete expressions, division by zero).
 - Mobile screens are tested by hand in the MVP, including a right-to-left visual pass. Automated UI tests are out of scope.
 - **Prior art:** a previous backend uses Jest with ts-jest, which we follow. It only has unit tests without a database, so seams A and B go beyond it on purpose.
 
 ## Out of Scope
 
-Recurring top-ups or allowances, recurring expenses, notifications, charts beyond the category breakdown, receipts or photos, several currencies per Account, payday-based Months, carry-over, Learn progress tracking, kid-requested Jar Transfers, analytics, data export, web app, iOS release, Google/Apple/guest login, background sync, linking Top-ups to the parent's Personal Budget, automated mobile UI tests, and any account or infrastructure shared with another project.
+Recurring top-ups or allowances, recurring expenses, notifications, any charts or reports (the category breakdown is a list), receipts or photos, several currencies per Account, payday-based Months, carry-over, Learn progress tracking, kid-requested Jar Transfers, analytics, data export, web app, iOS release, Google/Apple/guest login, background sync, linking Top-ups to the parent's Personal Budget, automated mobile UI tests, any account or infrastructure shared with another project, income categories, expense templates, savings goals (Jar or personal), an app lock, gold (XAU) as a currency, an AI assistant, and any premium tier or billing. The order of post-MVP work is in the MVP scope note.
 
 ## Further Notes
 
