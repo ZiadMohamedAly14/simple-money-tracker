@@ -81,7 +81,7 @@ Money a parent adds to a Kid Wallet, split across Jars. Only the parent can crea
 _Avoid_: Allowance, deposit, transfer
 
 **Kid Expense**:
-Money a kid records as spent from a Jar. Can never exceed the Jar's balance.
+Money a kid records as spent from a Jar. The app never lets one exceed the Jar's balance. That check runs on the device only: the server accepts any Kid Expense (last edit wins), so two offline devices can take a Jar below zero, and the app then blocks spending from it until it's topped up.
 _Avoid_: Purchase, kid transaction
 
 **Jar Transfer**:
