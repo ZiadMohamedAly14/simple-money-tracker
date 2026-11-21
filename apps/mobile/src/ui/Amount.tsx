@@ -54,18 +54,20 @@ export interface ProgressBarProps {
   /** 0 to 1; values outside are clamped (an over-budget bar is simply full). */
   progress: number;
   tone?: ProgressTone;
+  /** Drawn on a primary-green card (home hero card): light translucent track, on-primary fill; `tone` is ignored. */
+  onPrimary?: boolean;
 }
 
 /** Thin bar on a tint track; fills from the start side. */
-export function ProgressBar({ progress, tone = 'primary' }: ProgressBarProps) {
+export function ProgressBar({ progress, tone = 'primary', onPrimary }: ProgressBarProps) {
   const percent = Math.round(Math.min(1, Math.max(0, Number.isFinite(progress) ? progress : 0)) * 100);
   return (
     <View
       accessibilityRole="progressbar"
       accessibilityValue={{ min: 0, max: 100, now: percent }}
-      className="h-2 flex-row overflow-hidden rounded-full bg-tint"
+      className={`h-2 flex-row overflow-hidden rounded-full ${onPrimary ? 'bg-on-primary/25' : 'bg-tint'}`}
     >
-      <View className={`rounded-full ${FILL_CLASS[tone]}`} style={{ width: `${percent}%` }} />
+      <View className={`rounded-full ${onPrimary ? 'bg-on-primary' : FILL_CLASS[tone]}`} style={{ width: `${percent}%` }} />
     </View>
   );
 }

@@ -3,7 +3,7 @@ import { RefreshControl, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Redirect, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { formatMonth, formatMoneyParts, ltrIsolate } from '@money-tracker/shared';
+import { formatMonth, formatMoneyParts, incomeProgress, ltrIsolate, type MonthFigures } from '@money-tracker/shared';
 import { useAuthStatus, useKidModeProfileId } from '@/auth/appSession';
 import { categoryIconFor } from '@/data/categoryIcons';
 import { useAccountSettings, useOnboardingState } from '@/data/useAccountSettings';
@@ -15,7 +15,7 @@ import { useLanguage } from '@/i18n/useLanguage';
 import { syncTriggers } from '@/sync/appSync';
 import { useSyncOverdue } from '@/sync/useSyncOverdue';
 import { useTheme } from '@/theme/ThemeProvider';
-import { AmountDisplay, Button, Card, Fab, Glyph, IconButton, IconCircle, Notice, PendingSyncLabel, ProgressRow, Text } from '@/ui';
+import { Button, Card, Fab, Glyph, IconButton, IconCircle, Notice, PendingSyncLabel, ProgressBar, ProgressRow, Text } from '@/ui';
 import type { GlyphName } from '@/ui';
 
 /**
@@ -62,7 +62,6 @@ function MonthOverview() {
 
   const parts = (minor: number) => formatMoneyParts(minor, { language, currency, numberingSystem });
   const number = (minor: number) => parts(minor).amount;
-  const remaining = parts(figures.remaining);
 
   return (
     <SafeAreaView className="flex-1" edges={['top', 'bottom']}>
@@ -109,36 +108,13 @@ function MonthOverview() {
           </Card>
         ) : null}
 
-        <View className="gap-1">
-          <Text tone="muted" className="text-sm">
-            {t('home.remaining')}
-          </Text>
-          <AmountDisplay
-            amount={remaining.amount}
-            currency={remaining.currency}
-            size="md"
-            align="start"
-            accessibilityLabel={`${t('home.remaining')}: ${formatMoney(figures.remaining, currency)}`}
-          />
-        </View>
+        <HeroCard figures={figures} number={number} spoken={(minor) => formatMoney(minor, currency)} currencyLabel={parts(0).currency} />
 
-        <View className="flex-row gap-3">
-          <FigureTile icon="app:income-money" label={t('home.income')} value={number(figures.income)} />
-          <FigureTile icon="app:spending" label={t('home.spending')} value={number(figures.spending)} />
-          <FigureTile
-            icon={figures.unallocated < 0 ? 'app:gentle-warning' : 'app:unallocated'}
-            label={t('home.unallocated')}
-            value={number(figures.unallocated)}
-            warning={figures.unallocated < 0}
-          />
-        </View>
-
-        <Text tone="muted" className="text-sm">
-          {t('home.incomeOfExpected', {
-            income: ltrIsolate(number(figures.income)),
-            expected: ltrIsolate(number(figures.expectedIncome)),
-          })}
-        </Text>
+        <UnallocatedRow
+          value={number(figures.unallocated)}
+          spoken={formatMoney(figures.unallocated, currency)}
+          warning={figures.unallocated < 0}
+        />
 
         {figures.unallocated < 0 ? (
           <Notice icon="app:gentle-warning" text={t('home.overPlan', { amount: formatMoney(-figures.unallocated, currency) })} />
@@ -204,30 +180,126 @@ function MonthOverview() {
   );
 }
 
-interface FigureTileProps {
+interface HeroCardProps {
+  figures: MonthFigures;
+  /** A stored amount as the number only ("1,870.00"), in the Account's numbering system. */
+  number: (minor: number) => string;
+  /** A stored amount with its currency, for screen readers ("1,870.00 EGP"). */
+  spoken: (minor: number) => string;
+  /** The Account currency as the language shows it ("EGP"). */
+  currencyLabel: string;
+}
+
+/**
+ * The home "Hero card" (docs/design/mockups/home-hero-card.png): Remaining
+ * large on the primary green, the income progress bar with "X of Y
+ * expected", and Income and Spending in translucent tiles. Numbers sit in
+ * direction isolates so a minus sign stays at the start of the number in RTL.
+ */
+function HeroCard({ figures, number, spoken, currencyLabel }: HeroCardProps) {
+  const { t } = useTranslation();
+  const theme = useTheme();
+  const progress = incomeProgress(figures);
+  return (
+    <View className="gap-4 rounded-theme bg-primary p-5">
+      <View
+        accessible
+        accessibilityLabel={t('home.figure', { label: t('home.remaining'), amount: spoken(figures.remaining) })}
+        className="gap-1"
+      >
+        <View className="flex-row items-center gap-2">
+          <Glyph name="app:wallet" size={16} color={theme.colors['on-primary']} />
+          <Text tone="on-primary" className="text-sm">
+            {t('home.remaining')}
+          </Text>
+        </View>
+        <View className="flex-row items-baseline gap-2">
+          <Text weight="bold" tone="on-primary" numberOfLines={1} adjustsFontSizeToFit className="shrink text-5xl">
+            {ltrIsolate(number(figures.remaining))}
+          </Text>
+          <Text weight="semibold" tone="on-primary" className="text-base">
+            {currencyLabel}
+          </Text>
+        </View>
+      </View>
+
+      {progress === null ? (
+        <Text tone="on-primary" className="text-sm opacity-80">
+          {t('home.noExpectedIncome')}
+        </Text>
+      ) : (
+        <View className="gap-2">
+          <ProgressBar progress={progress} onPrimary />
+          <Text tone="on-primary" className="text-sm opacity-80">
+            {t('home.incomeOfExpected', {
+              income: ltrIsolate(number(figures.income)),
+              expected: ltrIsolate(number(figures.expectedIncome)),
+            })}
+          </Text>
+        </View>
+      )}
+
+      <View className="flex-row gap-3">
+        <HeroTile icon="app:income-money" label={t('home.income')} value={number(figures.income)} spoken={spoken(figures.income)} />
+        <HeroTile icon="app:spending" label={t('home.spending')} value={number(figures.spending)} spoken={spoken(figures.spending)} />
+      </View>
+    </View>
+  );
+}
+
+interface HeroTileProps {
   icon: GlyphName;
   label: string;
   value: string;
-  /** Warning surface: Unallocated below zero. */
-  warning?: boolean;
+  spoken: string;
 }
 
-function FigureTile({ icon, label, value, warning }: FigureTileProps) {
+/** A translucent figure tile inside the hero card. */
+function HeroTile({ icon, label, value, spoken }: HeroTileProps) {
+  const { t } = useTranslation();
+  const theme = useTheme();
+  return (
+    <View accessible accessibilityLabel={t('home.figure', { label, amount: spoken })} className="flex-1 gap-1 rounded-theme bg-on-primary/15 p-3">
+      <View className="flex-row items-center gap-1">
+        <Glyph name={icon} size={14} color={theme.colors['on-primary']} />
+        <Text tone="on-primary" numberOfLines={1} className="flex-1 text-xs">
+          {label}
+        </Text>
+      </View>
+      <Text weight="bold" tone="on-primary" numberOfLines={1} adjustsFontSizeToFit className="text-lg">
+        {ltrIsolate(value)}
+      </Text>
+    </View>
+  );
+}
+
+interface UnallocatedRowProps {
+  value: string;
+  spoken: string;
+  /** Unallocated below zero: warning surface and the gentle-warning icon. */
+  warning: boolean;
+}
+
+/** The white Unallocated row under the hero card, amount at the end. */
+function UnallocatedRow({ value, spoken, warning }: UnallocatedRowProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
   return (
     <View
       accessible
-      accessibilityLabel={`${label}: ${value}`}
-      className={`flex-1 gap-1 rounded-theme p-3 ${warning ? 'bg-warning' : 'bg-surface'}`}
+      accessibilityLabel={t('home.figure', { label: t('home.unallocated'), amount: spoken })}
+      className={`min-h-14 flex-row items-center gap-3 rounded-theme px-4 py-3 ${warning ? 'bg-warning' : 'bg-surface'}`}
     >
-      <View className="flex-row items-center gap-1">
-        <Glyph name={icon} size={14} color={warning ? theme.colors['on-warning'] : theme.colors.primary} />
-        <Text tone={warning ? 'on-warning' : 'muted'} numberOfLines={1} className="flex-1 text-xs">
-          {label}
-        </Text>
-      </View>
-      <Text weight="bold" tone={warning ? 'on-warning' : 'text'} numberOfLines={1} adjustsFontSizeToFit className="text-lg">
-        {value}
+      <Glyph
+        name={warning ? 'app:gentle-warning' : 'app:pie-chart'}
+        size={18}
+        color={warning ? theme.colors['on-warning'] : theme.colors.primary}
+      />
+      <Text tone={warning ? 'on-warning' : 'text'} numberOfLines={1} className="flex-1 text-base">
+        {t('home.unallocated')}
+      </Text>
+      <Text weight="bold" tone={warning ? 'on-warning' : 'text'} numberOfLines={1} className="text-lg">
+        {ltrIsolate(value)}
       </Text>
     </View>
   );
