@@ -14,6 +14,9 @@ import { Button, Glyph, ListRow, Screen, ScreenHeader, Text } from '@/ui';
  * "Set up this device" (PDF page 13, "Kid device setup"), step 1: the parent,
  * signed in on the kid's phone, picks or creates the Kid Profile this phone is
  * for. Step 2 (`pin`) confirms the Parent PIN and makes it a Kid-Mode device.
+ * Opened from the Parent Area ("Set up this phone for a kid") or right after
+ * sign-in ("Whose phone is this?" → For a kid). It sits outside the Parent
+ * Area's gate so the PIN is asked once, at step 2, where the server checks it.
  */
 export default function KidDeviceSetupScreen() {
   const { t } = useTranslation();
@@ -31,7 +34,7 @@ export default function KidDeviceSetupScreen() {
         <Button
           label={t('kidDevice.next')}
           disabled={!chosen || !kids.some((kid) => kid.id === chosen)}
-          onPress={() => chosen && router.push({ pathname: '/parent/kid-device/pin', params: { kid: chosen } })}
+          onPress={() => chosen && router.push({ pathname: '/kid-device/pin', params: { kid: chosen } })}
         />
       }
     >
@@ -61,7 +64,7 @@ export default function KidDeviceSetupScreen() {
       <ListRow
         icon="app:add"
         title={t('kidDevice.createKid')}
-        onPress={() => router.push({ pathname: '/parent/kids/new', params: { next: 'kid-device' } })}
+        onPress={() => router.push('/kid-device/new')}
       />
       <Text tone="muted" className="text-sm">
         {t('kidDevice.explain')}

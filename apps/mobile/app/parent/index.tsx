@@ -157,7 +157,7 @@ export default function ParentAreaScreen() {
             label={t('parentArea.setUpKidDevice')}
             variant="secondary"
             icon="app:kid-device"
-            onPress={() => router.push('/parent/kid-device')}
+            onPress={() => router.push('/kid-device')}
           />
           <Button label={t('parentAccess.devices')} variant="secondary" icon="app:devices" onPress={() => router.push('/parent/devices')} />
           <Button label={t('pin.change')} variant="secondary" onPress={() => router.push('/pin/set')} />

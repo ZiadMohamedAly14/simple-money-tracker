@@ -24,5 +24,9 @@ describe('kidModeAllows', () => {
     expect(kidModeAllows(['parent', 'kids', 'new'], true)).toBe(false);
     expect(kidModeAllows(['parent', 'kid-device'], true)).toBe(false);
     expect(kidModeAllows(['parent', 'kid-device', 'pin'], true)).toBe(false);
+    // Setting up a phone for a kid and "Whose phone is this?" live outside /parent.
+    expect(kidModeAllows(['kid-device'], true)).toBe(false);
+    expect(kidModeAllows(['kid-device', 'new'], true)).toBe(false);
+    expect(kidModeAllows(['whose-phone'], true)).toBe(false);
   });
 });

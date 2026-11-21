@@ -271,6 +271,14 @@ export const en = {
     wait: 'A code was just sent. You can ask again in {{time}}.',
     offline: 'Resetting the PIN needs the internet. Check your connection.',
   },
+  whosePhone: {
+    title: 'Whose phone is this?',
+    intro: 'You can use Mizan here yourself, or set this phone up for one of your kids.',
+    mine: 'Mine',
+    mineBody: 'Your budget and your kids’ wallets',
+    forKid: 'For a kid',
+    forKidBody: 'Shows only one kid’s wallet and Learn',
+  },
   kidDevice: {
     title: 'Set up this device',
     forKid: 'This device is for a kid',
