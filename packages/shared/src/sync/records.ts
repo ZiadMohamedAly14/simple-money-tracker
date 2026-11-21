@@ -1,4 +1,5 @@
 import type { NumberingSystem } from '../i18n/language';
+import { topUpSplitProblem } from '../kid/topUpSplit';
 import { isUuid } from './ids';
 
 /**
@@ -8,7 +9,16 @@ import { isUuid } from './ids';
  * its name to `SYNC_ENTITIES` (in dependency order: referenced entities first),
  * and a field parser to `FIELD_PARSERS`.
  */
-export const SYNC_ENTITIES = ['accountSettings', 'category', 'monthPlan', 'categoryBudget', 'transaction'] as const;
+export const SYNC_ENTITIES = [
+  'accountSettings',
+  'category',
+  'monthPlan',
+  'categoryBudget',
+  'transaction',
+  'kidProfile',
+  'jar',
+  'kidTransaction',
+] as const;
 export type SyncEntity = (typeof SYNC_ENTITIES)[number];
 
 /** Set by the device. Times are Unix milliseconds from the device's clock. */
@@ -75,12 +85,56 @@ export interface TransactionFields {
   note: string | null;
 }
 
+/** A child under the Account (GLOSSARY). Owns one Kid Wallet: its Jars and Kid Transactions. */
+export interface KidProfileFields {
+  name: string;
+  /** One of the avatar choices the app offers (an emoji), or null for the initial. */
+  avatar: string | null;
+  archivedAt: number | null;
+}
+
+/**
+ * A Jar of a Kid Wallet. The three default Jars have IDs from `defaultJarId`
+ * so the app knows which is Spend (the default split and rounding remainder go there).
+ */
+export interface JarFields {
+  kidProfileId: string;
+  name: string;
+  order: number;
+  /** An archived Jar is hidden from new Top-ups but keeps its balance and history. */
+  archivedAt: number | null;
+}
+
+/** Ticket 13 adds Kid Expenses and Jar Transfers. */
+export type KidTransactionKind = 'topUp';
+
+/** One Jar's share of a Top-up, in minor units. */
+export interface JarSplit {
+  jarId: string;
+  amount: number;
+}
+
+export interface KidTransactionFields {
+  kidProfileId: string;
+  kind: KidTransactionKind;
+  /** Positive, in minor units. For a Top-up, its splits add up to exactly this. */
+  amount: number;
+  /** A Top-up's split across Jars of the same Kid Wallet: each positive, each Jar once. */
+  splits: JarSplit[];
+  /** Local calendar date `YYYY-MM-DD`. */
+  date: string;
+  note: string | null;
+}
+
 export interface SyncFieldsByEntity {
   accountSettings: AccountSettingsFields;
   category: CategoryFields;
   monthPlan: MonthPlanFields;
   categoryBudget: CategoryBudgetFields;
   transaction: TransactionFields;
+  kidProfile: KidProfileFields;
+  jar: JarFields;
+  kidTransaction: KidTransactionFields;
 }
 
 export type PushedRecord<E extends SyncEntity> = SyncMeta & SyncFieldsByEntity[E];
@@ -207,6 +261,15 @@ class FieldReader {
     return options.includes(value as T) ? (value as T) : this.fail(field, `must be one of ${options.join(', ')}`, options[0]!);
   }
 
+  /** A list of `{ jarId, amount }`, keeping only those fields. Amounts are checked with the total. */
+  splits(field: string): JarSplit[] {
+    const value = this.source[field];
+    if (!Array.isArray(value) || value.length > MAX_SPLITS) return this.fail(field, `must be a list of up to ${MAX_SPLITS} Jar shares`, []);
+    const splits = value.map((item) => (typeof item === 'object' && item !== null ? (item as Fields) : {}));
+    if (splits.some((split) => !isUuid(split.jarId))) return this.fail(field, 'each share must name a Jar by its UUID', []);
+    return splits.map((split) => ({ jarId: split.jarId as string, amount: split.amount as number }));
+  }
+
   localDate(field: string): string {
     const value = this.source[field];
     return isLocalDate(value) ? value : this.fail(field, 'must be a date YYYY-MM-DD', '');
@@ -216,6 +279,9 @@ class FieldReader {
     this.problems.push({ field, message });
   }
 }
+
+/** Most Jars one Top-up may be split across. */
+const MAX_SPLITS = 20;
 
 function isLocalDate(value: unknown): value is string {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -246,6 +312,28 @@ const FIELD_PARSERS: { [E in SyncEntity]: (read: FieldReader) => SyncFieldsByEnt
     const amount = read.positiveAmount('amount');
     const categoryId = kind === 'expense' ? read.uuid('categoryId') : null;
     return { kind, amount, categoryId, date: read.localDate('date'), note: read.optionalText('note', 500) };
+  },
+  kidProfile: (read) => ({
+    name: read.text('name', 40),
+    avatar: read.optionalText('avatar', 16),
+    archivedAt: read.optionalTime('archivedAt'),
+  }),
+  jar: (read) => ({
+    kidProfileId: read.uuid('kidProfileId'),
+    name: read.text('name', 40),
+    order: read.integer('order'),
+    archivedAt: read.optionalTime('archivedAt'),
+  }),
+  kidTransaction: (read) => {
+    const kidProfileId = read.uuid('kidProfileId');
+    const kind = read.oneOf('kind', ['topUp'] as const);
+    const amount = read.positiveAmount('amount');
+    const splits = read.splits('splits');
+    if (amount > 0 && read.problems.every((p) => p.field !== 'splits')) {
+      const problem = topUpSplitProblem(amount, splits);
+      if (problem) read.problem('splits', problem);
+    }
+    return { kidProfileId, kind, amount, splits, date: read.localDate('date'), note: read.optionalText('note', 500) };
   },
 };
 
