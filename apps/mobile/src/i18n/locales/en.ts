@@ -49,6 +49,7 @@ export const en = {
     deleteFinal: 'This can’t be undone. Archive hides it but keeps its history.',
     archiveInstead: 'Archive instead',
     lastCategory: 'Keep at least one category besides Other.',
+    onlyOther: 'Only Other is left, so all your spending lands there. Add a category to see where your money goes.',
     iconLabel: 'Icon',
     icons: {
       'food-groceries': 'Food and groceries',

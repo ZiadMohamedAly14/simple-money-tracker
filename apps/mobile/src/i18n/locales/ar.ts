@@ -51,6 +51,7 @@ export const ar: Translations = {
     deleteFinal: 'لا يمكن التراجع عن الحذف. الأرشفة تخفيها وتحتفظ بسجلها.',
     archiveInstead: 'أرشفة بدلًا من ذلك',
     lastCategory: 'احتفظ بفئة واحدة على الأقل غير «أخرى».',
+    onlyOther: 'لم يبقَ إلا «أخرى»، فكل مصروفاتك تذهب إليها. أضف فئة لترى أين يذهب مالك.',
     iconLabel: 'الأيقونة',
     icons: {
       'food-groceries': 'الطعام والبقالة',

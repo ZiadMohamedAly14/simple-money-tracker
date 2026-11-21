@@ -13,7 +13,7 @@ import { localDb, localStore } from '@/db/appDatabase';
 import { useFormatMoney } from '@/i18n/useFormatMoney';
 import { useLanguage } from '@/i18n/useLanguage';
 import { useTheme } from '@/theme/ThemeProvider';
-import { Button, Card, Glyph, IconButton, IconCircle, ListRow, Screen, ScreenHeader, Text } from '@/ui';
+import { Button, Card, Glyph, IconButton, IconCircle, ListRow, Notice, Screen, ScreenHeader, Text } from '@/ui';
 
 const actions = categoryActions(localStore, localDb);
 
@@ -22,7 +22,9 @@ const actions = categoryActions(localStore, localDb);
  * Unallocated, then each active Category with its budget for the Month (named,
  * design flaw 7). Tap a row to rename it, set its budget or archive it; the
  * arrows reorder. Other is locked last (only its budget can change). Archived
- * Categories can be restored or deleted.
+ * Categories can be restored or deleted. If sync leaves only Other active
+ * (two devices each removing a different last Category), a gentle notice
+ * asks the adult to add one: the minimum rule is checked on each device only.
  */
 export default function CategoriesScreen() {
   const { t } = useTranslation();
@@ -80,6 +82,8 @@ export default function CategoriesScreen() {
           </Text>
         </View>
       </Card>
+
+      {active.length > 0 && movable.length === 0 ? <Notice icon="app:info" text={t('categories.onlyOther')} /> : null}
 
       <View className="gap-2">
         {active.map((category) => {
