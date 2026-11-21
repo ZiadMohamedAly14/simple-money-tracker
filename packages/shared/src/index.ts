@@ -53,3 +53,14 @@ export type {
   TransactionFields,
   TransactionKind,
 } from './sync/records';
+export {
+  PARENT_PIN_MAX_LENGTH,
+  PARENT_PIN_MIN_LENGTH,
+  PARENT_PIN_SALT_BYTES,
+  PIN_FREE_ATTEMPTS,
+  hashParentPin,
+  isValidParentPin,
+  pinRetryAfterSeconds,
+  verifyParentPin,
+} from './pin/parentPin';
+export type { ParentPinData, ParentPinErrorData, SetParentPinBody } from './pin/parentPin';
