@@ -25,6 +25,15 @@ import type { LocalDb } from '@/db/types';
 import { isSyncOverdue } from '@/sync/pendingSync';
 import { createSyncEngine, type SyncOutcome } from '@/sync/syncEngine';
 import { createSyncTriggers } from '@/sync/syncTriggers';
+import {
+  createParentPinGate,
+  forgetPinOnSignOut,
+  type Biometrics,
+  type ParentPinGate,
+  type PinGateState,
+  type PinGateStore,
+} from '@/pin/parentPinGate';
+import type { AxiosRequestConfig } from 'axios';
 import type { TestServer } from './testServer';
 
 /** Holds the session in memory, the way SecureStore would on a device. */
@@ -34,6 +43,19 @@ function memorySessionStore(initial: StoredSession | null = null): SessionStore 
     load: async () => current,
     save: async (session) => {
       current = session;
+    },
+    clear: async () => {
+      current = null;
+    },
+  };
+}
+
+function memoryPinGateStore(): PinGateStore {
+  let current: PinGateState | null = null;
+  return {
+    load: async () => current,
+    save: async (state) => {
+      current = state;
     },
     clear: async () => {
       current = null;
@@ -78,14 +100,32 @@ export async function createTestDevice(
   }
 
   let auth = await startAuth(memorySessionStore());
-  const engine = createSyncEngine({
-    store,
-    pullLimit,
-    request: (config): Promise<AuthedResult> =>
-      online ? auth.request(config) : Promise.resolve({ status: 'unreachable' }),
-  });
+  const request = (config: AxiosRequestConfig): Promise<AuthedResult> =>
+    online ? auth.request(config) : Promise.resolve({ status: 'unreachable' });
+  const engine = createSyncEngine({ store, request, pullLimit });
   const triggers = createSyncTriggers({ sync: engine.sync });
   const stopListening = autoSync ? store.onWrite(triggers.localWrite) : () => undefined;
+
+  // The Parent PIN gate: its store outlives app restarts, like SecureStore.
+  let clock = Date.now();
+  const pinStore = memoryPinGateStore();
+  const biometrics = { enrolled: true, nextResult: true };
+  const fakeBiometrics: Biometrics = {
+    isEnrolled: async () => biometrics.enrolled,
+    authenticate: async () => biometrics.nextResult,
+  };
+  const startPinGate = (): ParentPinGate => {
+    const gate = createParentPinGate({
+      request,
+      accountId: () => auth.account()?.id ?? null,
+      store: pinStore,
+      biometrics: fakeBiometrics,
+      now: () => clock,
+    });
+    forgetPinOnSignOut(auth, gate);
+    return gate;
+  };
+  let pinGate = startPinGate();
 
   return {
     store,
@@ -128,6 +168,19 @@ export async function createTestDevice(
     expenses: () => expensesQuery(db).all(),
     categories: () => categoriesQuery(db).all(),
     pendingChanges: () => store.pendingCount(),
+
+    get pinGate(): ParentPinGate {
+      return pinGate;
+    },
+    /** The app restarting: a new gate over the same stored state. */
+    restartPinGate: () => {
+      pinGate = startPinGate();
+    },
+    /** Set `enrolled` / `nextResult` to change what the device's biometrics do. */
+    biometrics,
+    advanceClock: (ms: number) => {
+      clock += ms;
+    },
   };
 }
 
