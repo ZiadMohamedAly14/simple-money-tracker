@@ -70,6 +70,40 @@ export const CategoryBudget = model(
   }),
 );
 
+export const KidProfile = model(
+  'KidProfile',
+  syncedSchema({
+    name: { type: String, required: true },
+    avatar: { type: String, default: null },
+    archivedAt: { type: Number, default: null },
+  }),
+);
+
+export const Jar = model(
+  'Jar',
+  syncedSchema({
+    kidProfileId: { type: String, required: true },
+    name: { type: String, required: true },
+    order: { type: Number, required: true },
+    archivedAt: { type: Number, default: null },
+  }),
+);
+
+export const KidTransaction = model(
+  'KidTransaction',
+  syncedSchema({
+    kidProfileId: { type: String, required: true },
+    kind: { type: String, enum: ['topUp'], required: true },
+    amount: { type: Number, required: true },
+    splits: {
+      type: [new Schema({ jarId: { type: String, required: true }, amount: { type: Number, required: true } }, { _id: false })],
+      default: [],
+    },
+    date: { type: String, required: true },
+    note: { type: String, default: null },
+  }),
+);
+
 /** The collection behind each synced entity. Add new synced entities here and to `SYNC_ENTITIES`. */
 export const SYNCED_MODELS = {
   accountSettings: AccountSettings,
@@ -77,4 +111,7 @@ export const SYNCED_MODELS = {
   monthPlan: MonthPlan,
   categoryBudget: CategoryBudget,
   transaction: Transaction,
+  kidProfile: KidProfile,
+  jar: Jar,
+  kidTransaction: KidTransaction,
 } satisfies Record<SyncEntity, unknown>;

@@ -86,3 +86,12 @@ export function categoryBudgetId(accountId: string, month: string, categoryId: s
 export function defaultCategoryId(accountId: string, key: string): string {
   return derivedId('defaultCategory', accountId, key);
 }
+
+/**
+ * The ID of one of a Kid Profile's default Jars (`key` from `DEFAULT_JAR_KEYS`).
+ * Fixed so the app can tell which Jar is Spend (the default split, and where
+ * rounding remainders go) even after the parent renames it.
+ */
+export function defaultJarId(accountId: string, kidProfileId: string, key: string): string {
+  return derivedId('defaultJar', accountId, kidProfileId, key);
+}

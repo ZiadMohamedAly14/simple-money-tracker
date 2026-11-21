@@ -14,3 +14,6 @@ export const FALLBACK_CURRENCY: CurrencyCode = 'EGP';
 
 /** Onboarding steps on the personal path: purpose, currency, Expected Income, split. The kid path counts its own (design flaw 9). */
 export const PERSONAL_STEPS = 4;
+
+/** Onboarding steps on the kid path: purpose, currency, Kid Profile, Parent PIN, first Top-up (optional). */
+export const KID_STEPS = 5;
