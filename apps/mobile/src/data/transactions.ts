@@ -84,6 +84,15 @@ export function monthTransactionListQuery(db: LocalDb, month: Month) {
     .orderBy(desc(transactions.date), desc(transactions.id));
 }
 
+/** Live-queryable: one Transaction, unless deleted (`.get()`, or `useLiveQuery` and take the first row). */
+export function transactionQuery(db: LocalDb, id: string) {
+  return db
+    .select()
+    .from(transactions)
+    .where(and(eq(transactions.id, id), isNull(transactions.deletedAt)))
+    .limit(1);
+}
+
 /** Live-queryable: Categories in display order. */
 export function categoriesQuery(db: LocalDb) {
   return db

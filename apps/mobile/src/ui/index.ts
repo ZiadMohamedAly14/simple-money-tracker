@@ -3,11 +3,15 @@
  * styling from scratch; see notes in each file for props.
  */
 export { AmountDisplay, ProgressBar, ProgressRow } from './Amount';
+export { AmountEntryDisplay, AmountKeypad, useAmountEntry } from './AmountEntry';
+export type { AmountEntry, AmountEntryDisplayProps, AmountKeypadProps } from './AmountEntry';
 export type { AmountDisplayProps, ProgressBarProps, ProgressRowProps, ProgressTone } from './Amount';
 export { Button, Fab, IconButton } from './Button';
 export type { ButtonProps, ButtonVariant, FabProps, IconButtonProps } from './Button';
 export { Card, Chip, ListRow, Notice, PendingSyncLabel, SegmentedControl } from './Card';
 export type { CardProps, ChipProps, ListRowProps, NoticeProps, SegmentedControlProps, SegmentedOption } from './Card';
+export { DateField } from './DateField';
+export type { DateFieldProps } from './DateField';
 export { IconCircle } from './icons';
 export type { IconCircleProps, IconCircleTone, IconName } from './icons';
 export { CodeBoxes, NumericKeypad, PinDots } from './Keypad';

@@ -1,0 +1,124 @@
+import { useMemo, useState } from 'react';
+import { ScrollView, View } from 'react-native';
+import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
+import { useTranslation } from 'react-i18next';
+import { toLocalDate, type TransactionKind } from '@money-tracker/shared';
+import { categoriesQuery, categoryChoicesQuery } from '@/data/transactions';
+import { useAccountSettings } from '@/data/useAccountSettings';
+import { localDb } from '@/db/appDatabase';
+import {
+  AmountEntryDisplay,
+  AmountKeypad,
+  Button,
+  Chip,
+  DateField,
+  Screen,
+  ScreenHeader,
+  TextField,
+  useAmountEntry,
+} from '@/ui';
+
+export interface TransactionValues {
+  /** Positive, in minor units: the keypad sum's result. */
+  amount: number;
+  /** Local date `YYYY-MM-DD`. */
+  date: string;
+  note: string | null;
+  /** The Expense's Category; null for Income. */
+  categoryId: string | null;
+}
+
+export interface TransactionFormProps {
+  kind: TransactionKind;
+  title: string;
+  /** The amount as decimal text (fromMinorUnits) and the other fields, when editing. */
+  initial?: { amount: string; date: string; note: string | null; categoryId: string | null };
+  onSave: (values: TransactionValues) => void;
+  onClose: () => void;
+  /** Shows a Delete button (editing). */
+  onDelete?: () => void;
+}
+
+/**
+ * Recording or editing an Income or Expense (PDF pages 1–2). The keypad is
+ * always on screen, so typing starts at once; an Expense takes a Category chip
+ * (most recently used first), so a new one is +, amount, chip, Save. The date
+ * defaults to today and the note is optional. Income has no Category.
+ */
+export function TransactionForm({ kind, title, initial, onSave, onClose, onDelete }: TransactionFormProps) {
+  const { t } = useTranslation();
+  const { currency, numberingSystem } = useAccountSettings();
+  const entry = useAmountEntry(currency, initial?.amount);
+  const [date, setDate] = useState(initial?.date ?? toLocalDate(new Date()));
+  const [note, setNote] = useState(initial?.note ?? '');
+  const [categoryId, setCategoryId] = useState<string | null>(initial?.categoryId ?? null);
+  const { data: choices } = useLiveQuery(categoryChoicesQuery(localDb));
+  const { data: allCategories } = useLiveQuery(categoriesQuery(localDb));
+
+  // An edited Expense keeps its Category even if that has since been archived.
+  const chips = useMemo(() => {
+    if (!categoryId || choices.some((c) => c.id === categoryId)) return choices;
+    const current = allCategories.find((c) => c.id === categoryId);
+    return current ? [current, ...choices] : choices;
+  }, [choices, allCategories, categoryId]);
+
+  const isExpense = kind === 'expense';
+  const canSave = entry.amount !== null && (!isExpense || categoryId !== null);
+
+  function save() {
+    if (entry.amount === null || (isExpense && !categoryId)) return;
+    onSave({ amount: entry.amount, date, note: note.trim() || null, categoryId: isExpense ? categoryId : null });
+  }
+
+  return (
+    <Screen
+      footer={
+        <>
+          <AmountKeypad entry={entry} numberingSystem={numberingSystem} />
+          <Button label={t('transactions.save')} disabled={!canSave} onPress={save} />
+          {onDelete ? <Button label={t('transactions.delete')} variant="danger" icon="trash-outline" onPress={onDelete} /> : null}
+        </>
+      }
+    >
+      <ScreenHeader title={title} onBack={onClose} backIcon="close" />
+      <View className="flex-1 justify-center gap-4">
+        <AmountEntryDisplay
+          entry={entry}
+          currency={currency}
+          numberingSystem={numberingSystem}
+          accessibilityLabel={t('transactions.amountLabel')}
+        />
+        {isExpense ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            accessibilityLabel={t('transactions.category')}
+            contentContainerClassName="gap-2"
+            className="max-h-12 grow-0"
+          >
+            {chips.map((category) => (
+              <Chip
+                key={category.id}
+                label={category.isOther ? t('categories.other') : category.name}
+                selected={category.id === categoryId}
+                onPress={() => setCategoryId(category.id)}
+              />
+            ))}
+          </ScrollView>
+        ) : null}
+        <View className="flex-row items-center gap-3">
+          <DateField value={date} onChange={setDate} numberingSystem={numberingSystem} />
+          <TextField
+            value={note}
+            onChangeText={setNote}
+            placeholder={`${t('transactions.note')} (${t('transactions.notePlaceholder')})`}
+            accessibilityLabel={t('transactions.note')}
+            maxLength={200}
+            returnKeyType="done"
+            className="flex-1"
+          />
+        </View>
+      </View>
+    </Screen>
+  );
+}
