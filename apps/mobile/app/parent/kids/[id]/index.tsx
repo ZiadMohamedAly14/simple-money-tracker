@@ -2,6 +2,7 @@ import { Alert, View } from 'react-native';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { formatMoneyParts } from '@money-tracker/shared';
+import { useKidModeProfileId } from '@/auth/appSession';
 import { archiveKidProfile, restoreKidProfile } from '@/data/kidWallet';
 import { useAccountSettings } from '@/data/useAccountSettings';
 import { localDb, localStore } from '@/db/appDatabase';
@@ -15,10 +16,11 @@ import { AmountDisplay, Card, IconButton, ListRow, Notice, ProgressRow, Screen, 
  * A kid's wallet seen from the Parent Area, in the Kid theme (PDF pages 1
  * and 11): the total, each Jar's balance (worked out by the shared
  * `jarBalances`), a notice for each Jar that went below zero after a sync,
- * and the parent's actions: Top up, Move money, Manage jars, Full history,
+ * and the parent's actions: Top up, Jar Transfer, Manage jars, Full history,
  * and Archive. An archived kid shows only the wallet, its history and Restore.
  * "Open … screens" shows the kid's own screens on this phone until Kid-Mode
- * devices exist (ticket 14). Works offline.
+ * devices exist (ticket 14). Works offline. On a Kid-Mode phone (Parent Area
+ * unlocked) Archive is hidden: archiving would sign that very phone out.
  */
 export default function KidWalletScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -34,6 +36,7 @@ function KidWallet({ id }: { id: string }) {
   const language = useLanguage();
   const { currency, numberingSystem } = useAccountSettings();
   const { kid, wallet } = useKidWallet(id);
+  const onKidPhone = useKidModeProfileId() !== null;
   const parts = (minor: number) => formatMoneyParts(minor, { language, currency, numberingSystem });
 
   if (kid === undefined) return null;
@@ -115,14 +118,14 @@ function KidWallet({ id }: { id: string }) {
           />
         </>
       ) : (
-        <LiveKidActions id={id} name={kid.name} onArchive={confirmArchive} />
+        <LiveKidActions id={id} name={kid.name} onArchive={onKidPhone ? undefined : confirmArchive} />
       )}
     </Screen>
   );
 }
 
-/** What a parent can do for a kid who isn't archived. */
-function LiveKidActions({ id, name, onArchive }: { id: string; name: string; onArchive: () => void }) {
+/** What a parent can do for a kid who isn't archived. No `onArchive`, no Archive row. */
+function LiveKidActions({ id, name, onArchive }: { id: string; name: string; onArchive?: () => void }) {
   const { t } = useTranslation();
   return (
     <>
@@ -133,8 +136,8 @@ function LiveKidActions({ id, name, onArchive }: { id: string; name: string; onA
       />
       <ListRow
         icon="app:move-money"
-        title={t('kid.wallet.moveMoney')}
-        onPress={() => router.push({ pathname: '/parent/kids/[id]/move', params: { id } })}
+        title={t('kid.wallet.transfer')}
+        onPress={() => router.push({ pathname: '/parent/kids/[id]/transfer', params: { id } })}
       />
       <ListRow
         icon="app:jar-save"
@@ -152,7 +155,7 @@ function LiveKidActions({ id, name, onArchive }: { id: string; name: string; onA
         title={t('kid.wallet.kidView', { name })}
         onPress={() => router.push({ pathname: '/kid/[id]', params: { id } })}
       />
-      <ListRow icon="app:archive" title={t('kidArchive.archive', { name })} onPress={onArchive} />
+      {onArchive ? <ListRow icon="app:archive" title={t('kidArchive.archive', { name })} onPress={onArchive} /> : null}
     </>
   );
 }

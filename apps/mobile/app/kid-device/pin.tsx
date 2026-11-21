@@ -60,7 +60,7 @@ export default function KidDevicePinScreen() {
       return;
     }
     if (result.status === 'no_pin') {
-      router.replace({ pathname: '/pin/set', params: { next: '/parent/kid-device' } });
+      router.replace({ pathname: '/pin/set', params: { next: '/kid-device' } });
       return;
     }
     if (result.status === 'pin_locked') {

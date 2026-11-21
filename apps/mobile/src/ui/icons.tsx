@@ -1,41 +1,28 @@
-import type { ComponentProps } from 'react';
 import { View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { DirectionalIcon } from '@/theme/DirectionalIcon';
 import { useTheme } from '@/theme/ThemeProvider';
 import { AppIcon } from './AppIcon';
 import type { AppIconName } from './appIcons';
 import { ICON_CIRCLE_TONES, type IconCircleTone } from './iconCircleTones';
 
-/** Any Ionicons name. Use the outline variants to match the design. */
-export type IconName = ComponentProps<typeof Ionicons>['name'];
-
-/**
- * A custom icon from `assets/icon/`, written `app:<file name>`. The prefix keeps
- * it apart from Ionicons names that clash ("add", "wallet").
- */
+/** A custom icon from `assets/icon/`, written `app:<file name>`. */
 export type AppIconRef = `app:${AppIconName}`;
 
-/** What icon props across the UI kit take: an Ionicons name or an `app:` custom icon. */
-export type GlyphName = IconName | AppIconRef;
+/** What icon props across the UI kit take: an `app:` icon. The app draws only its own icon set. */
+export type GlyphName = AppIconRef;
 
 export interface GlyphProps {
   name: GlyphName;
   size: number;
   color: string;
-  /** Mirror in right-to-left. Custom arrows (app:back, app:chevron-forward) mirror on their own. */
+  /** Mirror in right-to-left. Arrows (app:back, app:chevron-forward) mirror on their own. */
   directional?: boolean;
-  /** Custom icons only: point the other way (app:chevron-forward as "previous"). See AppIcon. */
+  /** Point the other way (app:chevron-forward as "previous"). See AppIcon. */
   reversed?: boolean;
 }
 
-/** Draws a GlyphName: the custom SVG for `app:` names, Ionicons otherwise. */
+/** Draws a GlyphName: the custom SVG named after `app:`. */
 export function Glyph({ name, size, color, directional, reversed }: GlyphProps) {
-  if (name.startsWith('app:')) {
-    return <AppIcon name={name.slice(4) as AppIconName} size={size} color={color} directional={directional} reversed={reversed} />;
-  }
-  const Icon = directional ? DirectionalIcon : Ionicons;
-  return <Icon name={name as IconName} size={size} color={color} />;
+  return <AppIcon name={name.slice(4) as AppIconName} size={size} color={color} directional={directional} reversed={reversed} />;
 }
 
 export type { IconCircleTone };
@@ -47,7 +34,7 @@ const CIRCLE_SIZE = {
 } as const;
 
 export interface IconCircleProps {
-  /** An Ionicons name or an `app:` custom icon ("app:wallet"). */
+  /** An `app:` icon ("app:wallet"). */
   icon: GlyphName;
   /** tint (default) for list and category rows; jar-* for the kid's Jars. */
   tone?: IconCircleTone;

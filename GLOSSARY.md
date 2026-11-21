@@ -47,7 +47,7 @@ The sum of Expense transactions recorded in a Month.
 _Avoid_: Costs, outflow
 
 **Remaining**:
-Income minus Spending for a Month. Always derived, never entered.
+Expected Income minus Spending for a Month: what the plan leaves to spend. Recorded Income doesn't change it, and Category Budgets don't count as spent. Always derived, never entered. May be negative.
 _Avoid_: Balance, money left
 
 **Category**:
@@ -81,7 +81,7 @@ Money a parent adds to a Kid Wallet, split across Jars. Only the parent can crea
 _Avoid_: Allowance, deposit, transfer
 
 **Kid Expense**:
-Money a kid records as spent from a Jar. Can never exceed the Jar's balance.
+Money a kid records as spent from a Jar. The app never lets one exceed the Jar's balance. That check runs on the device only: the server accepts any Kid Expense (last edit wins), so two offline devices can take a Jar below zero, and the app then blocks spending from it until it's topped up.
 _Avoid_: Purchase, kid transaction
 
 **Jar Transfer**:

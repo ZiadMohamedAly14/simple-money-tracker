@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import {
   applyKeypadKey,
   currencyMinorDigits,
-  evaluateAllocation,
+  evaluateNonNegativeAmount,
   evaluateAmountExpression,
   formatMoneyParts,
   fromMinorUnits,
@@ -60,7 +60,7 @@ export function TopUpForm({ kidProfileId, editing, header, onSaved, footerExtra 
   const [target, setTarget] = useState<Target>('total');
 
   // Null while the typed sum is unfinished, negative or divides by zero.
-  const totalResult = evaluateAllocation(totalTyped, currency);
+  const totalResult = evaluateNonNegativeAmount(totalTyped, currency);
   const total = totalResult ?? 0;
   // A Top-up being edited may still name a Jar archived since; keep showing it.
   const jars = useMemo(() => {
@@ -73,7 +73,7 @@ export function TopUpForm({ kidProfileId, editing, header, onSaved, footerExtra 
   const others = transactions.filter((tx) => tx.id !== editing?.id);
   const suggestion = suggestedSplitOf(accountId, kidProfileId, jarRows, others, total);
   const shareResults: Record<string, number | null> | null = sharesTyped
-    ? Object.fromEntries(Object.entries(sharesTyped).map(([id, text]) => [id, evaluateAllocation(text, currency)]))
+    ? Object.fromEntries(Object.entries(sharesTyped).map(([id, text]) => [id, evaluateNonNegativeAmount(text, currency)]))
     : null;
   const sharesValid = !shareResults || Object.values(shareResults).every((amount) => amount !== null);
   const shares: Record<string, number> = shareResults

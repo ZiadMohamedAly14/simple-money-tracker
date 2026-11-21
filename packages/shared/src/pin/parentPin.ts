@@ -11,6 +11,7 @@
 import { pbkdf2Async } from '@noble/hashes/pbkdf2';
 import { sha256 } from '@noble/hashes/sha2';
 import { utf8ToBytes } from '@noble/hashes/utils';
+import type { ScopeErrorReason } from '../auth/scope';
 import type { Language } from '../i18n/language';
 
 export const PARENT_PIN_MIN_LENGTH = 4;
@@ -129,7 +130,7 @@ export interface ParentPinData {
  * `kid_session` (403: a Kid-Mode device can't read or set the PIN).
  */
 export interface ParentPinErrorData {
-  reason: 'wrong_pin' | 'pin_locked' | 'kid_session';
+  reason: 'wrong_pin' | 'pin_locked' | ScopeErrorReason;
   attemptsRemaining?: number;
   retryAfterSeconds?: number;
 }

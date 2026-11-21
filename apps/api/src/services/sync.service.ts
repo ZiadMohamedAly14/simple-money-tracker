@@ -8,7 +8,7 @@ import {
   monthPlanId,
   otherCategoryId,
   parsePushedChange,
-  type KidSessionErrorData,
+  type ScopeErrorData,
   type KidTransactionFields,
   type PulledChange,
   type PushedChange,
@@ -19,7 +19,8 @@ import {
 } from '@money-tracker/shared';
 import { committedServerVersion, writeWithServerVersion } from '../models/counter.model';
 import { Category, Jar, SYNCED_MODELS } from '../models/synced.model';
-import type { AuthContext, TokenService } from './token.service';
+import { Account } from '../models/account.model';
+import { authFailure, type AuthContext, type TokenService } from './token.service';
 import { ForbiddenError, ValidationError } from '../utils/AppError';
 import type { Clock } from '../utils/clock';
 
@@ -114,6 +115,9 @@ function kidTransactionJars(record: KidTransactionFields): { id: string; field: 
   return jars;
 }
 
+/** What an elevated Kid-Mode device may push: the Kid Wallet's records only. */
+const KID_WALLET_ENTITIES: ReadonlySet<SyncEntity> = new Set<SyncEntity>(['kidProfile', 'jar', 'kidTransaction']);
+
 const isDuplicateKey = (error: unknown): boolean => (error as { code?: unknown }).code === 11000;
 
 function toPulled(entity: SyncEntity, stored: StoredRecord): PulledChange {
@@ -127,15 +131,25 @@ function toPulled(entity: SyncEntity, stored: StoredRecord): PulledChange {
  * atomic counter, and that server version is the cursor.
  */
 export function createSyncService({ now, tokens }: { now: Clock; tokens: Pick<TokenService, 'endKidSessions'> }) {
+  /**
+   * A sync authenticated just before its Account was deleted must not write
+   * afterwards, or it would leave records with no Account (ADR-0005). Checked
+   * before the sync starts and again right before each write.
+   */
+  async function requireLiveAccount(accountId: string): Promise<void> {
+    if (!(await Account.exists({ _id: accountId }))) throw authFailure('account_deleted');
+  }
+
   /** The Other Category exists for every Account (spec); created on the Account's first sync. */
   async function ensureOtherCategory(accountId: string): Promise<void> {
     const id = otherCategoryId(accountId);
     if (await Category.exists({ _id: id })) return;
     const nowMs = now().getTime();
     try {
-      await writeWithServerVersion(nowMs, (serverVersion) =>
-        Category.create({ _id: id, accountId, ...OTHER_CATEGORY, updatedAt: nowMs, deletedAt: null, serverVersion }),
-      );
+      await writeWithServerVersion(nowMs, async (serverVersion) => {
+        await requireLiveAccount(accountId);
+        return Category.create({ _id: id, accountId, ...OTHER_CATEGORY, updatedAt: nowMs, deletedAt: null, serverVersion });
+      });
     } catch (error) {
       if (!isDuplicateKey(error)) throw error; // another device's sync created it first
     }
@@ -162,7 +176,7 @@ export function createSyncService({ now, tokens }: { now: Clock; tokens: Pick<To
    */
   async function checkKidScope(auth: AuthContext, changes: PushedChange[]): Promise<void> {
     const refused = (): Error => {
-      const data: KidSessionErrorData = { reason: 'kid_session' };
+      const data: ScopeErrorData = { reason: 'kid_session' };
       return new ForbiddenError('A Kid Session cannot change these records', data);
     };
     const kidProfileId = auth.kidProfileId;
@@ -172,6 +186,18 @@ export function createSyncService({ now, tokens }: { now: Clock; tokens: Pick<To
       if (!kidWrites?.(kidProfileId, change.record as unknown as KidScoped)) throw refused();
       const stored = await modelOf(change.entity).findOne({ _id: change.record.id, accountId: auth.accountId }).lean<StoredRecord>();
       if (stored && !kidWrites(kidProfileId, stored)) throw refused();
+    }
+  }
+
+  /**
+   * A Kid-Mode device elevated with the Parent PIN has full rights, but only
+   * over the Kid Wallet: it may push Kid Profiles, Jars and Kid Transactions,
+   * never Personal Transactions, Categories, plans or settings (ADR-0002).
+   */
+  function checkElevatedScope(changes: PushedChange[]): void {
+    if (changes.some((change) => !KID_WALLET_ENTITIES.has(change.entity))) {
+      const data: ScopeErrorData = { reason: 'kid_session' };
+      throw new ForbiddenError('A Kid-Mode device can only change Kid Wallet records', data);
     }
   }
 
@@ -273,6 +299,7 @@ export function createSyncService({ now, tokens }: { now: Clock; tokens: Pick<To
 
       try {
         const written = await writeWithServerVersion(now().getTime(), async (serverVersion) => {
+          await requireLiveAccount(accountId);
           if (!stored) {
             await model.create({ ...update, _id: id, accountId, serverVersion });
             return true;
@@ -343,8 +370,10 @@ export function createSyncService({ now, tokens }: { now: Clock; tokens: Pick<To
   return {
     async sync(auth: AuthContext, body: SyncRequestBody): Promise<SyncResponseData> {
       const changes = parseAll(body.changes);
+      await requireLiveAccount(auth.accountId);
       if (auth.scope === 'kid') await checkKidScope(auth, changes);
-      else if (!auth.kidProfileId) await ensureOtherCategory(auth.accountId); // not for an elevated Kid-Mode device
+      else if (auth.kidProfileId) checkElevatedScope(changes);
+      else await ensureOtherCategory(auth.accountId);
 
       // Referenced entities first, so a Category is stored before its Expenses.
       const ordered = [...changes].sort((a, b) => SYNC_ENTITIES.indexOf(a.entity) - SYNC_ENTITIES.indexOf(b.entity));

@@ -1,5 +1,5 @@
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
-import type { ParentPinErrorData } from '@money-tracker/shared';
+import type { ScopeErrorData } from '@money-tracker/shared';
 import { authFailure, type AuthContext, type TokenService } from '../services/token.service';
 import { ForbiddenError } from '../utils/AppError';
 
@@ -39,6 +39,6 @@ export function authOf(req: Request): AuthContext {
  * Session gets 403 `kid_session` (ADR-0002).
  */
 export const requireFullScope: RequestHandler = (req, _res, next) => {
-  const data: ParentPinErrorData = { reason: 'kid_session' };
+  const data: ScopeErrorData = { reason: 'kid_session' };
   next(authOf(req).scope === 'full' ? undefined : new ForbiddenError('Not available on a Kid-Mode device', data));
 };

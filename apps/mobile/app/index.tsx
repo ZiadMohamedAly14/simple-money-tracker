@@ -192,8 +192,9 @@ interface HeroCardProps {
 
 /**
  * The home "Hero card" (docs/design/mockups/home-hero-card.png): Remaining
- * large on the primary green, the income progress bar with "X of Y
- * expected", and Income and Spending in translucent tiles. Numbers sit in
+ * (Expected Income − Spending) large on the primary green, the income
+ * progress bar with "X of Y expected" (recorded Income against the plan),
+ * and Income and Spending in translucent tiles. Numbers sit in
  * direction isolates so a minus sign stays at the start of the number in RTL.
  */
 function HeroCard({ figures, number, spoken, currencyLabel }: HeroCardProps) {

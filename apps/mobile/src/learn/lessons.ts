@@ -1,3 +1,4 @@
+import type { ColorScheme } from '@/theme/appearance';
 import { APP_ICONS, type AppIconName } from '@/ui/appIcons';
 
 /**
@@ -49,6 +50,20 @@ export function lessonIllustration(
 ): AppIconName {
   const own = illustrations[topic];
   return (Object.hasOwn(icons, own) ? own : FALLBACK_LESSON_ILLUSTRATION) as AppIconName;
+}
+
+/**
+ * The drawing to show in the active colour scheme: in dark mode its
+ * `-dark` variant (redrawn to read on the dark Card), or the light drawing
+ * when there is no dark one.
+ */
+export function illustrationForScheme(
+  illustration: AppIconName,
+  scheme: ColorScheme,
+  icons: Readonly<Record<string, unknown>> = APP_ICONS,
+): AppIconName {
+  const dark = `${illustration}-dark`;
+  return (scheme === 'dark' && Object.hasOwn(icons, dark) ? dark : illustration) as AppIconName;
 }
 
 export interface Lesson {

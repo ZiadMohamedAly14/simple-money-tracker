@@ -1,5 +1,5 @@
 import type { AxiosRequestConfig } from 'axios';
-import { MAX_PUSHED_CHANGES, isApiEnvelope, type SyncRequestBody, type SyncResponseData } from '@money-tracker/shared';
+import { MAX_PUSHED_CHANGES, isApiEnvelope, type PushedChange, type SyncRequestBody, type SyncResponseData } from '@money-tracker/shared';
 import type { AuthedResult } from '@/auth/authSession';
 import type { LocalStore } from '@/db/localStore';
 
@@ -18,6 +18,22 @@ export interface SyncEngineDeps {
   request: (config: AxiosRequestConfig) => Promise<AuthedResult>;
   /** Page size to ask for when pulling; the server's default (`MAX_PULLED_CHANGES`) if unset. */
   pullLimit?: number;
+  /**
+   * Changes to keep queued instead of pushing now. A Kid-Mode device holds
+   * back the parent's changes (made while the Parent Area was unlocked) while
+   * it syncs as the Kid Session, which may not write them; see `kidSessionHoldsBack`.
+   */
+  holdBack?: (change: PushedChange) => boolean;
+}
+
+/**
+ * What a Kid Session may not push (ADR-0002): everything but Kid Expenses.
+ * A Top-up or Jar Transfer the parent made on the kid's phone that didn't
+ * sync before the unlock ended waits for the next unlock, instead of making
+ * the server refuse the kid's syncs.
+ */
+export function kidSessionHoldsBack(change: PushedChange): boolean {
+  return !(change.entity === 'kidTransaction' && change.record.kind === 'kidExpense');
 }
 
 /**
@@ -26,14 +42,14 @@ export interface SyncEngineDeps {
  * then runs once more, so writes made meanwhile still go out. Ticket 06 adds
  * the triggers (debounced after writes, foreground, reconnect).
  */
-export function createSyncEngine({ store, request, pullLimit }: SyncEngineDeps) {
+export function createSyncEngine({ store, request, pullLimit, holdBack }: SyncEngineDeps) {
   let running: Promise<SyncOutcome> | null = null;
   let queued: Promise<SyncOutcome> | null = null;
 
   async function roundTrip(): Promise<SyncOutcome | 'more'> {
     const accountId = store.accountId();
     if (!accountId) return 'signed_out';
-    const push = store.pendingPush(MAX_PUSHED_CHANGES);
+    const push = store.pendingPush(MAX_PUSHED_CHANGES, holdBack);
     const body: SyncRequestBody = { cursor: store.cursor(), changes: push.changes, ...(pullLimit ? { limit: pullLimit } : {}) };
 
     const result = await request({ method: 'POST', url: '/sync', data: body });
@@ -42,7 +58,7 @@ export function createSyncEngine({ store, request, pullLimit }: SyncEngineDeps) 
     if (result.httpStatus !== 200 || !isApiEnvelope(result.body) || !result.body.success) return 'failed';
 
     const response = result.body.data as SyncResponseData;
-    if (!store.completeSync(accountId, push.upTo, response)) return 'signed_out';
+    if (!store.completeSync(accountId, push, response)) return 'signed_out';
     // More to push, or more to pull (a device catching up gets its history a page at a time).
     return push.hasMore || response.hasMore ? 'more' : 'synced';
   }

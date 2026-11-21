@@ -1,7 +1,7 @@
 import { ar } from '@/i18n/locales/ar';
 import { en } from '@/i18n/locales/en';
 import { APP_ICONS } from '@/ui/appIcons';
-import { LESSONS, LESSON_ILLUSTRATIONS, lessonIllustration } from './lessons';
+import { LESSONS, LESSON_ILLUSTRATIONS, illustrationForScheme, lessonIllustration } from './lessons';
 
 const ARABIC_SCRIPT = /[؀-ۿ]/;
 
@@ -25,6 +25,20 @@ describe('Learn lessons', () => {
 });
 
 describe('lesson illustrations', () => {
+  it('uses the dark drawing in dark mode and the light one in light mode', () => {
+    expect(illustrationForScheme('learn-illustration-patience', 'dark')).toBe('learn-illustration-patience-dark');
+    expect(illustrationForScheme('learn-illustration-patience', 'light')).toBe('learn-illustration-patience');
+  });
+
+  it('falls back to the light drawing in dark mode when there is no dark one', () => {
+    const icons = { 'learn-illustration-patience': {} };
+    expect(illustrationForScheme('learn-illustration-patience', 'dark', icons)).toBe('learn-illustration-patience');
+  });
+
+  it('has a dark drawing for every lesson', () => {
+    for (const lesson of LESSONS) expect(APP_ICONS).toHaveProperty([`${lesson.illustration}-dark`]);
+  });
+
   it("falls back to the jar of coins when a lesson's drawing is missing from the icon set", () => {
     expect(lessonIllustration('waiting', { 'learn-illustration-jar-coins': {} })).toBe('learn-illustration-jar-coins');
   });

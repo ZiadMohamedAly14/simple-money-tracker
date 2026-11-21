@@ -1,6 +1,7 @@
 import {
   isApiEnvelope,
   pinRetryAfterSeconds,
+  secondsUntil,
   verifyParentPin,
   type AuthErrorData,
   type Language,
@@ -105,8 +106,6 @@ export function createParentPinGate({ request, accountId, store, biometrics, now
     if (state) await store.save({ ...state, ...changes });
   }
 
-  const secondsUntil = (time: number): number => Math.max(1, Math.ceil((time - now()) / 1000));
-
   return {
     /** Fetches the current PIN hash (e.g. changed on another device). Offline keeps the last copy. */
     async refresh(): Promise<'updated' | 'unreachable'> {
@@ -168,7 +167,7 @@ export function createParentPinGate({ request, accountId, store, biometrics, now
       const state = await load();
       if (!state?.pinHash) return { status: 'no_pin' };
       if (state.lockedUntil !== null && state.lockedUntil > now()) {
-        return { status: 'locked', retryAfterSeconds: secondsUntil(state.lockedUntil) };
+        return { status: 'locked', retryAfterSeconds: secondsUntil(now(), state.lockedUntil) };
       }
       if (await verifyParentPin(pin, state.pinHash)) {
         await store.save({ ...state, failures: 0, lockedUntil: null });

@@ -11,8 +11,9 @@ const MARCH = '2026-03';
 const APRIL = '2026-04';
 
 const idOf = (device: TestDevice, name: string) => device.categories().find((c) => c.name === name)!.id;
+/** A Month's Category Budgets above 0 (a missing budget and a 0 one are the same). */
 const budgetsOf = (device: TestDevice, month: string) =>
-  Object.fromEntries(device.categoryBudgets(month).map((b) => [b.categoryId, b.amount]));
+  Object.fromEntries(device.categoryBudgets(month).filter((b) => b.amount > 0).map((b) => [b.categoryId, b.amount]));
 
 describe('Months created lazily (Seam B)', () => {
   let server: TestServer;
@@ -47,7 +48,7 @@ describe('Months created lazily (Seam B)', () => {
       expectedIncome: 800000,
       income: 0,
       spending: 0,
-      remaining: 0,
+      remaining: 800000,
       unallocated: 100000,
     });
     expect(budgetsOf(phone, APRIL)).toEqual({ [housing]: 500000, [food]: 200000 });
@@ -107,7 +108,7 @@ describe('Months created lazily (Seam B)', () => {
 
     for (const device of [phone, tablet]) {
       expect(device.monthPlans().filter((p) => p.month === APRIL)).toHaveLength(1);
-      expect(device.categoryBudgets(APRIL)).toHaveLength(1);
+      expect(Object.keys(budgetsOf(device, APRIL))).toHaveLength(1);
       expect(device.monthOverview(APRIL)).toMatchObject({ expectedIncome: 800000, unallocated: 600000 });
     }
   });
@@ -174,5 +175,61 @@ describe('Months created lazily (Seam B)', () => {
       expect(device.monthOverview(APRIL).expectedIncome).toBe(1000000);
       expect(budgetsOf(device, APRIL)).toEqual({ [food]: 250000 });
     }
+  });
+  describe('two devices copying the same new Month, one behind on sync', () => {
+    /**
+     * The phone knows March's plan and that Shopping was archived; the tablet
+     * last synced in February. Both open April offline.
+     */
+    async function phoneAheadTabletBehind() {
+      const phone = await createTestDevice(server);
+      await phone.signIn('sara@example.com');
+      phone.onboardPersonal({ currency: 'USD', expectedIncome: 800000, month: '2026-02', categoryNames: NAMES });
+      const [food, bills, shopping] = ['food', 'bills', 'shopping'].map((name) => idOf(phone, name)) as [string, string, string];
+      phone.setCategoryBudgets('2026-02', { [food]: 100000, [bills]: 50000, [shopping]: 30000 });
+      await phone.sync();
+      const tablet = await createTestDevice(server);
+      await tablet.signIn('sara@example.com');
+      await tablet.sync();
+      tablet.goOffline();
+
+      phone.openMonth(MARCH);
+      phone.setExpectedIncome(MARCH, 900000);
+      phone.setCategoryBudgets(MARCH, { [food]: 200000, [bills]: 0 });
+      phone.archiveCategory(shopping);
+      await phone.sync();
+      phone.goOffline();
+
+      phone.openMonth(APRIL);
+      tablet.openMonth(APRIL); // copies February: it hasn't seen March or the archive
+      return { phone, tablet, food };
+    }
+
+    const expectAprilFromMarch = (devices: TestDevice[], food: string) => {
+      for (const device of devices) {
+        expect(device.monthPlans().filter((p) => p.month === APRIL)).toEqual([expect.objectContaining({ expectedIncome: 900000 })]);
+        expect(budgetsOf(device, APRIL)).toEqual({ [food]: 200000 });
+      }
+    };
+
+    it('converge on the copy from the newest source Month when the device behind syncs first', async () => {
+      const { phone, tablet, food } = await phoneAheadTabletBehind();
+      tablet.goOnline();
+      await tablet.sync();
+      phone.goOnline();
+      await phone.sync();
+      await tablet.sync();
+      expectAprilFromMarch([phone, tablet], food);
+    });
+
+    it('converge on the copy from the newest source Month when the device ahead syncs first', async () => {
+      const { phone, tablet, food } = await phoneAheadTabletBehind();
+      phone.goOnline();
+      await phone.sync();
+      tablet.goOnline();
+      await tablet.sync();
+      await phone.sync();
+      expectAprilFromMarch([phone, tablet], food);
+    });
   });
 });

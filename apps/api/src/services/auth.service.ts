@@ -1,8 +1,9 @@
 import { createHmac, randomInt, timingSafeEqual } from 'node:crypto';
-import type { AuthErrorData, Language, RequestCodeData, VerifyCodeData } from '@money-tracker/shared';
+import { secondsUntil, type AuthErrorData, type Language, type RequestCodeData, type VerifyCodeData } from '@money-tracker/shared';
 import type { Env } from '../config/env';
 import type { Mailer } from '../email/mailer';
-import { signInCodeEmail, type CodePurpose } from '../email/signInCodeEmail';
+import { accountDeletionCodeEmail } from '../email/accountDeletionCodeEmail';
+import { signInCodeEmail } from '../email/signInCodeEmail';
 import { Account } from '../models/account.model';
 import { SignInCode } from '../models/signInCode.model';
 import { BadRequestError, ServiceUnavailableError, TooManyRequestsError } from '../utils/AppError';
@@ -22,7 +23,12 @@ function authError(status: 400 | 429, message: string, data: AuthErrorData): Err
   return status === 400 ? new BadRequestError(message, data) : new TooManyRequestsError(message, data);
 }
 
-const secondsUntil = (from: Date, to: Date): number => Math.max(1, Math.ceil((to.getTime() - from.getTime()) / 1000));
+/**
+ * What an emailed one-time code proves: signing in, resetting a forgotten
+ * Parent PIN, or confirming Account deletion. The purpose is part of the code's
+ * hash, so a code only works for what it was sent for.
+ */
+export type CodePurpose = 'signIn' | 'pinReset' | 'deleteAccount';
 
 interface Deps {
   env: Pick<Env, 'codeHashSecret'>;
@@ -33,8 +39,10 @@ interface Deps {
 
 /** `email` arguments are already normalized (trimmed, lowercased) by the route's validation. */
 export function createAuthService({ env, mailer, now, tokens }: Deps) {
-  const hashCode = (email: string, code: string): string =>
-    createHmac('sha256', env.codeHashSecret).update(`${email}:${code}`).digest('hex');
+  const hashCode = (email: string, code: string, purpose: CodePurpose): string =>
+    createHmac('sha256', env.codeHashSecret)
+      .update(purpose === 'signIn' ? `${email}:${code}` : `${purpose}:${email}:${code}`)
+      .digest('hex');
 
   const sameHash = (a: string, b: string): boolean => {
     const left = Buffer.from(a, 'hex');
@@ -67,13 +75,16 @@ export function createAuthService({ env, mailer, now, tokens }: Deps) {
     }
   }
 
-  /** Checks a one-time code and uses it up, or throws why not (wrong, expired, too many guesses). */
-  async function useCode(email: string, code: string): Promise<void> {
+  /**
+   * Checks a one-time code sent for `purpose` and uses it up, or throws why not
+   * (wrong, expired, too many guesses). A code sent for another purpose is wrong.
+   */
+  async function useCode(email: string, code: string, purpose: CodePurpose = 'signIn'): Promise<void> {
     const current = now();
     const expired = authError(400, 'This code has expired. Request a new one', { reason: 'code_expired' });
     const exhausted = authError(429, 'Too many wrong codes. Request a new one', { reason: 'too_many_guesses' });
 
-    const stored = await SignInCode.findOne({ email }).lean();
+    const stored = await SignInCode.findOne({ email, purpose }).lean();
     if (!stored?.codeHash || stored.expiresAt <= current) throw expired;
     if (stored.wrongGuesses >= MAX_WRONG_GUESSES) throw exhausted;
 
@@ -85,7 +96,7 @@ export function createAuthService({ env, mailer, now, tokens }: Deps) {
     ).lean();
     if (!claimed) throw exhausted;
 
-    if (!sameHash(stored.codeHash, hashCode(email, code))) {
+    if (!sameHash(stored.codeHash, hashCode(email, code, purpose))) {
       throw authError(400, 'That code is not right', {
         reason: 'invalid_code',
         attemptsRemaining: MAX_WRONG_GUESSES - claimed.wrongGuesses,
@@ -102,12 +113,15 @@ export function createAuthService({ env, mailer, now, tokens }: Deps) {
 
   return {
     /**
-     * Sends a new code, within the per-email resend limits. A PIN reset code is
-     * the same one-time code (proof of the email) in a different email.
+     * Sends a new code, within the per-email resend limits. PIN reset and
+     * Account deletion codes are the same one-time code (proof of the email),
+     * with the same limits, in their own emails. Each purpose keeps its own
+     * code and counters, so a new code replaces only an earlier one for the
+     * same purpose.
      */
     async requestCode(email: string, language: Language, purpose: CodePurpose = 'signIn'): Promise<RequestCodeData> {
       const current = now();
-      const existing = await SignInCode.findOne({ email }).lean();
+      const existing = await SignInCode.findOne({ email, purpose }).lean();
 
       if (existing) {
         const resendAt = new Date(existing.lastSentAt.getTime() + RESEND_INTERVAL_MS);
@@ -132,7 +146,7 @@ export function createAuthService({ env, mailer, now, tokens }: Deps) {
       const expiresAt = new Date(current.getTime() + CODE_TTL_MS);
       const windowStartedAt = sameWindow ? existing.windowStartedAt : current;
       const fields = {
-        codeHash: hashCode(email, code),
+        codeHash: hashCode(email, code, purpose),
         expiresAt,
         wrongGuesses: 0,
         lastSentAt: current,
@@ -154,7 +168,7 @@ export function createAuthService({ env, mailer, now, tokens }: Deps) {
         if (modifiedCount === 0) throw tooSoon;
       } else {
         try {
-          await SignInCode.create({ email, ...fields });
+          await SignInCode.create({ email, purpose, ...fields });
         } catch (error) {
           if ((error as { code?: number }).code === DUPLICATE_KEY) throw tooSoon;
           throw error;
@@ -162,7 +176,12 @@ export function createAuthService({ env, mailer, now, tokens }: Deps) {
       }
 
       try {
-        await mailer.send(signInCodeEmail(email, code, language, CODE_TTL_MS / 60_000, purpose));
+        const minutes = CODE_TTL_MS / 60_000;
+        await mailer.send(
+          purpose === 'deleteAccount'
+            ? accountDeletionCodeEmail(email, code, language, minutes)
+            : signInCodeEmail(email, code, language, minutes, purpose),
+        );
       } catch {
         throw new ServiceUnavailableError('Could not send the code email');
       }

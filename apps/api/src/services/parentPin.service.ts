@@ -4,6 +4,7 @@ import {
   PIN_FREE_ATTEMPTS,
   hashParentPin,
   pinRetryAfterSeconds,
+  secondsUntil,
   verifyParentPin,
   type ParentPinData,
   type ParentPinErrorData,
@@ -20,8 +21,6 @@ interface Deps {
   /** The emailed one-time codes, for resetting a forgotten PIN. */
   codes: Pick<AuthService, 'requestCode' | 'useCode'>;
 }
-
-const secondsUntil = (from: Date, to: Date): number => Math.max(1, Math.ceil((to.getTime() - from.getTime()) / 1000));
 
 function pinLocked(current: Date, until: Date): Error {
   const data: ParentPinErrorData = { reason: 'pin_locked', retryAfterSeconds: secondsUntil(current, until) };
@@ -86,7 +85,7 @@ export function createParentPinService({ now, codes }: Deps) {
 
     /** Sets a new PIN with an emailed code instead of the current PIN, and clears any wrong-PIN wait. */
     async reset(accountId: string, code: string, pin: string): Promise<ParentPinData> {
-      await codes.useCode(await emailOf(accountId), code);
+      await codes.useCode(await emailOf(accountId), code, 'pinReset');
       const pinHash = await newHash(pin);
       await Account.updateOne({ _id: accountId }, { $set: { parentPinHash: pinHash, pinFailures: 0, pinLockedUntil: null } });
       return { pinHash };

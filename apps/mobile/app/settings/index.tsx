@@ -113,7 +113,11 @@ function SettingsScreen() {
         <SegmentedControl<NumberingSystem>
           options={numberingSystems}
           value={numberingSystem}
-          onChange={(next) => changeAccountSettings(localStore, localDb, { numberingSystem: next })}
+          onChange={(next) => {
+            if (changeAccountSettings(localStore, localDb, { numberingSystem: next }) === 'not_ready') {
+              Alert.alert(t('settings.settingsNotReady'));
+            }
+          }}
           accessibilityLabel={t('settings.numberingLabel')}
         />
       </Card>
@@ -170,7 +174,7 @@ function SettingsScreen() {
         onPress={() => router.push('/health')}
       />
 
-      <Button label={t('session.signOut')} variant="secondary" icon="app:exit" onPress={confirmSignOut} />
+      <Button label={t('session.signOut')} variant="danger" icon="app:exit" onPress={confirmSignOut} />
 
       {/* Deleting needs a live session (an emailed code is checked on the server). */}
       {needsSignIn ? null : (

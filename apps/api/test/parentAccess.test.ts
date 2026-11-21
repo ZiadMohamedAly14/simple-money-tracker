@@ -186,6 +186,25 @@ describe('Parent access on a kid device (Seam A)', () => {
       const seenByParent = (await sync(parent, 0)).body.data as SyncResponseData;
       expect(seenByParent.changes.filter((change) => change.entity === 'kidTransaction')).toHaveLength(2);
     });
+
+    it('limits the elevated kid phone to Kid Wallet records: no Personal Transactions or Categories', async () => {
+      const parent = await family();
+      const kid = await kidDevice();
+      const elevated = (await elevate(kid, PIN)).body.data as { accessToken: string };
+      const category = {
+        entity: 'category',
+        record: { id: newId(), ...meta, name: 'Toys', order: 5, isOther: false, archivedAt: null, icon: null },
+      };
+
+      for (const change of [expense(parent.accountId), category]) {
+        const res = await sync(elevated, 0, [change]);
+        expect(res.status).toBe(403);
+        expect(res.body.data).toEqual({ reason: 'kid_session' });
+      }
+      const seenByParent = (await sync(parent, 0)).body.data as SyncResponseData;
+      expect(seenByParent.changes.filter((change) => change.entity === 'transaction' || change.record.id === category.record.id)).toEqual([]);
+      expect((await sync(elevated, 0, [topUp(parent.accountId, OMAR, 500)])).status).toBe(200);
+    });
   });
 
   const listDevices = (who: { accessToken: string }) => request(app).get('/kid-devices').set('Authorization', bearer(who));

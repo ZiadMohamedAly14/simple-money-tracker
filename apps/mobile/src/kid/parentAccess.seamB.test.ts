@@ -95,6 +95,29 @@ describe('Parent access on a kid device (Seam B)', () => {
       expect(await omars.sync()).toBe('synced');
       expect(await omars.kidDevices()).toEqual({ status: 'refused' });
     });
+
+    it('a Top-up the parent made on the kid’s phone but never synced waits for the next unlock without blocking the kid’s syncs', async () => {
+      const { phone, omar } = await parentsPhone();
+      const omars = await kidPhone(omar, 'Omar');
+      expect(await omars.elevate(PIN)).toEqual({ status: 'ok' });
+      omars.goOffline();
+      omars.addTopUp({ kidProfileId: omar, amount: 2000, splits: [{ jarId: omars.jarIds(omar).save, amount: 2000 }], date: '2026-03-05' });
+      omars.advanceClock(15 * MINUTE); // the unlock runs out before the phone is back online
+      omars.goOnline();
+      expect(omars.elevated()).toBe(false);
+
+      omars.addKidExpense({ kidProfileId: omar, jarId: omars.jarIds(omar).spend, amount: 500, date: '2026-03-06', note: 'Juice' });
+      expect(await omars.sync()).toBe('synced');
+      expect(omars.pendingChanges()).toBe(1); // the Top-up, held back
+      await phone.sync();
+      expect(phone.wallet(omar).total).toBe(4500);
+
+      expect(await omars.elevate(PIN)).toEqual({ status: 'ok' });
+      expect(await omars.sync()).toBe('synced');
+      expect(omars.pendingChanges()).toBe(0);
+      await phone.sync();
+      expect(phone.wallet(omar).total).toBe(6500);
+    });
   });
 
   describe('Kid-Mode devices', () => {

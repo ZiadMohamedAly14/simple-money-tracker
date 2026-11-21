@@ -13,6 +13,7 @@ export type {
   VerifyCodeBody,
   VerifyCodeData,
 } from './auth/signIn';
+export type { ScopeErrorData, ScopeErrorReason } from './auth/scope';
 export type { ConfirmDeletionBody, RequestDeletionCodeBody } from './account/deletion';
 export { ltrIsolate } from './i18n/bidi';
 export { formatCountdown } from './i18n/countdown';
@@ -20,7 +21,7 @@ export type { CountdownOptions } from './i18n/countdown';
 export { toWesternDigits } from './i18n/digits';
 export { applyKeypadKey } from './keypad/keypad';
 export type { DigitKey, KeypadKey, KeypadMode, OperatorKey } from './keypad/keypad';
-export { evaluateAllocation, evaluateAmountExpression } from './keypad/expression';
+export { evaluateNonNegativeAmount, evaluateAmountExpression } from './keypad/expression';
 export type { ExpressionOperator, ExpressionResult } from './keypad/expression';
 export { formatAmountExpression, formatAmountInput, formatMoneyParts } from './money/display';
 export type { AmountInputOptions, MoneyParts } from './money/display';
@@ -37,6 +38,7 @@ export type { Language, NumberingSystem } from './i18n/language';
 export { currencyMinorDigits, formatMoney, fromMinorUnits, toMinorUnits } from './money/money';
 export type { CurrencyCode, MoneyFormatOptions } from './money/money';
 export { toLocalDate } from './dates/localDate';
+export { secondsUntil } from './dates/secondsUntil';
 export { addMonths, currentMonth, formatMonth, monthOf } from './dates/month';
 export type { Month } from './dates/month';
 export { DEFAULT_CATEGORY_ICONS, DEFAULT_CATEGORY_KEYS, EARLIER_DEFAULT_CATEGORY_ICONS } from './budget/defaultCategories';
@@ -44,7 +46,7 @@ export type { DefaultCategoryKey } from './budget/defaultCategories';
 export { monthFigures } from './budget/monthFigures';
 export type { MonthFigures, MonthFiguresInput } from './budget/monthFigures';
 export { incomeProgress } from './budget/incomeProgress';
-export { newMonthPlan } from './budget/newMonthPlan';
+export { copiedPlanEditTime, newMonthPlan } from './budget/newMonthPlan';
 export type { NewMonthPlan, NewMonthPlanInput } from './budget/newMonthPlan';
 export { categoryBreakdown } from './budget/categoryBreakdown';
 export {

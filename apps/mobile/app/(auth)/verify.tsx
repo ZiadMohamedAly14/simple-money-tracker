@@ -19,9 +19,15 @@ import { authErrorMessage } from '@/auth/authErrorMessage';
 import { authSession } from '@/auth/appSession';
 import { API_URL } from '@/config';
 import { useLanguage } from '@/i18n/useLanguage';
+import { asksWhosePhone } from '@/kid/whosePhone';
+import { parentPinGate } from '@/pin/appPinGate';
 import { Button, CodeBoxes, NumericKeypad, Screen, ScreenHeader, Text } from '@/ui';
 
-/** Step 2 of sign-in: enter the emailed code. Verifying creates the Account the first time. */
+/**
+ * Step 2 of sign-in: enter the emailed code. Verifying creates the Account the
+ * first time. An onboarded Account with a Parent PIN then sees "Whose phone is
+ * this?" so the phone can be set up for a kid right away.
+ */
 export default function VerifyScreen() {
   const { t, i18n } = useTranslation();
   const language = useLanguage();
@@ -49,8 +55,15 @@ export default function VerifyScreen() {
     const result = await verifyCode(createApiClient(API_URL), { email, code: normalized });
     if (result.status === 'ok') {
       await authSession.signedIn(result.data);
+      const { isNewAccount, onboardingCompleted } = result.data;
+      // An onboarded Account with a PIN may be signing in on a kid's phone: ask whose it is.
+      let hasPin = false;
+      if (onboardingCompleted && !isNewAccount) {
+        await parentPinGate.refresh();
+        hasPin = await parentPinGate.hasPin();
+      }
       setBusy(false);
-      router.replace('/');
+      router.replace(asksWhosePhone({ isNewAccount, onboardingCompleted, hasPin }) ? '/whose-phone' : '/');
       return;
     }
     setBusy(false);

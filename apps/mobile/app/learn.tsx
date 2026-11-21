@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { LESSONS } from '@/learn/lessons';
+import { LESSONS, illustrationForScheme } from '@/learn/lessons';
+import { useColorScheme } from '@/theme/appearanceStore';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 import { AppIcon, Button, Card, Screen, ScreenHeader, Text } from '@/ui';
 
@@ -24,6 +25,7 @@ export default function LearnScreen() {
 
 function Learn() {
   const { t } = useTranslation();
+  const scheme = useColorScheme();
   const [index, setIndex] = useState(0);
   const lesson = LESSONS[index] ?? LESSONS[0]!;
   const last = index === LESSONS.length - 1;
@@ -55,7 +57,7 @@ function Learn() {
     >
       <ScreenHeader title={t('learn.title')} onBack={() => router.back()} />
       <Card className="flex-1 items-center justify-center gap-4 px-6 py-8">
-        <AppIcon name={lesson.illustration} size={160} />
+        <AppIcon name={illustrationForScheme(lesson.illustration, scheme)} size={160} />
         <Text weight="bold" align="center" accessibilityRole="header" className="text-2xl">
           {t(`learn.lessons.${lesson.topic}.title`)}
         </Text>

@@ -12,12 +12,12 @@ import { useKidWallet } from '@/kid/useKidWallet';
 import { AmountEntryDisplay, AmountKeypad, Button, Chip, Notice, Screen, ScreenHeader, Text, useAmountEntry } from '@/ui';
 
 /**
- * Jar Transfer from the Parent Area ("Move money", PDF page 11): an amount
+ * Jar Transfer from the Parent Area ("Transfer between jars", PDF page 11): an amount
  * (the adult keypad takes sums), a From Jar and a To Jar. It can't move more
  * than the From Jar holds. With `transferId` the parent edits or deletes one.
  * Only parents make Jar Transfers (spec). Works offline.
  */
-export default function MoveMoneyScreen() {
+export default function JarTransferScreen() {
   const { t } = useTranslation();
   const { id, transferId } = useLocalSearchParams<{ id: string; transferId?: string }>();
   const { kid, transactions } = useKidWallet(id);
@@ -29,15 +29,15 @@ export default function MoveMoneyScreen() {
       <Screen>
         <ScreenHeader onBack={() => router.back()} />
         <Text tone="muted" align="center" className="pt-8">
-          {t('kid.move.gone')}
+          {t('kid.transfer.gone')}
         </Text>
       </Screen>
     );
   }
-  return <MoveForm key={editing?.id ?? 'new'} kidProfileId={id} kidName={kid.name} editing={editing} />;
+  return <JarTransferForm key={editing?.id ?? 'new'} kidProfileId={id} kidName={kid.name} editing={editing} />;
 }
 
-function MoveForm({ kidProfileId, kidName, editing }: { kidProfileId: string; kidName: string; editing?: KidTransactionRow }) {
+function JarTransferForm({ kidProfileId, kidName, editing }: { kidProfileId: string; kidName: string; editing?: KidTransactionRow }) {
   const { t } = useTranslation();
   const language = useLanguage();
   const { currency, numberingSystem } = useAccountSettings();
@@ -69,10 +69,10 @@ function MoveForm({ kidProfileId, kidName, editing }: { kidProfileId: string; ki
 
   function confirmDelete() {
     if (!editing) return;
-    Alert.alert(t('kid.move.deleteTitle'), t('kid.move.deleteBody', { jar: jarName(editing.jarId ?? undefined) }), [
+    Alert.alert(t('kid.transfer.deleteTitle'), t('kid.transfer.deleteBody', { jar: jarName(editing.jarId ?? undefined) }), [
       { text: t('common.cancel'), style: 'cancel' },
       {
-        text: t('kid.move.delete'),
+        text: t('kid.transfer.delete'),
         style: 'destructive',
         onPress: () => {
           deleteJarTransfer(localStore, localDb, editing.id);
@@ -89,21 +89,21 @@ function MoveForm({ kidProfileId, kidName, editing }: { kidProfileId: string; ki
         <>
           <AmountKeypad entry={entry} numberingSystem={numberingSystem} />
           <Button
-            label={editing ? t('kid.move.saveEdit') : t('kid.move.save', { amount: parts(amount ?? 0).amount })}
+            label={editing ? t('kid.transfer.saveEdit') : t('kid.transfer.save', { amount: parts(amount ?? 0).amount })}
             icon="app:move-money"
             disabled={!ready}
             onPress={save}
           />
-          {editing ? <Button label={t('kid.move.delete')} variant="danger" icon="app:delete" onPress={confirmDelete} /> : null}
+          {editing ? <Button label={t('kid.transfer.delete')} variant="danger" icon="app:delete" onPress={confirmDelete} /> : null}
         </>
       }
     >
-      <ScreenHeader title={editing ? t('kid.move.editTitle') : t('kid.move.title', { name: kidName })} onBack={() => router.back()} />
-      <AmountEntryDisplay entry={entry} currency={currency} numberingSystem={numberingSystem} accessibilityLabel={t('kid.move.amountLabel')} />
+      <ScreenHeader title={editing ? t('kid.transfer.editTitle') : t('kid.transfer.title', { name: kidName })} onBack={() => router.back()} />
+      <AmountEntryDisplay entry={entry} currency={currency} numberingSystem={numberingSystem} accessibilityLabel={t('kid.transfer.amountLabel')} />
 
       <View className="gap-2">
         <Text weight="semibold" tone="muted" className="text-sm">
-          {t('kid.move.from')}
+          {t('kid.transfer.from')}
         </Text>
         <View className="flex-row flex-wrap gap-2">
           {fromChoices.map((jar) => (
@@ -121,7 +121,7 @@ function MoveForm({ kidProfileId, kidName, editing }: { kidProfileId: string; ki
       </View>
       <View className="gap-2">
         <Text weight="semibold" tone="muted" className="text-sm">
-          {t('kid.move.to')}
+          {t('kid.transfer.to')}
         </Text>
         <View className="flex-row flex-wrap gap-2">
           {toChoices
@@ -131,7 +131,7 @@ function MoveForm({ kidProfileId, kidName, editing }: { kidProfileId: string; ki
             ))}
         </View>
       </View>
-      {tooMuch ? <Notice icon="app:gentle-warning" text={t('kid.move.notEnough', { jar: jarName(fromJarId), amount: parts(available).amount })} /> : null}
+      {tooMuch ? <Notice icon="app:gentle-warning" text={t('kid.transfer.notEnough', { jar: jarName(fromJarId), amount: parts(available).amount })} /> : null}
     </Screen>
   );
 }

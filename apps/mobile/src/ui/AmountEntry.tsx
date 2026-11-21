@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import {
   applyKeypadKey,
   currencyMinorDigits,
-  evaluateAllocation,
+  evaluateNonNegativeAmount,
   evaluateAmountExpression,
   formatAmountExpression,
   formatAmountInput,
@@ -28,7 +28,7 @@ export interface AmountEntry {
   /** The amount to save, in minor units; null while it is zero, negative, incomplete or divides by zero. */
   amount: number | null;
   /** For amounts that may be 0 (budgets, Expected Income): nothing typed is 0; null if negative or unfinished. */
-  allocation: number | null;
+  nonNegative: number | null;
   showDecimal: boolean;
 }
 
@@ -48,7 +48,7 @@ export function useAmountEntry(currency: CurrencyCode, initial = ''): AmountEntr
   );
   const result = evaluateAmountExpression(typed, currency);
   const amount = result.status === 'ok' && result.amount > 0 ? result.amount : null;
-  return { typed, press, result, amount, allocation: evaluateAllocation(typed, currency), showDecimal: fractionDigits > 0 };
+  return { typed, press, result, amount, nonNegative: evaluateNonNegativeAmount(typed, currency), showDecimal: fractionDigits > 0 };
 }
 
 export interface AmountEntryDisplayProps {

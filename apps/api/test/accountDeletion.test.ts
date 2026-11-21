@@ -10,6 +10,8 @@ import { accountSettingsId, categoryBudgetId, defaultJarId, monthPlanId, otherCa
 import { HOUR, MINUTE, buildTestApp, createTestClock, createTestMailer, type TestClock, type TestMailer } from './helpers/testApp';
 import { useTestDatabase } from './helpers/testDatabase';
 import { Counter } from '../src/models/counter.model';
+import { deleteAccountData } from '../src/services/accountDeletion.service';
+import { createSyncService } from '../src/services/sync.service';
 
 const OMAR = '019ca8a0-3e80-7000-8000-0000000000b1';
 const NOUR = '019ca8a0-3e80-7000-8000-0000000000b2';
@@ -170,7 +172,21 @@ describe('Account deletion (Seam A)', () => {
     expect(await recordsMentioning(sara)).toEqual({});
   });
 
-  it('ends every session, the Kid-Mode device’s included, and leaves other Accounts alone', async () => {
+  it('a sync that was already past sign-in checks when deletion lands writes nothing afterwards', async () => {
+    const phone = await signIn();
+    expect((await sync(phone)).status).toBe(200);
+    // The request was authenticated just before the Account was deleted.
+    const auth = { accountId: phone.accountId, sessionId: 'gone', scope: 'full' as const, kidProfileId: null, elevatedFrom: null };
+    await deleteAccountData(phone.accountId);
+    const syncService = createSyncService({ now: clock, tokens: { endKidSessions: async () => {} } });
+
+    const late = syncService.sync(auth, { cursor: 0, changes: everyRecord(phone.accountId, OMAR) });
+
+    await expect(late).rejects.toMatchObject({ statusCode: 401 });
+    expect(await recordsMentioning({ accountId: phone.accountId, email: 'sara@example.com' })).toEqual({});
+  });
+
+  it('ends every session, the Kid-Mode device’s included, says the Account is gone, and leaves other Accounts alone', async () => {
     const { phone, tablet, kidDevice } = await wholeAccount();
     const other = await wholeAccount('hana@example.com', NOUR);
     const otherBefore = await recordsMentioning({ accountId: other.phone.accountId, email: 'hana@example.com' });
@@ -181,9 +197,10 @@ describe('Account deletion (Seam A)', () => {
     for (const device of [phone, tablet, kidDevice]) {
       const res = await sync(device);
       expect(res.status).toBe(401);
-      expect(res.body.data).toEqual({ reason: 'session_ended' });
+      expect(res.body.data).toEqual({ reason: 'account_deleted' });
       const refreshed = await request(app).post('/auth/refresh').send({ refreshToken: device.refreshToken });
       expect(refreshed.status).toBe(401);
+      expect(refreshed.body.data).toEqual({ reason: 'account_deleted' });
     }
     expect(await recordsMentioning({ accountId: other.phone.accountId, email: 'hana@example.com' })).toEqual(otherBefore);
     expect((await sync(other.kidDevice)).status).toBe(200);
@@ -254,6 +271,18 @@ describe('Account deletion (Seam A)', () => {
 
       expect(res.status).toBe(400);
       expect((await sync(phone)).status).toBe(200);
+    });
+
+    it('a deletion code does not sign in or reset the PIN', async () => {
+      const phone = await signIn();
+      await requestDeletionCode(phone);
+      const code = mailer.lastCodeFor('sara@example.com');
+
+      const verify = await request(app).post('/auth/verify').send({ email: 'sara@example.com', code });
+      expect(verify.status).toBe(400);
+      const reset = await request(app).post('/account/pin/reset').set('Authorization', as(phone)).send({ code, pin: '1234' });
+      expect(reset.status).toBe(400);
+      expect((await confirmDeletion(phone, code)).status).toBe(200);
     });
 
     it('needs a code requested first', async () => {

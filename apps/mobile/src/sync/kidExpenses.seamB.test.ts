@@ -247,4 +247,47 @@ describe('Kid Expenses, Jar Transfers and history (Seam B)', () => {
     phone.addTopUp({ kidProfileId: kid, amount: 1200, splits: [{ jarId: jars.spend, amount: 1200 }], date: '2026-03-03' });
     expect(phone.wallet(kid).negativeJarIds).toEqual([]);
   });
+  it('on a Jar below zero, a Kid Expense can still be fixed as long as it takes no more (note, date, lower amount)', async () => {
+    const { phone, kid, jars } = await phoneWithKid();
+    await phone.sync();
+    const kidTablet = await secondDevice();
+    phone.goOffline();
+    kidTablet.goOffline();
+    const mine = phone.addKidExpense({ kidProfileId: kid, jarId: jars.spend, amount: 4000, date: '2026-03-02' });
+    kidTablet.addKidExpense({ kidProfileId: kid, jarId: jars.spend, amount: 4000, date: '2026-03-02' });
+    phone.goOnline();
+    kidTablet.goOnline();
+    await phone.sync();
+    await kidTablet.sync();
+    await phone.sync();
+    expect(phone.wallet(kid).jars.find((jar) => jar.id === jars.spend)?.balance).toBe(-3000);
+    if (mine.status !== 'ok') throw new Error('setup');
+
+    expect(phone.editKidExpense(mine.id, { note: 'Juice', date: '2026-03-03' }).status).toBe('ok');
+    expect(phone.editKidExpense(mine.id, { amount: 3500 }).status).toBe('ok');
+    expect(phone.editKidExpense(mine.id, { amount: 3600 })).toEqual({ status: 'not_enough', available: 3500 });
+    expect(phone.wallet(kid).jars.find((jar) => jar.id === jars.spend)?.balance).toBe(-2500);
+  });
+
+  it('on a source Jar below zero, a Jar Transfer can still be lowered but not raised', async () => {
+    const { phone, kid, jars } = await phoneWithKid();
+    await phone.sync();
+    const kidTablet = await secondDevice();
+    // Offline, the parent moves all 20.00 of Save to Give while the kid spends 15.00 from Save.
+    phone.goOffline();
+    kidTablet.goOffline();
+    const move = phone.addJarTransfer({ kidProfileId: kid, fromJarId: jars.save, toJarId: jars.give, amount: 2000, date: '2026-03-02' });
+    kidTablet.addKidExpense({ kidProfileId: kid, jarId: jars.save, amount: 1500, date: '2026-03-02' });
+    phone.goOnline();
+    kidTablet.goOnline();
+    await phone.sync();
+    await kidTablet.sync();
+    await phone.sync();
+    expect(phone.wallet(kid).jars.find((jar) => jar.id === jars.save)?.balance).toBe(-1500);
+    if (move.status !== 'ok') throw new Error('setup');
+
+    expect(phone.editJarTransfer(move.id, { amount: 1000 }).status).toBe('ok');
+    expect(phone.wallet(kid).jars.find((jar) => jar.id === jars.save)?.balance).toBe(-500);
+    expect(phone.editJarTransfer(move.id, { amount: 1100 })).toEqual({ status: 'not_enough', available: 1000 });
+  });
 });

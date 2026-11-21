@@ -18,7 +18,7 @@ export default function ParentKidHistoryScreen() {
 
   function open(tx: KidTransactionRow) {
     if (tx.kind === 'topUp') router.push({ pathname: '/parent/kids/[id]/top-up', params: { id, topUpId: tx.id } });
-    else if (tx.kind === 'jarTransfer') router.push({ pathname: '/parent/kids/[id]/move', params: { id, transferId: tx.id } });
+    else if (tx.kind === 'jarTransfer') router.push({ pathname: '/parent/kids/[id]/transfer', params: { id, transferId: tx.id } });
     else router.push({ pathname: '/kid/[id]/spend', params: { id, expenseId: tx.id } });
   }
 

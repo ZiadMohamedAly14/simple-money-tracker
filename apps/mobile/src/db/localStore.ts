@@ -1,4 +1,4 @@
-import { and, count, countDistinct, eq, inArray, isNull, lte, min, sql } from 'drizzle-orm';
+import { and, countDistinct, eq, isNull, lte, min, notInArray, sql } from 'drizzle-orm';
 import type { SQLiteColumn, SQLiteTable } from 'drizzle-orm/sqlite-core';
 import {
   OTHER_CATEGORY,
@@ -58,18 +58,21 @@ export type KnownRecord = { [E in SyncEntity]: { entity: E; id: string; fields: 
 export interface PutOptions {
   /**
    * Write the records as defaults that any real edit beats, on this device or
-   * another: they carry edit time 0, so last edit wins (ADR-0001) always
-   * prefers an edit. Used for a Month's plan copied from the previous Month,
-   * so a device opening the Month late can't overwrite a change made to it
-   * elsewhere.
+   * another: they carry this small edit time instead of the clock's, so last
+   * edit wins (ADR-0001) always prefers an edit. Used for a Month's plan
+   * copied from an earlier Month (`copiedPlanEditTime`), so a device opening
+   * the Month late can't overwrite a change made to it elsewhere, and of two
+   * copies the one from the newer source Month wins.
    */
-  asDefault?: boolean;
+  defaultEditTime?: number;
 }
 
 export interface PendingPush {
   changes: PushedChange[];
   /** The newest outbox entry included; acknowledged when the server has stored the push. */
   upTo: number;
+  /** Outbox entries up to `upTo` held back from this push (`holdBack`); they stay queued. */
+  held: number[];
   /** More outbox entries are waiting than one push may carry. */
   hasMore: boolean;
 }
@@ -138,10 +141,10 @@ export function createLocalStore({ db, now, randomBytes }: LocalStoreDeps) {
     return accountId;
   }
 
-  function putRows(tx: Db, records: readonly KnownRecord[], { asDefault = false }: PutOptions = {}): void {
+  function putRows(tx: Db, records: readonly KnownRecord[], { defaultEditTime }: PutOptions = {}): void {
     const accountId = requireAccount(tx);
     const queuedAt = now();
-    const updatedAt = asDefault ? 0 : queuedAt;
+    const updatedAt = defaultEditTime ?? queuedAt;
     for (const { entity, id, fields } of records) {
       upsertRow(tx, entity, { ...fields, id, accountId, updatedAt, deletedAt: null, serverVersion: 0 });
       tx.insert(outbox).values({ entity, recordId: id, queuedAt }).run();
@@ -291,29 +294,37 @@ export function createLocalStore({ db, now, randomBytes }: LocalStoreDeps) {
     },
 
     /** The current state of up to `limit` records with queued changes, oldest first. */
-    pendingPush(limit: number): PendingPush {
+    pendingPush(limit: number, holdBack: (change: PushedChange) => boolean = () => false): PendingPush {
       return db.transaction((tx) => {
         const entries = tx.select().from(outbox).orderBy(outbox.id).all();
-        const keys = new Map<string, { entity: SyncEntity; recordId: string }>();
+        const recordOf = (entity: SyncEntity, id: string): PushedChange | null => {
+          const table = tableOf(entity);
+          const row = tx.select().from(table).where(eq(table.id, id)).get() as Record<string, unknown> | undefined;
+          if (!row) return null;
+          const { accountId: _accountId, serverVersion: _serverVersion, ...record } = row;
+          return { entity, record } as unknown as PushedChange;
+        };
+        const keys = new Map<string, PushedChange | null>();
+        const heldKeys = new Set<string>();
+        const held: number[] = [];
         let upTo = 0;
+        let more = false;
         for (const entry of entries) {
           const key = `${entry.entity}:${entry.recordId}`;
-          if (!keys.has(key) && keys.size === limit) break;
-          keys.set(key, entry);
-          upTo = entry.id;
-        }
-        const changes: PushedChange[] = [];
-        for (const entity of SYNC_ENTITIES) {
-          const ids = [...keys.values()].filter((k) => k.entity === entity).map((k) => k.recordId);
-          if (ids.length === 0) continue;
-          const table = tableOf(entity);
-          const rows = tx.select().from(table).where(inArray(table.id, ids)).all() as Record<string, unknown>[];
-          for (const { accountId: _accountId, serverVersion: _serverVersion, ...record } of rows) {
-            changes.push({ entity, record } as unknown as PushedChange);
+          if (!keys.has(key) && !heldKeys.has(key)) {
+            const change = recordOf(entry.entity as SyncEntity, entry.recordId);
+            if (change && holdBack(change)) heldKeys.add(key);
+            else if (keys.size === limit) {
+              more = true;
+              break;
+            } else keys.set(key, change);
           }
+          if (heldKeys.has(key)) held.push(entry.id);
+          else upTo = entry.id;
         }
-        const total = tx.select({ n: count() }).from(outbox).where(lte(outbox.id, upTo)).get()?.n ?? 0;
-        return { changes, upTo, hasMore: total < entries.length };
+        const changes = [...keys.values()].filter((change): change is PushedChange => change !== null);
+        changes.sort((a, b) => SYNC_ENTITIES.indexOf(a.entity) - SYNC_ENTITIES.indexOf(b.entity));
+        return { changes, upTo, held: held.filter((id) => id <= upTo), hasMore: more };
       });
     },
 
@@ -323,10 +334,10 @@ export function createLocalStore({ db, now, randomBytes }: LocalStoreDeps) {
      * (returns false) if a different Account signed in while the sync ran.
      * Pulled copies are taken by last edit wins (see `applyPulled`).
      */
-    completeSync(accountId: string, upTo: number, response: SyncResponseData): boolean {
+    completeSync(accountId: string, { upTo, held }: Pick<PendingPush, 'upTo' | 'held'>, response: SyncResponseData): boolean {
       return db.transaction((tx) => {
         if (getState(STATE.accountId, tx) !== accountId) return false;
-        tx.delete(outbox).where(lte(outbox.id, upTo)).run();
+        tx.delete(outbox).where(and(lte(outbox.id, upTo), notInArray(outbox.id, held))).run();
         for (const change of response.changes) applyPulled(tx, accountId, change);
         setState(tx, STATE.cursor, String(response.cursor));
         return true;

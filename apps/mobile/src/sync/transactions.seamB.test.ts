@@ -43,7 +43,7 @@ describe('recording Transactions (Seam B)', () => {
     phone.goOffline();
     phone.recordIncome({ amount: 850_000, date: '2026-03-01', note: 'Salary' });
     phone.recordIncome({ amount: 50_000, date: '2026-03-04' });
-    expect(phone.monthOverview('2026-03')).toMatchObject({ income: 900_000, remaining: 900_000 });
+    expect(phone.monthOverview('2026-03')).toMatchObject({ income: 900_000, remaining: 1_000_000 });
 
     phone.goOnline();
     await phone.sync();
@@ -53,7 +53,7 @@ describe('recording Transactions (Seam B)', () => {
       expect.objectContaining({ kind: 'income', amount: 50_000, date: '2026-03-04', note: null, categoryId: null }),
       expect.objectContaining({ kind: 'income', amount: 850_000, date: '2026-03-01', note: 'Salary', categoryId: null }),
     ]);
-    expect(tablet.monthOverview('2026-03')).toMatchObject({ income: 900_000, spending: 0, remaining: 900_000 });
+    expect(tablet.monthOverview('2026-03')).toMatchObject({ income: 900_000, spending: 0, remaining: 1_000_000 });
   });
 
   it('edits to an Income and an Expense made offline, including moving one to an earlier Month, reach the second device', async () => {
@@ -143,6 +143,6 @@ describe('recording Transactions (Seam B)', () => {
     await phone.sync();
 
     expect(phone.monthTransactions('2026-03').map((t) => t.id)).toEqual([taxi]);
-    expect(phone.monthOverview('2026-03')).toMatchObject({ income: 0, spending: 3_000, remaining: -3_000 });
+    expect(phone.monthOverview('2026-03')).toMatchObject({ income: 0, spending: 3_000, remaining: 997_000 });
   });
 });

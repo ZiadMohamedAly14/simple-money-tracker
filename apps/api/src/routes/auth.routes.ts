@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
 import { rateLimit } from 'express-rate-limit';
-import { SUPPORTED_LANGUAGES, normalizeEmail, type AuthErrorData } from '@money-tracker/shared';
+import { normalizeEmail, secondsUntil, type AuthErrorData } from '@money-tracker/shared';
 import { createAuthController } from '../controllers/auth.controller';
 import { validate } from '../middleware/validate';
+import { codeField, languageField } from './fields';
 import { requireAuth } from '../middleware/requireAuth';
 import type { AuthService } from '../services/auth.service';
 import type { TokenService } from '../services/token.service';
@@ -24,7 +25,7 @@ function perIpLimit({ max, windowMs }: { max: number; windowMs: number }) {
       const resetTime = (req as { rateLimit?: { resetTime?: Date } }).rateLimit?.resetTime;
       const data: AuthErrorData = {
         reason: 'too_many_requests',
-        retryAfterSeconds: resetTime ? Math.max(1, Math.ceil((resetTime.getTime() - Date.now()) / 1000)) : undefined,
+        retryAfterSeconds: resetTime ? secondsUntil(Date.now(), resetTime) : undefined,
       };
       next(new TooManyRequestsError('Too many requests. Try again later', data));
     },
@@ -46,7 +47,7 @@ export function authRoutes(auth: AuthService, tokens: TokenService): Router {
   router.post(
     '/code',
     perIpLimit(REQUEST_CODE_IP_LIMIT),
-    [emailField(), body('language').default('en').isIn([...SUPPORTED_LANGUAGES])],
+    [emailField(), languageField()],
     validate,
     asyncHandler(controller.requestCode),
   );
@@ -56,7 +57,7 @@ export function authRoutes(auth: AuthService, tokens: TokenService): Router {
     perIpLimit(VERIFY_CODE_IP_LIMIT),
     [
       emailField(),
-      body('code').isString().matches(/^\d{6}$/).withMessage('The code is 6 digits'),
+      codeField(),
       body('deviceLabel').optional().isString().trim().isLength({ max: 100 }),
     ],
     validate,

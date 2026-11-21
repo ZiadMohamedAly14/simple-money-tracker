@@ -1,14 +1,13 @@
 import { Router, type Request, type Response } from 'express';
 import { body, param } from 'express-validator';
-import { isUuid, isValidParentPin, type ElevateBody, type StartKidSessionBody } from '@money-tracker/shared';
+import { isUuid, type ElevateBody, type StartKidSessionBody } from '@money-tracker/shared';
 import { authOf, requireAuth, requireFullScope } from '../middleware/requireAuth';
 import { validate } from '../middleware/validate';
+import { pinField } from './fields';
 import type { KidDeviceService } from '../services/kidDevice.service';
 import type { TokenService } from '../services/token.service';
 import { asyncHandler } from '../utils/asyncHandler';
 import { sendSuccess } from '../utils/response';
-
-const pinField = body('pin').custom((value) => isValidParentPin(value)).withMessage('The PIN is 4 to 6 digits');
 
 /**
  * Mounted at `/kid-devices`.
@@ -27,7 +26,7 @@ export function kidDeviceRoutes(kidDevices: KidDeviceService, tokens: TokenServi
     requireFullScope,
     [
       body('kidProfileId').custom((value) => isUuid(value)).withMessage('must be a Kid Profile ID'),
-      pinField,
+      pinField(),
       body('deviceLabel').optional().isString().trim().isLength({ max: 100 }),
     ],
     validate,
@@ -40,7 +39,7 @@ export function kidDeviceRoutes(kidDevices: KidDeviceService, tokens: TokenServi
   router.post(
     '/elevate',
     requireAuth(tokens),
-    [pinField],
+    [pinField()],
     validate,
     asyncHandler(async (req: Request, res: Response) => {
       const { pin } = req.body as ElevateBody;

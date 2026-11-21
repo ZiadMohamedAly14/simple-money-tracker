@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { Types } from 'mongoose';
 import type { AuthErrorData } from '@money-tracker/shared';
 import type { Env } from '../config/env';
+import { Account } from '../models/account.model';
 import { Session } from '../models/session.model';
 import { AppError } from '../utils/AppError';
 import type { Clock } from '../utils/clock';
@@ -49,8 +50,13 @@ export interface AuthContext {
 }
 
 /** 401 with a reason the app acts on: `token_invalid` = refresh and retry; `session_ended` = sign in again. */
-export function authFailure(reason: Extract<AuthErrorData['reason'], 'token_invalid' | 'session_ended'>): AppError {
-  const message = reason === 'token_invalid' ? 'Access token is missing or invalid' : 'Session has ended. Sign in again';
+export function authFailure(reason: Extract<AuthErrorData['reason'], 'token_invalid' | 'session_ended' | 'account_deleted'>): AppError {
+  const message =
+    reason === 'token_invalid'
+      ? 'Access token is missing or invalid'
+      : reason === 'account_deleted'
+        ? 'This account was deleted'
+        : 'Session has ended. Sign in again';
   const data: AuthErrorData = { reason };
   return new AppError(message, 401, data);
 }
@@ -103,6 +109,17 @@ export function createTokenService(env: Pick<Env, 'jwtAccessSecret' | 'jwtRefres
     await Session.deleteMany({ $or: [{ _id: sessionId }, { elevatedFrom: sessionId }] });
   }
 
+  /**
+   * Why a validly signed token's Session is gone: `account_deleted` when its
+   * Account no longer exists (deleted from another device), so the device
+   * wipes its copy; otherwise `session_ended`, and the device keeps its data
+   * until a new code (spec story 5).
+   */
+  async function sessionGone(accountId: string): Promise<AppError> {
+    const exists = Types.ObjectId.isValid(accountId) && (await Account.exists({ _id: accountId }));
+    return authFailure(exists ? 'session_ended' : 'account_deleted');
+  }
+
   const refreshExpiry = (): Date => new Date(now().getTime() + REFRESH_TOKEN_TTL_SECONDS * 1000);
 
   /** Checks signature, expiry (against the injected clock) and the `typ` marker. */
@@ -134,7 +151,7 @@ export function createTokenService(env: Pick<Env, 'jwtAccessSecret' | 'jwtRefres
       const live = await Session.findOne({ _id: claims.sid, accountId: claims.sub, expiresAt: { $gt: now() } })
         .select({ scope: 1, kidProfileId: 1, elevatedFrom: 1 })
         .lean();
-      if (!live) throw authFailure('session_ended');
+      if (!live) throw await sessionGone(claims.sub);
       if (live.scope === 'kid' && !live.kidProfileId) throw authFailure('session_ended');
       return {
         accountId: claims.sub,
@@ -168,7 +185,7 @@ export function createTokenService(env: Pick<Env, 'jwtAccessSecret' | 'jwtRefres
 
       if (!session) {
         if (await Session.exists({ _id: claims.sid, accountId: claims.sub })) await endSession(claims.sid);
-        throw authFailure('session_ended');
+        throw await sessionGone(claims.sub);
       }
       return { accessToken: signAccess(claims.sub, claims.sid, session.scope), refreshToken: next };
     },

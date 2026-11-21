@@ -8,8 +8,8 @@ interface Copy {
   ignore: string;
 }
 
-/** What an emailed one-time code is for: signing in, or resetting a forgotten Parent PIN. */
-export type CodePurpose = 'signIn' | 'pinReset';
+/** The codes this email is for: signing in, or resetting a forgotten Parent PIN. */
+type CodePurpose = 'signIn' | 'pinReset';
 
 const SIGN_IN_COPY: Record<Language, Copy> = {
   en: {

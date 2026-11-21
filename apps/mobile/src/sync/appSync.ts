@@ -2,7 +2,7 @@ import { AppState } from 'react-native';
 import { addNetworkStateListener } from 'expo-network';
 import { authSession } from '@/auth/appSession';
 import { localStore } from '@/db/appDatabase';
-import { createSyncEngine } from './syncEngine';
+import { createSyncEngine, kidSessionHoldsBack } from './syncEngine';
 import { createSyncTriggers } from './syncTriggers';
 
 /** The app's sync engine. Screens use `syncTriggers` instead of calling it directly. */
@@ -10,6 +10,7 @@ export const syncEngine = createSyncEngine({
   store: localStore,
   request: (config) =>
     authSession.status() === 'signedIn' ? authSession.request(config) : Promise.resolve({ status: 'session_ended' }),
+  holdBack: (change) => authSession.kidProfileId() !== null && !authSession.elevated() && kidSessionHoldsBack(change),
 });
 
 /** When sync runs (ADR-0007). Pull-to-refresh calls `syncTriggers.refresh()`. */
