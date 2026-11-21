@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { RefreshControl, ScrollView, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Redirect, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -142,17 +142,26 @@ function MonthOverview() {
           <Card className="gap-4 p-4">
             {rows.map((row) => {
               const over = row.remaining < 0;
+              const name = row.category.isOther ? t('categories.other') : row.category.name;
+              // Tapping a Category opens Add expense with that Category picked (the + button is the other way in).
               return (
-                <ProgressRow
+                <Pressable
                   key={row.categoryId}
-                  icon={iconOf(row.category)}
-                  title={row.category.isOther ? t('categories.other') : row.category.name}
-                  progress={row.budget > 0 ? row.spent / row.budget : row.spent > 0 ? 1 : 0}
-                  barTone={over ? 'negative' : 'primary'}
-                  end={t(over ? 'categories.over' : 'categories.left', { amount: number(Math.abs(row.remaining)) })}
-                  endTone={over ? 'negative' : 'positive'}
-                  caption={ltrIsolate(`${number(row.spent)} / ${number(row.budget)}`)}
-                />
+                  accessibilityRole="button"
+                  accessibilityLabel={t('home.addExpenseTo', { name })}
+                  onPress={() => router.push({ pathname: '/transactions/new', params: { month, categoryId: row.categoryId } })}
+                  className="active:opacity-60"
+                >
+                  <ProgressRow
+                    icon={iconOf(row.category)}
+                    title={name}
+                    progress={row.budget > 0 ? row.spent / row.budget : row.spent > 0 ? 1 : 0}
+                    barTone={over ? 'negative' : 'primary'}
+                    end={t(over ? 'categories.over' : 'categories.left', { amount: number(Math.abs(row.remaining)) })}
+                    endTone={over ? 'negative' : 'positive'}
+                    caption={ltrIsolate(`${number(row.spent)} / ${number(row.budget)}`)}
+                  />
+                </Pressable>
               );
             })}
           </Card>

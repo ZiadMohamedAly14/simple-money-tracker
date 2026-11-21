@@ -36,6 +36,8 @@ export interface TransactionFormProps {
   initial?: { amount: string; date: string; note: string | null; categoryId: string | null };
   /** The date a new Transaction starts with; today if not given. */
   defaultDate?: string;
+  /** The Category a new Expense starts with (tapping a Category on home). */
+  defaultCategoryId?: string;
   onSave: (values: TransactionValues) => void;
   onClose: () => void;
   /** Shows a Delete button (editing). */
@@ -48,13 +50,13 @@ export interface TransactionFormProps {
  * (most recently used first), so a new one is +, amount, chip, Save. The date
  * defaults to today and the note is optional. Income has no Category.
  */
-export function TransactionForm({ kind, title, initial, defaultDate, onSave, onClose, onDelete }: TransactionFormProps) {
+export function TransactionForm({ kind, title, initial, defaultDate, defaultCategoryId, onSave, onClose, onDelete }: TransactionFormProps) {
   const { t } = useTranslation();
   const { currency, numberingSystem } = useAccountSettings();
   const entry = useAmountEntry(currency, initial?.amount);
   const [date, setDate] = useState(initial?.date ?? defaultDate ?? toLocalDate(new Date()));
   const [note, setNote] = useState(initial?.note ?? '');
-  const [chosenId, setCategoryId] = useState<string | null>(initial?.categoryId ?? null);
+  const [chosenId, setCategoryId] = useState<string | null>(initial?.categoryId ?? defaultCategoryId ?? null);
   const { data: choices } = useLiveQuery(categoryChoicesQuery(localDb));
   const { data: allCategories } = useLiveQuery(allCategoriesQuery(localDb));
   // An Expense whose Category is deleted (maybe on another device) shows, and saves, as Other.

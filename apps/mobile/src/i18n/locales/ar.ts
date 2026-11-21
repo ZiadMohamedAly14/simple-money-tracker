@@ -119,6 +119,7 @@ export const ar: Translations = {
     incomeOfExpected: '{{income}} من {{expected}} متوقعة',
     noExpectedIncome: 'لم يُحدَّد دخل متوقع لهذا الشهر',
     figure: '{{label}}، {{amount}}',
+    addExpenseTo: 'إضافة مصروف إلى {{name}}',
     overPlan: 'الخطة تتجاوز الدخل المتوقع بمقدار {{amount}}',
     freshTitle: 'شهر جديد',
     freshBody: 'أضف دخلك، ثم اضغط + لتسجيل أول مصروف.',

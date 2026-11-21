@@ -8,11 +8,12 @@ import { TransactionForm } from '@/transactions/TransactionForm';
 /**
  * Records an Expense (the + button) or Income (`?kind=income`). Saved to the
  * local database first, so it works offline; it syncs on its own about 2 s later.
+ * Tapping a Category on home passes `categoryId`, so its chip starts selected.
  * Opened from a past Month (`month` param), the date starts on that Month's last day.
  */
 export default function NewTransactionScreen() {
   const { t } = useTranslation();
-  const { kind, month } = useLocalSearchParams<{ kind?: string; month?: string }>();
+  const { kind, month, categoryId } = useLocalSearchParams<{ kind?: string; month?: string; categoryId?: string }>();
   const isIncome = kind === 'income';
 
   return (
@@ -20,6 +21,7 @@ export default function NewTransactionScreen() {
       kind={isIncome ? 'income' : 'expense'}
       title={isIncome ? t('transactions.addIncome') : t('transactions.addExpense')}
       defaultDate={defaultDateIn(month)}
+      defaultCategoryId={isIncome ? undefined : categoryId}
       onClose={() => router.back()}
       onSave={({ amount, date, note, categoryId }) => {
         if (isIncome) recordIncome(localStore, localDb, { amount, date, note });
