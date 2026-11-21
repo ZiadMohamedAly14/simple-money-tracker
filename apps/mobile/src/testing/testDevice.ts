@@ -27,6 +27,26 @@ import {
   type ExpenseChanges,
   type NewExpense,
 } from '@/data/transactions';
+import {
+  addJar,
+  addTopUp,
+  archiveJar,
+  completeKidOnboarding,
+  createKidProfile,
+  deleteTopUp,
+  editTopUp,
+  jarsQuery,
+  kidProfilesQuery,
+  kidTransactionsQuery,
+  renameJar,
+  suggestedSplitOf,
+  topUpJarsOf,
+  walletOf,
+  type KidOnboarding,
+  type NewKidProfile,
+  type NewTopUp,
+  type TopUpChanges,
+} from '@/data/kidWallet';
 import { createLocalStore } from '@/db/localStore';
 import { migrate } from '@/db/migrations';
 import { schema } from '@/db/schema';
@@ -42,6 +62,7 @@ import {
   type PinGateState,
   type PinGateStore,
 } from '@/pin/parentPinGate';
+import { defaultJarId } from '@money-tracker/shared';
 import type { AxiosRequestConfig } from 'axios';
 import type { TestServer } from './testServer';
 
@@ -185,6 +206,38 @@ export async function createTestDevice(
     accountSettings: () => accountSettingsQuery(db).get(),
     monthPlans: () => monthPlansQuery(db).all(),
     monthOverview: (month: string) => readMonthOverview(db, month),
+
+    onboardKid: (choices: KidOnboarding) => completeKidOnboarding(store, choices),
+    createKidProfile: (kid: NewKidProfile) => createKidProfile(store, kid),
+    kidProfiles: () => kidProfilesQuery(db).all(),
+    /** The default Jars' IDs for a Kid Profile. */
+    jarIds: (kidProfileId: string) => {
+      const accountId = store.accountId()!;
+      return {
+        save: defaultJarId(accountId, kidProfileId, 'save'),
+        spend: defaultJarId(accountId, kidProfileId, 'spend'),
+        give: defaultJarId(accountId, kidProfileId, 'give'),
+      };
+    },
+    addJar: (kidProfileId: string, name: string) =>
+      addJar(store, kidProfileId, name, Math.max(-1, ...jarsQuery(db, kidProfileId).all().map((j) => j.order)) + 1),
+    renameJar: (jarId: string, name: string) => renameJar(store, jarId, name),
+    archiveJar: (jarId: string) => archiveJar(store, jarId),
+    topUpJars: (kidProfileId: string) => topUpJarsOf(jarsQuery(db, kidProfileId).all()),
+    addTopUp: (topUp: NewTopUp) => addTopUp(store, topUp),
+    editTopUp: (id: string, changes: TopUpChanges) => editTopUp(store, db, id, changes),
+    deleteTopUp: (id: string) => deleteTopUp(store, id),
+    topUps: (kidProfileId: string) => kidTransactionsQuery(db, kidProfileId).all(),
+    wallet: (kidProfileId: string) =>
+      walletOf(store.accountId(), jarsQuery(db, kidProfileId).all(), kidTransactionsQuery(db, kidProfileId).all()),
+    suggestedSplit: (kidProfileId: string, total: number) =>
+      suggestedSplitOf(
+        store.accountId()!,
+        kidProfileId,
+        jarsQuery(db, kidProfileId).all(),
+        kidTransactionsQuery(db, kidProfileId).all(),
+        total,
+      ),
 
     get pinGate(): ParentPinGate {
       return pinGate;

@@ -51,6 +51,22 @@ export function completePersonalOnboarding(
 ): void {
   const accountId = requireAccount(store);
   store.completeOnboarding([
+    ...accountBasics(accountId, currency, categoryNames),
+    monthPlanRecord(accountId, month, expectedIncome),
+  ]);
+}
+
+/**
+ * What every onboarding path writes: the Account's currency and the default
+ * Categories (budget 0). The kid path writes them too, so the Personal Budget
+ * is there whenever the parent wants it (spec, story 16).
+ */
+export function accountBasics(
+  accountId: string,
+  currency: CurrencyCode,
+  categoryNames: Record<DefaultCategoryKey, string>,
+): KnownRecord[] {
+  return [
     {
       entity: 'accountSettings',
       id: accountSettingsId(accountId),
@@ -63,8 +79,7 @@ export function completePersonalOnboarding(
         fields: { name: categoryNames[key], order, isOther: false, archivedAt: null },
       }),
     ),
-    monthPlanRecord(accountId, month, expectedIncome),
-  ]);
+  ];
 }
 
 /** Sets a Month's Expected Income, creating its plan if needed. Two devices doing it offline make one plan. */
