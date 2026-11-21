@@ -80,7 +80,7 @@ function ExpenseList() {
           expenses.map((expense) => (
             <ListRow
               key={expense.id}
-              icon="ellipsis-horizontal"
+              icon="app:more"
               title={categoryName(expense.categoryId)}
               subtitle={[dateLabel(expense.date), expense.note].filter(Boolean).join(' · ')}
               end={

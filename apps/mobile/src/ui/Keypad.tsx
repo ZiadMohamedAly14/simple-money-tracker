@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
 import { Pressable, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Ionicons } from '@expo/vector-icons';
 import { intlLocale, type KeypadKey, type NumberingSystem } from '@money-tracker/shared';
 import { useLanguage } from '@/i18n/useLanguage';
 import { useTheme } from '@/theme/ThemeProvider';
+import { AppIcon } from './AppIcon';
 import { Text } from './Text';
 
 const ROWS: readonly (readonly KeypadKey[])[] = [
@@ -56,7 +56,7 @@ export function NumericKeypad({ onKey, showDecimal = false, numberingSystem, dis
                 className="min-h-control flex-1 items-center justify-center rounded-theme bg-surface active:opacity-60"
               >
                 {key === 'backspace' ? (
-                  <Ionicons name="backspace" size={26} color={theme.colors.text} />
+                  <AppIcon name="backspace" size={26} color={theme.colors.text} />
                 ) : (
                   <Text weight="medium" align="center" className="text-2xl">
                     {key === 'decimal' ? labels.decimal : label}

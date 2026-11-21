@@ -81,12 +81,14 @@ export interface IconButtonProps {
   onPress?: () => void;
   /** Mirror in right-to-left: back, forward, month arrows. */
   directional?: boolean;
+  /** Point a custom icon the other way: `app:chevron-forward` as the previous-month arrow. */
+  reversed?: boolean;
   disabled?: boolean;
   className?: string;
 }
 
 /** Round tint button for back, close and month arrows. */
-export function IconButton({ icon, accessibilityLabel, onPress, directional, disabled, className = '' }: IconButtonProps) {
+export function IconButton({ icon, accessibilityLabel, onPress, directional, reversed, disabled, className = '' }: IconButtonProps) {
   const theme = useTheme();
   return (
     <Pressable
@@ -100,7 +102,7 @@ export function IconButton({ icon, accessibilityLabel, onPress, directional, dis
         disabled ? 'opacity-40' : ''
       } ${className}`}
     >
-      <Glyph name={icon} size={22} color={theme.colors.text} directional={directional} />
+      <Glyph name={icon} size={22} color={theme.colors.text} directional={directional} reversed={reversed} />
     </Pressable>
   );
 }

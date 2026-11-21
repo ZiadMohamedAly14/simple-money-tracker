@@ -72,8 +72,8 @@ function MonthOverview() {
       >
         <View className="min-h-11 flex-row items-center gap-2">
           <IconButton
-            icon="chevron-back"
-            directional
+            icon="app:chevron-forward"
+            reversed
             accessibilityLabel={t('home.previousMonth')}
             disabled={!canGoBack}
             onPress={goBack}
@@ -90,14 +90,13 @@ function MonthOverview() {
             {formatMonth(month, { language, numberingSystem })}
           </Text>
           <IconButton
-            icon="chevron-forward"
-            directional
+            icon="app:chevron-forward"
             accessibilityLabel={t('home.nextMonth')}
             disabled={!canGoForward}
             onPress={goForward}
           />
           {syncOverdue ? <PendingSyncLabel align="end" /> : null}
-          <IconButton icon="settings-outline" accessibilityLabel={t('home.settings')} onPress={() => router.push('/settings')} />
+          <IconButton icon="app:settings" accessibilityLabel={t('home.settings')} onPress={() => router.push('/settings')} />
         </View>
 
         {needsSignIn ? (
@@ -122,7 +121,7 @@ function MonthOverview() {
 
         <View className="flex-row gap-3">
           <FigureTile icon="app:income-money" label={t('home.income')} value={number(figures.income)} />
-          <FigureTile icon="bag-handle-outline" label={t('home.spending')} value={number(figures.spending)} />
+          <FigureTile icon="app:spending" label={t('home.spending')} value={number(figures.spending)} />
           <FigureTile
             icon={figures.unallocated < 0 ? 'app:gentle-warning' : 'app:unallocated'}
             label={t('home.unallocated')}
@@ -159,7 +158,7 @@ function MonthOverview() {
             <Text weight="bold" accessibilityRole="header" className="text-lg">
               {t('home.categories')}
             </Text>
-            <IconButton icon="create-outline" accessibilityLabel={t('categories.manage')} onPress={() => router.push({ pathname: '/categories', params: { month } })} />
+            <IconButton icon="app:edit" accessibilityLabel={t('categories.manage')} onPress={() => router.push({ pathname: '/categories', params: { month } })} />
           </View>
           <Card className="gap-4 p-4">
             {rows.map((row) => {

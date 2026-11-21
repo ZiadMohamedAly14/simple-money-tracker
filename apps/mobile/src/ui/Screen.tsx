@@ -45,7 +45,7 @@ export function ScreenHeader({ title, onBack, backIcon = 'back', end }: ScreenHe
   const { t } = useTranslation();
   const back = onBack ? (
     <IconButton
-      icon={backIcon === 'close' ? 'close' : 'app:back'}
+      icon={backIcon === 'close' ? 'app:close' : 'app:back'}
       directional={backIcon === 'back'}
       accessibilityLabel={backIcon === 'close' ? t('common.close') : t('common.back')}
       onPress={onBack}

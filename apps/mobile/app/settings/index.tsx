@@ -10,9 +10,8 @@ import { localDb, localStore } from '@/db/appDatabase';
 import { switchLanguage } from '@/i18n/i18n';
 import { useLanguage } from '@/i18n/useLanguage';
 import { parentPinGate } from '@/pin/appPinGate';
-import { DirectionalIcon } from '@/theme/DirectionalIcon';
 import { useTheme } from '@/theme/ThemeProvider';
-import { Button, Card, ListRow, Screen, ScreenHeader, SegmentedControl, Text } from '@/ui';
+import { AppIcon, Button, Card, ListRow, Screen, ScreenHeader, SegmentedControl, Text } from '@/ui';
 
 /**
  * Settings (PDF pages 7–8): language (this device), digits and currency label
@@ -82,9 +81,12 @@ function SettingsScreen() {
       ) : null}
 
       <Card className="gap-2 p-4">
-        <Text tone="muted" className="text-sm">
-          {t('language.label')}
-        </Text>
+        <View className="flex-row items-center gap-2">
+          <AppIcon name="language" size={16} color={theme.colors.muted} />
+          <Text tone="muted" className="text-sm">
+            {t('language.label')}
+          </Text>
+        </View>
         <SegmentedControl<Language>
           options={languages}
           value={language}
@@ -94,9 +96,12 @@ function SettingsScreen() {
       </Card>
 
       <Card className="gap-2 p-4">
-        <Text tone="muted" className="text-sm">
-          {t('settings.numberingLabel')}
-        </Text>
+        <View className="flex-row items-center gap-2">
+          <AppIcon name="digits" size={16} color={theme.colors.muted} />
+          <Text tone="muted" className="text-sm">
+            {t('settings.numberingLabel')}
+          </Text>
+        </View>
         <SegmentedControl<NumberingSystem>
           options={numberingSystems}
           value={numberingSystem}
@@ -106,13 +111,13 @@ function SettingsScreen() {
       </Card>
 
       <ListRow
-        icon="cash-outline"
+        icon="app:currency"
         title={t('settings.currencyLabel')}
         subtitle={t(`currencies.${currency}`, { defaultValue: currency })}
         end={
           <View className="flex-row items-center gap-1">
             <Text weight="semibold">{currency}</Text>
-            <DirectionalIcon name="chevron-forward" size={18} color={theme.colors.muted} />
+            <AppIcon name="chevron-forward" size={18} color={theme.colors.muted} />
           </View>
         }
         onPress={() => router.push('/settings/currency')}
@@ -136,13 +141,13 @@ function SettingsScreen() {
       ) : null}
 
       <ListRow
-        icon="cloud-outline"
+        icon="app:cloud"
         title={t('settings.connection')}
-        end={<DirectionalIcon name="chevron-forward" size={18} color={theme.colors.muted} />}
+        end={<AppIcon name="chevron-forward" size={18} color={theme.colors.muted} />}
         onPress={() => router.push('/health')}
       />
 
-      <Button label={t('session.signOut')} variant="danger" onPress={confirmSignOut} />
+      <Button label={t('session.signOut')} variant="danger" icon="app:exit" onPress={confirmSignOut} />
     </Screen>
   );
 }

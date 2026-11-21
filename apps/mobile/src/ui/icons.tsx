@@ -22,14 +22,16 @@ export interface GlyphProps {
   name: GlyphName;
   size: number;
   color: string;
-  /** Mirror in right-to-left. Custom arrows (app:back) mirror on their own. */
+  /** Mirror in right-to-left. Custom arrows (app:back, app:chevron-forward) mirror on their own. */
   directional?: boolean;
+  /** Custom icons only: point the other way (app:chevron-forward as "previous"). See AppIcon. */
+  reversed?: boolean;
 }
 
 /** Draws a GlyphName: the custom SVG for `app:` names, Ionicons otherwise. */
-export function Glyph({ name, size, color, directional }: GlyphProps) {
+export function Glyph({ name, size, color, directional, reversed }: GlyphProps) {
   if (name.startsWith('app:')) {
-    return <AppIcon name={name.slice(4) as AppIconName} size={size} color={color} directional={directional} />;
+    return <AppIcon name={name.slice(4) as AppIconName} size={size} color={color} directional={directional} reversed={reversed} />;
   }
   const Icon = directional ? DirectionalIcon : Ionicons;
   return <Icon name={name as IconName} size={size} color={color} />;

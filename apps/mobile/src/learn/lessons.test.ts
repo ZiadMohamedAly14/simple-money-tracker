@@ -1,7 +1,7 @@
 import { ar } from '@/i18n/locales/ar';
 import { en } from '@/i18n/locales/en';
 import { APP_ICONS } from '@/ui/appIcons';
-import { LESSONS, lessonIllustration } from './lessons';
+import { LESSONS, LESSON_ILLUSTRATIONS, lessonIllustration } from './lessons';
 
 const ARABIC_SCRIPT = /[؀-ۿ]/;
 
@@ -25,14 +25,32 @@ describe('Learn lessons', () => {
 });
 
 describe('lesson illustrations', () => {
-  it('falls back to the jar of coins when a topic has no drawing of its own', () => {
-    expect(lessonIllustration('giving', { 'learn-illustration-jar-coins': {} })).toBe('learn-illustration-jar-coins');
+  it("falls back to the jar of coins when a lesson's drawing is missing from the icon set", () => {
+    expect(lessonIllustration('waiting', { 'learn-illustration-jar-coins': {} })).toBe('learn-illustration-jar-coins');
   });
 
-  it('uses learn-illustration-<topic> once that drawing is in the icon set', () => {
-    const icons = { 'learn-illustration-jar-coins': {}, 'learn-illustration-giving': {} };
-    expect(lessonIllustration('giving', icons)).toBe('learn-illustration-giving');
+  it("uses the lesson's named drawing, not one derived from its topic key", () => {
+    const icons = { 'learn-illustration-jar-coins': {}, 'learn-illustration-patience': {}, 'learn-illustration-waiting': {} };
+    expect(lessonIllustration('waiting', icons)).toBe('learn-illustration-patience');
     expect(lessonIllustration('saving', icons)).toBe('learn-illustration-jar-coins');
+  });
+
+  it('gives each lesson the drawing made for it', () => {
+    expect(LESSONS.map((lesson) => [lesson.topic, lesson.illustration])).toEqual([
+      ['saving', 'learn-illustration-saving-goal'],
+      ['jars', 'learn-illustration-jar-coins'],
+      ['needs-and-wants', 'learn-illustration-needs-wants'],
+      ['think-first', 'learn-illustration-spending-choices'],
+      ['waiting', 'learn-illustration-patience'],
+      ['giving', 'learn-illustration-giving'],
+      ['comparing', 'learn-illustration-compare-prices'],
+      ['earning', 'learn-illustration-earning'],
+      ['running-low', 'learn-illustration-budget'],
+    ]);
+  });
+
+  it('names a drawing that exists for every lesson', () => {
+    for (const illustration of Object.values(LESSON_ILLUSTRATIONS)) expect(APP_ICONS).toHaveProperty([illustration]);
   });
 
   it('gives every bundled lesson an illustration from the app icon set', () => {
