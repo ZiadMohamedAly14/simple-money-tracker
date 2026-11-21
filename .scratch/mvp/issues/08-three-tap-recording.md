@@ -30,6 +30,7 @@ Built on `ticket/08-three-tap-recording`:
   - The onboarding split step: tap a Category (the first is selected), then type its budget. A Category left empty writes no record, as before. Done waits while any sum is unfinished or negative.
   - Top-up: in 12's `src/kid/TopUpForm.tsx`, the one keypad types a sum into the total or the selected Jar's share. Each sum is evaluated to whole minor units before anything else sees it, so `topUpSplitProblem`, the suggested split and the mismatch caption only get results. Save waits while any sum is unfinished, negative or divides by zero.
   - Jar Transfer doesn't exist yet (ticket 13). Icons come from the custom set: Category chips and rows use `categoryIconFor`, and the screens use `app:add`, `app:income-money`, `app:reorder-history` and `app:delete`.
+- **Merged with ticket 10:** `recordIncome` and `editIncome` take `(store, db, …)` like 10's `recordExpense`/`editExpense`, and call `openMonth` for the date's Month (for an edit, only once the edit has landed). So Income recorded in, or moved into, a Month with no plan creates that Month from the previous plan. A Seam B test covers this, including the second device. Home passes the Month it is showing to the Transactions list and to new Transactions (FAB, "Add income"). The list shows that Month. A new Transaction opened from a past Month starts on that Month's last day; from the current Month it starts today.
 - **Three taps:** + → type the amount → tap a Category chip → Save. No chip is selected at first, so an Expense never goes into a Category silently. Save stays disabled until a chip is chosen.
 
 **Left over:**
@@ -37,7 +38,8 @@ Built on `ticket/08-three-tap-recording`:
 - On the Category edit screen, the system keyboard for the name field covers the amount keypad while the name is being typed.
 - There is no swipe to delete. Deleting is on the edit screen (design flaw 11 allows that), so no gesture library was added.
 - Future dates aren't blocked; the spec doesn't say whether they should be.
-- The Transactions screen shows the current Month only. Switching Months is ticket 10.
+- The Transactions screen has no Month arrows of its own; it shows the Month chosen on home.
+- `src/ui/appIcons.test.ts` fails on `mvp` itself: commit 07a1dfb added 35 SVGs to `assets/icon/` without entries in `src/ui/appIcons.ts`. It isn't part of this ticket, so it's left for the icon set's owner.
 
 **Human follow-up:**
 - Check on a device, in English and Arabic (Western and Arabic-Indic digits): + → amount → chip → Save; a sum like `120+35` and `300÷3` with its live result; Save disabled for `120+`, `5-8`, `5÷0`; the expression staying left to right in Arabic; the operator column at the end side in RTL; the calendar (picking a date in an earlier Month); Income rows; edit and delete; recording in airplane mode and seeing it on a second device. Also sums on the Category Budget edit screen, the onboarding split step (selecting a row, then typing) and the Top-up form (total and Jar shares, Save disabled for `50+`).
