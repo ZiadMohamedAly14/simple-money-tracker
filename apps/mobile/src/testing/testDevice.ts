@@ -9,6 +9,15 @@ import { createApiClient } from '@/api/client';
 import { requestCode, verifyCode } from '@/api/auth';
 import { createAuthSession, type AuthSession, type AuthedResult } from '@/auth/authSession';
 import type { SessionStore, StoredSession } from '@/auth/tokenStore';
+import {
+  accountSettingsQuery,
+  completePersonalOnboarding,
+  monthPlansQuery,
+  readMonthOverview,
+  setCategoryBudgets,
+  setExpectedIncome,
+  type PersonalOnboarding,
+} from '@/data/budget';
 import { categoriesQuery, expensesQuery, recordExpense, type NewExpense } from '@/data/transactions';
 import { createLocalStore } from '@/db/localStore';
 import { migrate } from '@/db/migrations';
@@ -84,6 +93,14 @@ export async function createTestDevice(server: TestServer) {
     expenses: () => expensesQuery(db).all(),
     categories: () => categoriesQuery(db).all(),
     pendingChanges: () => store.pendingCount(),
+
+    onboarding: () => store.onboarding(),
+    onboardPersonal: (choices: PersonalOnboarding) => completePersonalOnboarding(store, choices),
+    setExpectedIncome: (month: string, amount: number) => setExpectedIncome(store, month, amount),
+    setCategoryBudgets: (month: string, amounts: Record<string, number>) => setCategoryBudgets(store, month, amounts),
+    accountSettings: () => accountSettingsQuery(db).get(),
+    monthPlans: () => monthPlansQuery(db).all(),
+    monthOverview: (month: string) => readMonthOverview(db, month),
   };
 }
 

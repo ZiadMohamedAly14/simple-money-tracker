@@ -18,7 +18,18 @@ import type { LocalDb } from './types';
 type Tx = Parameters<Parameters<LocalDb['transaction']>[0]>[0];
 type Db = LocalDb | Tx;
 
-const STATE = { accountId: 'accountId', cursor: 'cursor' } as const;
+/** The `device_state` key holding the `OnboardingState` (screens read it with a live query). */
+export const ONBOARDING_STATE_KEY = 'onboarding';
+
+const STATE = { accountId: 'accountId', cursor: 'cursor', onboarding: ONBOARDING_STATE_KEY } as const;
+
+/**
+ * Where this device's Account is with onboarding:
+ * - `not_started`: show onboarding.
+ * - `unreported`: finished here; the server hasn't been told yet (the sync engine tells it).
+ * - `complete`: finished, and the server knows.
+ */
+export type OnboardingState = 'not_started' | 'unreported' | 'complete';
 
 /** The columns every synced table shares; drizzle can't see them through the entity union. */
 type SyncedTable = SQLiteTable & {
@@ -31,6 +42,9 @@ function upsertRow(db: Db, entity: SyncEntity, row: object): void {
   const table = tableOf(entity);
   db.insert(table).values(row as never).onConflictDoUpdate({ target: table.id as never, set: row as never }).run();
 }
+
+/** A record whose ID the caller already knows (a fixed or deterministic one). */
+export type KnownRecord = { [E in SyncEntity]: { entity: E; id: string; fields: SyncFieldsByEntity[E] } }[SyncEntity];
 
 export interface PendingPush {
   changes: PushedChange[];
@@ -83,6 +97,15 @@ export function createLocalStore({ db, now, randomBytes }: LocalStoreDeps) {
     return accountId;
   }
 
+  function putRows(tx: Db, records: readonly KnownRecord[]): void {
+    const accountId = requireAccount(tx);
+    const updatedAt = now();
+    for (const { entity, id, fields } of records) {
+      upsertRow(tx, entity, { ...fields, id, accountId, updatedAt, deletedAt: null, serverVersion: 0 });
+      tx.insert(outbox).values({ entity, recordId: id, queuedAt: updatedAt }).run();
+    }
+  }
+
   return {
     /** The Account whose data is on this device, or null when it holds none. */
     accountId: (): string | null => getState(STATE.accountId),
@@ -92,13 +115,34 @@ export function createLocalStore({ db, now, randomBytes }: LocalStoreDeps) {
      * everything local (rows, outbox, cursor) is deleted first, so one
      * Account's records never show under another.
      */
-    claimAccount(accountId: string): void {
+    claimAccount(accountId: string, { onboardingCompleted = false }: { onboardingCompleted?: boolean } = {}): void {
       db.transaction((tx) => {
         if (getState(STATE.accountId, tx) !== accountId) {
           wipe(tx);
           setState(tx, STATE.accountId, accountId);
         }
         ensureOtherCategory(tx, accountId);
+        if (onboardingCompleted) setState(tx, STATE.onboarding, 'complete');
+      });
+    },
+
+    onboarding: (): OnboardingState => (getState(STATE.onboarding) as OnboardingState | null) ?? 'not_started',
+
+    /**
+     * Writes the onboarding records and marks onboarding finished on this
+     * device, all at once. The server is told later (`onboardingReported`).
+     */
+    completeOnboarding(records: readonly KnownRecord[]): void {
+      db.transaction((tx) => {
+        putRows(tx, records);
+        if (getState(STATE.onboarding, tx) !== 'complete') setState(tx, STATE.onboarding, 'unreported');
+      });
+    },
+
+    /** The server has recorded onboarding for `accountId`. Ignored if another Account signed in meanwhile. */
+    onboardingReported(accountId: string): void {
+      db.transaction((tx) => {
+        if (getState(STATE.accountId, tx) === accountId) setState(tx, STATE.onboarding, 'complete');
       });
     },
 
@@ -117,6 +161,15 @@ export function createLocalStore({ db, now, randomBytes }: LocalStoreDeps) {
         tx.insert(outbox).values({ entity, recordId: id, queuedAt: updatedAt }).run();
       });
       return id;
+    },
+
+    /**
+     * Creates or replaces records with known IDs (deterministic ones, such as
+     * `monthPlanId`) and queues them for sync, all at once. Two devices doing
+     * this offline end up with one record each.
+     */
+    put(records: readonly KnownRecord[]): void {
+      db.transaction((tx) => putRows(tx, records));
     },
 
     /** The server version this device has pulled up to (0 = never synced). */
