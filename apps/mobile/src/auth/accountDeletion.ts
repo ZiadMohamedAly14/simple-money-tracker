@@ -22,7 +22,8 @@ export type DeletionResult =
       attemptsRemaining?: number;
       retryAfterSeconds?: number;
     }
-  | { status: 'unreachable' | 'session_ended' };
+  | { status: 'unreachable' }
+  | { status: 'session_ended' };
 
 export interface AccountDeletionDeps {
   /** An authenticated API call (`authSession.request`). */
@@ -31,7 +32,8 @@ export interface AccountDeletionDeps {
 }
 
 function toResult(result: AuthedResult): DeletionResult {
-  if (result.status !== 'ok') return { status: result.status };
+  if (result.status === 'unreachable') return { status: 'unreachable' };
+  if (result.status === 'session_ended') return { status: 'session_ended' };
   const { body, httpStatus } = result;
   if (!isApiEnvelope(body)) return { status: 'rejected', reason: 'unknown' };
   if (body.success) return { status: 'ok' };
