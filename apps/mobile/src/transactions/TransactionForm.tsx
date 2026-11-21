@@ -4,7 +4,7 @@ import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useTranslation } from 'react-i18next';
 import { toLocalDate, type TransactionKind } from '@money-tracker/shared';
 import { categoryIconFor } from '@/data/categoryIcons';
-import { allCategoriesQuery, categoryChoicesQuery } from '@/data/categories';
+import { allCategoriesQuery, categoryChoicesQuery, shownCategoryOf } from '@/data/categories';
 import { useAccountSettings } from '@/data/useAccountSettings';
 import { localDb, localStore } from '@/db/appDatabase';
 import {
@@ -54,9 +54,14 @@ export function TransactionForm({ kind, title, initial, defaultDate, onSave, onC
   const entry = useAmountEntry(currency, initial?.amount);
   const [date, setDate] = useState(initial?.date ?? defaultDate ?? toLocalDate(new Date()));
   const [note, setNote] = useState(initial?.note ?? '');
-  const [categoryId, setCategoryId] = useState<string | null>(initial?.categoryId ?? null);
+  const [chosenId, setCategoryId] = useState<string | null>(initial?.categoryId ?? null);
   const { data: choices } = useLiveQuery(categoryChoicesQuery(localDb));
   const { data: allCategories } = useLiveQuery(allCategoriesQuery(localDb));
+  // An Expense whose Category is deleted (maybe on another device) shows, and saves, as Other.
+  const categoryId = useMemo(
+    () => (chosenId && allCategories.length > 0 ? (shownCategoryOf(allCategories)(chosenId)?.id ?? chosenId) : chosenId),
+    [chosenId, allCategories],
+  );
 
   // An edited Expense keeps its Category even if that has since been archived.
   const chips = useMemo(() => {

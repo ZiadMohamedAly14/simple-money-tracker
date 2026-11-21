@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useTranslation } from 'react-i18next';
 import { currentMonth, formatMonth } from '@money-tracker/shared';
+import { useConfirmDeleteCategory } from '@/categories/useConfirmDeleteCategory';
 import { activeCategoriesQuery, archivedCategoriesQuery, categoryActions } from '@/data/categories';
 import { categoryIconFor } from '@/data/categoryIcons';
 import { useAccountSettings } from '@/data/useAccountSettings';
@@ -20,7 +21,8 @@ const actions = categoryActions(localStore, localDb);
  * Categories and budgets (PDF page 7): this Month's Expected Income and
  * Unallocated, then each active Category with its budget for the Month (named,
  * design flaw 7). Tap a row to rename it, set its budget or archive it; the
- * arrows reorder. Other is locked last (only its budget can change). Archived Categories can be restored.
+ * arrows reorder. Other is locked last (only its budget can change). Archived
+ * Categories can be restored or deleted.
  */
 export default function CategoriesScreen() {
   const { t } = useTranslation();
@@ -35,6 +37,7 @@ export default function CategoriesScreen() {
   const { data: active } = useLiveQuery(activeCategoriesQuery(localDb));
   const { data: archived } = useLiveQuery(archivedCategoriesQuery(localDb));
   const iconOf = useMemo(() => categoryIconFor(localStore.accountId()), []);
+  const confirmDelete = useConfirmDeleteCategory();
   const budgetOf = useMemo(() => new Map(rows.map((row) => [row.categoryId, row.budget])), [rows]);
 
   const movable = active.filter((c) => !c.isOther);
@@ -129,7 +132,16 @@ export default function CategoriesScreen() {
               key={category.id}
               icon={iconOf(category)}
               title={category.name}
-              end={<Button label={t('categories.restore')} variant="secondary" icon="app:restore" onPress={() => actions.restore(category.id)} />}
+              end={
+                <View className="flex-row gap-1">
+                  <Button label={t('categories.restore')} variant="secondary" icon="app:restore" onPress={() => actions.restore(category.id)} />
+                  <IconButton
+                    icon="app:delete"
+                    accessibilityLabel={t('categories.deleteTitle', { name: category.name })}
+                    onPress={() => confirmDelete(category, month)}
+                  />
+                </View>
+              }
             />
           ))}
         </View>
