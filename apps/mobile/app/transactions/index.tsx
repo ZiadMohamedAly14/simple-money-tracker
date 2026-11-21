@@ -7,7 +7,8 @@ import { useTranslation } from 'react-i18next';
 import { currentMonth, formatMonth, formatMoneyParts, ltrIsolate } from '@money-tracker/shared';
 import { useAuthStatus } from '@/auth/appSession';
 import { categoryIconFor } from '@/data/categoryIcons';
-import { categoriesQuery, monthTransactionListQuery } from '@/data/transactions';
+import { allCategoriesQuery } from '@/data/categories';
+import { monthTransactionListQuery } from '@/data/transactions';
 import { useAccountSettings } from '@/data/useAccountSettings';
 import { localDb, localStore } from '@/db/appDatabase';
 import { useDateLabel } from '@/i18n/useDateLabel';
@@ -38,7 +39,7 @@ function TransactionList() {
   const dateLabel = useDateLabel(numberingSystem);
   const month = currentMonth(new Date());
   const { data: transactions } = useLiveQuery(monthTransactionListQuery(localDb, month), [month]);
-  const { data: categories } = useLiveQuery(categoriesQuery(localDb));
+  const { data: categories } = useLiveQuery(allCategoriesQuery(localDb));
   const syncOverdue = useSyncOverdue();
   const [syncing, setSyncing] = useState(false);
 

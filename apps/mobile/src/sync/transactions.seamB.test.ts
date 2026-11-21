@@ -93,7 +93,7 @@ describe('recording Transactions (Seam B)', () => {
     await phone.sync();
     await tablet.sync();
     tablet.recordExpense({ amount: 100, date: '2026-03-02' }); // Other
-    tablet.store.update('category', id('kids'), { archivedAt: Date.now() });
+    tablet.archiveCategory(id('kids'));
 
     expect(order(tablet)).toEqual([
       'other',

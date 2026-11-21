@@ -23,7 +23,6 @@ import {
 } from '@/data/budget';
 import {
   categoriesQuery,
-  categoryChoicesQuery,
   deleteTransaction,
   editExpense,
   editIncome,
@@ -40,6 +39,7 @@ import {
   activeCategoriesQuery,
   archivedCategoriesQuery,
   categoryActions,
+  categoryChoicesQuery,
   readCategoryBreakdown,
 } from '@/data/categories';
 import { createLocalStore } from '@/db/localStore';

@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, isNull, like, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, isNull, like } from 'drizzle-orm';
 import { otherCategoryId, type Month } from '@money-tracker/shared';
 import type { LocalStore } from '@/db/localStore';
 import { categories, transactions } from '@/db/schema';
@@ -100,24 +100,4 @@ export function categoriesQuery(db: LocalDb) {
     .from(categories)
     .where(isNull(categories.deletedAt))
     .orderBy(asc(categories.order), asc(categories.id));
-}
-
-/**
- * Live-queryable: the Categories offered when recording an Expense. The most
- * recently recorded-against come first (by the Expense's UUIDv7 ID, which
- * sorts by when it was recorded, on whichever device), then the never-used
- * ones in display order. Archived Categories are left out.
- */
-export function categoryChoicesQuery(db: LocalDb) {
-  const lastUse = sql`(
-    select max(${transactions.id}) from ${transactions}
-    where ${transactions.categoryId} = ${categories.id}
-      and ${transactions.kind} = 'expense'
-      and ${transactions.deletedAt} is null
-  )`;
-  return db
-    .select()
-    .from(categories)
-    .where(and(isNull(categories.deletedAt), isNull(categories.archivedAt)))
-    .orderBy(sql`${lastUse} desc nulls last`, asc(categories.order), asc(categories.id));
 }
