@@ -4,7 +4,7 @@
 
 **Blocked by:** 06 (Robust sync), 13 (Kid Expenses, Jar Transfers and history).
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] Setup flow: sign in with an email code, choose "This device is for a kid", pick or create a Kid Profile, confirm the PIN. The device swaps to a Kid session and deletes the full tokens (ADR-0002).
 - [x] The Kid session's scope covers one Kid Profile. Sync only returns that profile's records and only accepts Kid Expenses for it.
