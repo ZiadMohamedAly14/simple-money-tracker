@@ -32,7 +32,14 @@ export interface VerifyCodeData {
   accessToken: string;
   refreshToken: string;
   isNewAccount: boolean;
+  /** The Account has finished onboarding (on any device), so this device skips it. */
+  onboardingCompleted: boolean;
   account: { id: string; email: string };
+}
+
+/** `POST /account/onboarding` success data. Marking it again is harmless. */
+export interface OnboardingData {
+  onboardingCompleted: true;
 }
 
 /**

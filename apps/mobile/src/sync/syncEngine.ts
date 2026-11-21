@@ -47,10 +47,24 @@ export function createSyncEngine({ store, request, pullLimit }: SyncEngineDeps) 
     return push.hasMore || response.hasMore ? 'more' : 'synced';
   }
 
+  /**
+   * Onboarding finished on this device but the server hasn't recorded it yet
+   * (e.g. it happened offline): tell it now. Tried again on the next sync if
+   * it doesn't go through.
+   */
+  async function reportOnboarding(): Promise<void> {
+    const accountId = store.accountId();
+    if (!accountId || store.onboarding() !== 'unreported') return;
+    const result = await request({ method: 'POST', url: '/account/onboarding', data: {} });
+    if (result.status === 'ok' && result.httpStatus === 200) store.onboardingReported(accountId);
+  }
+
   async function run(): Promise<SyncOutcome> {
     for (;;) {
       const outcome = await roundTrip();
-      if (outcome !== 'more') return outcome;
+      if (outcome === 'more') continue;
+      if (outcome === 'synced') await reportOnboarding();
+      return outcome;
     }
   }
 

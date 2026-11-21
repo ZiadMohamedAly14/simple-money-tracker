@@ -51,6 +51,69 @@ describe('parsePushedChange', () => {
     expect(result.ok).toBe(false);
   });
 
+  describe('Account settings', () => {
+    const settings = { id, updatedAt: 1, deletedAt: null, currency: 'EGP', numberingSystem: 'western' };
+
+    it('accepts a currency and a numbering system', () => {
+      expect(parsePushedChange({ entity: 'accountSettings', record: settings })).toEqual({
+        ok: true,
+        change: { entity: 'accountSettings', record: settings },
+      });
+    });
+
+    it.each([
+      ['a lowercase currency', { currency: 'egp' }, 'currency'],
+      ['a currency that is not a code', { currency: 'Pounds' }, 'currency'],
+      ['an unknown numbering system', { numberingSystem: 'roman' }, 'numberingSystem'],
+    ])('rejects %s', (_label, patch, field) => {
+      const result = parsePushedChange({ entity: 'accountSettings', record: { ...settings, ...patch } });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.problems.map((p) => p.field)).toEqual([field]);
+    });
+  });
+
+  describe('Month plan', () => {
+    const plan = { id, updatedAt: 1, deletedAt: null, month: '2026-03', expectedIncome: 800000 };
+
+    it('accepts a Month and an Expected Income, including zero', () => {
+      expect(parsePushedChange({ entity: 'monthPlan', record: plan })).toEqual({ ok: true, change: { entity: 'monthPlan', record: plan } });
+      expect(parsePushedChange({ entity: 'monthPlan', record: { ...plan, expectedIncome: 0 } }).ok).toBe(true);
+    });
+
+    it.each([
+      ['a Month that does not exist', { month: '2026-13' }, 'month'],
+      ['a date instead of a Month', { month: '2026-03-01' }, 'month'],
+      ['a negative Expected Income', { expectedIncome: -1 }, 'expectedIncome'],
+      ['a fractional Expected Income', { expectedIncome: 1.5 }, 'expectedIncome'],
+    ])('rejects %s', (_label, patch, field) => {
+      const result = parsePushedChange({ entity: 'monthPlan', record: { ...plan, ...patch } });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.problems.map((p) => p.field)).toEqual([field]);
+    });
+  });
+
+  describe('Category Budget', () => {
+    const budget = { id, updatedAt: 1, deletedAt: null, month: '2026-03', categoryId, amount: 300000 };
+
+    it('accepts a Month, a Category and an amount, including zero', () => {
+      expect(parsePushedChange({ entity: 'categoryBudget', record: budget })).toEqual({
+        ok: true,
+        change: { entity: 'categoryBudget', record: budget },
+      });
+      expect(parsePushedChange({ entity: 'categoryBudget', record: { ...budget, amount: 0 } }).ok).toBe(true);
+    });
+
+    it.each([
+      ['a missing Category', { categoryId: null }, 'categoryId'],
+      ['a negative amount', { amount: -100 }, 'amount'],
+      ['a bad Month', { month: 'March' }, 'month'],
+    ])('rejects %s', (_label, patch, field) => {
+      const result = parsePushedChange({ entity: 'categoryBudget', record: { ...budget, ...patch } });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.problems.map((p) => p.field)).toEqual([field]);
+    });
+  });
+
   it('rejects an unknown entity', () => {
     const result = parsePushedChange({ entity: 'goal', record: expense });
     expect(result).toEqual({ ok: false, problems: [{ field: 'entity', message: expect.any(String) }] });

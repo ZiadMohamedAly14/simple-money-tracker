@@ -43,7 +43,9 @@ export function createAuthService({ env, mailer, now, tokens }: Deps) {
   };
 
   /** Finds the Account by email or creates it; tells which. Safe against two first verifies racing. */
-  async function findOrCreateAccount(email: string): Promise<{ id: string; email: string; isNew: boolean }> {
+  async function findOrCreateAccount(
+    email: string,
+  ): Promise<{ id: string; email: string; isNew: boolean; onboardingCompleted: boolean }> {
     for (let attempt = 0; ; attempt++) {
       try {
         const result = await Account.findOneAndUpdate(
@@ -52,7 +54,12 @@ export function createAuthService({ env, mailer, now, tokens }: Deps) {
           { upsert: true, new: true, includeResultMetadata: true },
         );
         const account = result.value!;
-        return { id: account.id as string, email: account.email, isNew: !result.lastErrorObject?.updatedExisting };
+        return {
+          id: account.id as string,
+          email: account.email,
+          isNew: !result.lastErrorObject?.updatedExisting,
+          onboardingCompleted: account.onboardingCompletedAt != null,
+        };
       } catch (error) {
         if ((error as { code?: number }).code === DUPLICATE_KEY && attempt === 0) continue;
         throw error;
@@ -161,7 +168,12 @@ export function createAuthService({ env, mailer, now, tokens }: Deps) {
 
       const account = await findOrCreateAccount(email);
       const issued = await tokens.startSession(account.id, deviceLabel);
-      return { ...issued, isNewAccount: account.isNew, account: { id: account.id, email: account.email } };
+      return {
+        ...issued,
+        isNewAccount: account.isNew,
+        onboardingCompleted: account.onboardingCompleted,
+        account: { id: account.id, email: account.email },
+      };
     },
   };
 }

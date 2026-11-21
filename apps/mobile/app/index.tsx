@@ -1,122 +1,172 @@
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { useCallback, useState } from 'react';
+import { RefreshControl, ScrollView, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Redirect, router } from 'expo-router';
+import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useTranslation } from 'react-i18next';
-import { SUPPORTED_LANGUAGES, formatMoneyParts, type Language } from '@money-tracker/shared';
-import { authSession, useAuthStatus } from '@/auth/appSession';
-import { createApiClient } from '@/api/client';
-import { checkHealth, type HealthResult } from '@/api/health';
-import { API_URL } from '@/config';
-import { switchLanguage } from '@/i18n/i18n';
+import { Ionicons } from '@expo/vector-icons';
+import { currentMonth, formatMonth, formatMoneyParts, ltrIsolate } from '@money-tracker/shared';
+import { useAuthStatus } from '@/auth/appSession';
+import { categoryBudgetsQuery, monthOverviewOf, monthPlansQuery, monthTransactionsQuery } from '@/data/budget';
+import { useAccountSettings, useOnboardingState } from '@/data/useAccountSettings';
+import { localDb } from '@/db/appDatabase';
 import { useFormatMoney } from '@/i18n/useFormatMoney';
 import { useLanguage } from '@/i18n/useLanguage';
+import { syncTriggers } from '@/sync/appSync';
+import { useSyncOverdue } from '@/sync/useSyncOverdue';
 import { useTheme } from '@/theme/ThemeProvider';
-import { AmountDisplay, Button, Card, IconCircle, Screen, SegmentedControl, Text } from '@/ui';
+import { AmountDisplay, Button, Card, Fab, IconButton, IconCircle, Notice, PendingSyncLabel, Text } from '@/ui';
+import type { IconName } from '@/ui';
 
 /**
- * Walking-skeleton health screen: proves the app can reach the API, and
- * doubles as the right-to-left check for the shell (text, a sample amount and
- * the language switch).
+ * Home: signed-out devices go to sign-in and new Accounts to onboarding. A
+ * device whose session ended keeps showing its data, with a sign-in-again notice.
  */
-export default function HomeScreen() {
-  // Signed-out devices go to sign-in first. A device whose session ended keeps
-  // showing its data (HealthScreen shows a sign-in-again notice instead).
+export default function HomeRoute() {
   const status = useAuthStatus();
-  if (status === 'loading') return null;
+  const onboarding = useOnboardingState();
+  if (status === 'loading' || onboarding === null) return null;
   if (status === 'signedOut') return <Redirect href="/sign-in" />;
-  return <HealthScreen />;
+  if (onboarding === 'not_started') return <Redirect href="/onboarding" />;
+  return <MonthOverview />;
 }
 
-function HealthScreen() {
+/**
+ * This Month's Remaining, Income, Spending and Unallocated (PDF pages 1 and
+ * 13), all worked out from the local database by `monthFigures`. Category
+ * rows are ticket 09; the Month switcher is ticket 10.
+ */
+function MonthOverview() {
   const { t } = useTranslation();
   const theme = useTheme();
   const language = useLanguage();
-  const formatMoney = useFormatMoney();
   const needsSignIn = useAuthStatus() === 'needsSignIn';
-  const [health, setHealth] = useState<HealthResult | null>(null);
+  const { currency, numberingSystem } = useAccountSettings();
+  const formatMoney = useFormatMoney(numberingSystem);
+  const month = currentMonth(new Date());
+  const { data: plans } = useLiveQuery(monthPlansQuery(localDb, month), [month]);
+  const { data: budgets } = useLiveQuery(categoryBudgetsQuery(localDb, month), [month]);
+  const { data: transactions } = useLiveQuery(monthTransactionsQuery(localDb, month), [month]);
+  const figures = monthOverviewOf(month, plans, budgets, transactions);
+  const syncOverdue = useSyncOverdue();
+  const [syncing, setSyncing] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    checkHealth(createApiClient(API_URL)).then((result) => {
-      if (!cancelled) setHealth(result);
-    });
-    return () => {
-      cancelled = true;
-    };
+  const refresh = useCallback(async () => {
+    setSyncing(true);
+    await syncTriggers.refresh().catch(() => undefined);
+    setSyncing(false);
   }, []);
 
-  const statusLine =
-    health === null
-      ? null
-      : health.status === 'error'
-        ? t('health.error', { message: health.message })
-        : t(`health.${health.status}`);
-  const sample = formatMoneyParts(123450, { language, currency: 'EGP' });
-  const languages = SUPPORTED_LANGUAGES.map((value) => ({ value, label: t(`language.${value}`) }));
+  const parts = (minor: number) => formatMoneyParts(minor, { language, currency, numberingSystem });
+  const number = (minor: number) => parts(minor).amount;
+  const remaining = parts(figures.remaining);
 
   return (
-    <Screen scroll className="pt-4">
-      <View className="gap-1">
-        <Text weight="bold" accessibilityRole="header" className="text-3xl">
-          {t('common.appName')}
-        </Text>
-        <Text tone="muted">{t('health.title')}</Text>
-      </View>
-
-      {needsSignIn ? (
-        <Card className="gap-3 p-4">
-          <Text>{t('session.needsSignInBody')}</Text>
-          <Button label={t('session.signInAgain')} onPress={() => router.push('/sign-in')} />
-        </Card>
-      ) : null}
-
-      <Card className="flex-row items-center gap-3 p-4">
-        <IconCircle icon={health?.status === 'ok' ? 'cloud-done-outline' : 'cloud-offline-outline'} />
-        <View className="flex-1 gap-1">
-          {statusLine === null ? (
-            <ActivityIndicator color={theme.colors.primary} />
-          ) : (
-            <Text weight="semibold" className="text-base">
-              {statusLine}
-            </Text>
-          )}
-          <Text tone="muted" className="text-xs">
-            {API_URL}
+    <SafeAreaView className="flex-1" edges={['top', 'bottom']}>
+      <ScrollView
+        className="flex-1"
+        contentContainerClassName="gap-4 px-5 pb-28 pt-2"
+        refreshControl={
+          <RefreshControl refreshing={syncing} onRefresh={() => void refresh()} colors={[theme.colors.primary]} />
+        }
+      >
+        <View className="min-h-11 flex-row items-center gap-3">
+          <Text weight="bold" accessibilityRole="header" numberOfLines={1} className="flex-1 text-xl">
+            {formatMonth(month, { language, numberingSystem })}
           </Text>
+          {syncOverdue ? <PendingSyncLabel align="end" /> : null}
+          <IconButton icon="settings-outline" accessibilityLabel={t('home.settings')} onPress={() => router.push('/health')} />
         </View>
-      </Card>
 
-      <Card className="gap-1 p-4">
+        {needsSignIn ? (
+          <Card className="gap-3 p-4">
+            <Text>{t('session.needsSignInBody')}</Text>
+            <Button label={t('session.signInAgain')} onPress={() => router.push('/sign-in')} />
+          </Card>
+        ) : null}
+
+        <View className="gap-1">
+          <Text tone="muted" className="text-sm">
+            {t('home.remaining')}
+          </Text>
+          <AmountDisplay
+            amount={remaining.amount}
+            currency={remaining.currency}
+            size="md"
+            align="start"
+            accessibilityLabel={`${t('home.remaining')}: ${formatMoney(figures.remaining, currency)}`}
+          />
+        </View>
+
+        <View className="flex-row gap-3">
+          <FigureTile icon="cash-outline" label={t('home.income')} value={number(figures.income)} />
+          <FigureTile icon="bag-handle-outline" label={t('home.spending')} value={number(figures.spending)} />
+          <FigureTile
+            icon="pie-chart-outline"
+            label={t('home.unallocated')}
+            value={number(figures.unallocated)}
+            warning={figures.unallocated < 0}
+          />
+        </View>
+
         <Text tone="muted" className="text-sm">
-          {t('health.sampleAmount')}
+          {t('home.incomeOfExpected', {
+            income: ltrIsolate(number(figures.income)),
+            expected: ltrIsolate(number(figures.expectedIncome)),
+          })}
         </Text>
-        <AmountDisplay
-          amount={sample.amount}
-          currency={sample.currency}
-          size="md"
-          align="start"
-          accessibilityLabel={formatMoney(123450, 'EGP')}
-        />
-      </Card>
 
-      <Card className="gap-2 p-4">
-        <Text tone="muted" className="text-sm">
-          {t('language.label')}
+        {figures.unallocated < 0 ? (
+          <Notice text={t('home.overPlan', { amount: formatMoney(-figures.unallocated, currency) })} />
+        ) : null}
+
+        {transactions.length === 0 ? (
+          <Card className="items-center gap-3 px-6 py-12">
+            <IconCircle icon="wallet-outline" size="lg" />
+            <Text weight="bold" align="center" className="text-xl">
+              {t('home.freshTitle')}
+            </Text>
+            <Text tone="muted" align="center">
+              {t('home.freshBody')}
+            </Text>
+          </Card>
+        ) : null}
+
+        {/* Sync tracer bullet (ticket 05) until the Transactions screen (ticket 08). */}
+        <Button label={t('expenses.open')} variant="secondary" onPress={() => router.push('/expenses')} />
+        {/* PIN-gated Parent Area (ticket 11); the kid wallet entry point (ticket 12) will lead here. */}
+        <Button label={t('parentArea.open')} variant="secondary" icon="lock-closed-outline" onPress={() => router.push('/parent')} />
+      </ScrollView>
+      <Fab accessibilityLabel={t('expenses.add')} onPress={() => router.push('/expenses/new')} />
+    </SafeAreaView>
+  );
+}
+
+interface FigureTileProps {
+  icon: IconName;
+  label: string;
+  value: string;
+  /** Warning surface: Unallocated below zero. */
+  warning?: boolean;
+}
+
+function FigureTile({ icon, label, value, warning }: FigureTileProps) {
+  const theme = useTheme();
+  return (
+    <View
+      accessible
+      accessibilityLabel={`${label}: ${value}`}
+      className={`flex-1 gap-1 rounded-theme p-3 ${warning ? 'bg-warning' : 'bg-surface'}`}
+    >
+      <View className="flex-row items-center gap-1">
+        <Ionicons name={icon} size={14} color={warning ? theme.colors['on-warning'] : theme.colors.primary} />
+        <Text tone={warning ? 'on-warning' : 'muted'} numberOfLines={1} className="flex-1 text-xs">
+          {label}
         </Text>
-        <SegmentedControl<Language>
-          options={languages}
-          value={language}
-          onChange={(next) => void switchLanguage(next)}
-          accessibilityLabel={t('language.label')}
-        />
-      </Card>
-
-      {/* Sync tracer bullet (ticket 05); the Month overview (ticket 07) replaces this screen. */}
-      <Button label={t('expenses.open')} variant="secondary" onPress={() => router.push('/expenses')} />
-      {/* PIN-gated Parent Area (ticket 11); the kid wallet entry point (ticket 12) will lead here. */}
-      <Button label={t('parentArea.open')} variant="secondary" icon="lock-closed-outline" onPress={() => router.push('/parent')} />
-
-      <Button label={t('session.signOut')} variant="danger" onPress={() => void authSession.signOut()} />
-    </Screen>
+      </View>
+      <Text weight="bold" tone={warning ? 'on-warning' : 'text'} numberOfLines={1} adjustsFontSizeToFit className="text-lg">
+        {value}
+      </Text>
+    </View>
   );
 }

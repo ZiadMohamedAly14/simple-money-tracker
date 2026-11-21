@@ -40,6 +40,7 @@ describe('sign in with an email code', () => {
       accessToken: expect.any(String),
       refreshToken: expect.any(String),
       isNewAccount: true,
+      onboardingCompleted: false,
       account: { id: expect.any(String), email: 'sara@example.com' },
     });
     expect(first.body.data.accessToken).not.toBe(first.body.data.refreshToken);

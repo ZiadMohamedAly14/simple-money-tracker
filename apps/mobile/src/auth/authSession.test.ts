@@ -156,7 +156,7 @@ describe('auth session on the device', () => {
     const store = memoryStore({ account, tokens: null });
     const session = await startSession(store, api.url);
 
-    await session.signedIn({ accessToken: 'access-9', refreshToken: 'refresh-9', isNewAccount: false, account });
+    await session.signedIn({ accessToken: 'access-9', refreshToken: 'refresh-9', isNewAccount: false, onboardingCompleted: false, account });
     expect(session.status()).toBe('signedIn');
     expect(await session.request({ method: 'GET', url: '/things' })).toMatchObject({ status: 'ok', httpStatus: 200 });
   });

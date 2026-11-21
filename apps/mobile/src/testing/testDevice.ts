@@ -10,6 +10,15 @@ import { requestCode, verifyCode } from '@/api/auth';
 import { createAuthSession, type AuthSession, type AuthedResult } from '@/auth/authSession';
 import type { SessionStore, StoredSession } from '@/auth/tokenStore';
 import {
+  accountSettingsQuery,
+  completePersonalOnboarding,
+  monthPlansQuery,
+  readMonthOverview,
+  setCategoryBudgets,
+  setExpectedIncome,
+  type PersonalOnboarding,
+} from '@/data/budget';
+import {
   categoriesQuery,
   deleteExpense,
   editExpense,
@@ -168,6 +177,14 @@ export async function createTestDevice(
     expenses: () => expensesQuery(db).all(),
     categories: () => categoriesQuery(db).all(),
     pendingChanges: () => store.pendingCount(),
+
+    onboarding: () => store.onboarding(),
+    onboardPersonal: (choices: PersonalOnboarding) => completePersonalOnboarding(store, choices),
+    setExpectedIncome: (month: string, amount: number) => setExpectedIncome(store, month, amount),
+    setCategoryBudgets: (month: string, amounts: Record<string, number>) => setCategoryBudgets(store, month, amounts),
+    accountSettings: () => accountSettingsQuery(db).get(),
+    monthPlans: () => monthPlansQuery(db).all(),
+    monthOverview: (month: string) => readMonthOverview(db, month),
 
     get pinGate(): ParentPinGate {
       return pinGate;

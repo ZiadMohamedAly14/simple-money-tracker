@@ -35,7 +35,8 @@ const reasonOf = (body: unknown): unknown =>
  * different Account, or signing out, empties them first (see `LocalStore`).
  */
 export interface LocalAccountData {
-  claimAccount(accountId: string): void;
+  /** `onboardingCompleted`: the server says the Account has finished onboarding. */
+  claimAccount(accountId: string, options?: { onboardingCompleted?: boolean }): void;
   wipe(): void;
 }
 
@@ -129,8 +130,8 @@ export function createAuthSession({ client, store, localData }: AuthSessionDeps)
     },
 
     /** Stores the tokens from a verified email code. */
-    async signedIn({ accessToken, refreshToken, account }: VerifyCodeData): Promise<void> {
-      localData.claimAccount(account.id);
+    async signedIn({ accessToken, refreshToken, account, onboardingCompleted }: VerifyCodeData): Promise<void> {
+      localData.claimAccount(account.id, { onboardingCompleted });
       current = { account, tokens: { accessToken, refreshToken } };
       await store.save(current);
       setStatus('signedIn');

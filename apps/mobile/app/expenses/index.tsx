@@ -6,8 +6,8 @@ import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useTranslation } from 'react-i18next';
 import { formatMoneyParts, intlLocale, toLocalDate } from '@money-tracker/shared';
 import { useAuthStatus } from '@/auth/appSession';
-import { PLACEHOLDER_CURRENCY } from '@/data/currency';
 import { categoriesQuery, expensesQuery } from '@/data/transactions';
+import { useAccountSettings } from '@/data/useAccountSettings';
 import { localDb } from '@/db/appDatabase';
 import { useFormatMoney } from '@/i18n/useFormatMoney';
 import { useLanguage } from '@/i18n/useLanguage';
@@ -32,7 +32,8 @@ function ExpenseList() {
   const { t } = useTranslation();
   const theme = useTheme();
   const language = useLanguage();
-  const formatMoney = useFormatMoney();
+  const { currency, numberingSystem } = useAccountSettings();
+  const formatMoney = useFormatMoney(numberingSystem);
   const { data: expenses } = useLiveQuery(expensesQuery(localDb));
   const { data: categories } = useLiveQuery(categoriesQuery(localDb));
   const syncOverdue = useSyncOverdue();
@@ -86,9 +87,9 @@ function ExpenseList() {
                 <Text
                   weight="bold"
                   className="text-base"
-                  accessibilityLabel={formatMoney(-expense.amount, PLACEHOLDER_CURRENCY)}
+                  accessibilityLabel={formatMoney(-expense.amount, currency)}
                 >
-                  {formatMoneyParts(-expense.amount, { language, currency: PLACEHOLDER_CURRENCY }).amount}
+                  {formatMoneyParts(-expense.amount, { language, currency, numberingSystem }).amount}
                 </Text>
               }
             />

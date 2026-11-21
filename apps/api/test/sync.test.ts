@@ -1,6 +1,13 @@
 import request from 'supertest';
 import type { Express } from 'express';
-import { otherCategoryId, type PushedChange, type SyncResponseData } from '@money-tracker/shared';
+import {
+  accountSettingsId,
+  categoryBudgetId,
+  monthPlanId,
+  otherCategoryId,
+  type PushedChange,
+  type SyncResponseData,
+} from '@money-tracker/shared';
 import { MINUTE, buildTestApp, createTestClock, createTestMailer, type TestClock, type TestMailer } from './helpers/testApp';
 import { useTestDatabase } from './helpers/testDatabase';
 import { writeWithServerVersion } from '../src/models/counter.model';
@@ -179,6 +186,71 @@ describe('POST /sync', () => {
 
     const omarsCopy = data(await sync(omar, 0)).changes.find((c) => c.record.id === EXPENSE_ID);
     expect(omarsCopy?.record).toMatchObject({ amount: 12550, accountId: omar.accountId });
+  });
+
+  describe('Account settings, Month plans and Category Budgets', () => {
+    const meta = { updatedAt: 1772355600000, deletedAt: null };
+    const settings = (accountId: string, patch: object = {}): PushedChange =>
+      ({ entity: 'accountSettings', record: { id: accountSettingsId(accountId), ...meta, currency: 'EGP', numberingSystem: 'western', ...patch } }) as PushedChange;
+    const plan = (accountId: string, month: string, patch: object = {}): PushedChange =>
+      ({ entity: 'monthPlan', record: { id: monthPlanId(accountId, month), ...meta, month, expectedIncome: 800000, ...patch } }) as PushedChange;
+    const budget = (accountId: string, month: string, categoryId: string, patch: object = {}): PushedChange =>
+      ({
+        entity: 'categoryBudget',
+        record: { id: categoryBudgetId(accountId, month, categoryId), ...meta, month, categoryId, amount: 300000, ...patch },
+      }) as PushedChange;
+
+    it("stores them and the Account's other device pulls them", async () => {
+      const phone = await signIn();
+      const tablet = await signIn();
+      const other = otherCategoryId(phone.accountId);
+
+      const res = await sync(phone, 0, [settings(phone.accountId), plan(phone.accountId, '2026-03'), budget(phone.accountId, '2026-03', other)]);
+      expect(res.status).toBe(200);
+
+      const pulled = data(await sync(tablet, 0)).changes;
+      expect(pulled.map((c) => c.entity)).toEqual(expect.arrayContaining(['accountSettings', 'monthPlan', 'categoryBudget']));
+      expect(pulled.find((c) => c.entity === 'monthPlan')?.record).toMatchObject({
+        id: monthPlanId(phone.accountId, '2026-03'),
+        accountId: phone.accountId,
+        month: '2026-03',
+        expectedIncome: 800000,
+      });
+    });
+
+    it('two devices creating the same Month end up with one Month plan', async () => {
+      const phone = await signIn();
+      const tablet = await signIn();
+      await sync(phone, 0, [plan(phone.accountId, '2026-03', { expectedIncome: 800000 })]);
+      await sync(tablet, 0, [plan(tablet.accountId, '2026-03', { expectedIncome: 900000, updatedAt: meta.updatedAt + 1 })]);
+
+      const plans = data(await sync(phone, 0)).changes.filter((c) => c.entity === 'monthPlan');
+      expect(plans).toHaveLength(1);
+    });
+
+    it.each([
+      ['a Month plan whose ID is not the one for its Month', (a: string) => plan(a, '2026-03', { id: monthPlanId(a, '2026-04') })],
+      [
+        'a Category Budget whose ID is not the one for its Month and Category',
+        (a: string) => budget(a, '2026-03', otherCategoryId(a), { id: categoryBudgetId(a, '2026-04', otherCategoryId(a)) }),
+      ],
+      ['Account settings under any other ID', (a: string) => settings(a, { id: otherCategoryId(a) })],
+    ])('rejects %s', async (_label, make) => {
+      const sara = await signIn();
+      const res = await sync(sara, 0, [make(sara.accountId)]);
+      expect(res.status).toBe(422);
+      expect(res.body.data).toEqual([{ field: 'changes[0].record.id', message: expect.any(String) }]);
+    });
+
+    it("rejects a Category Budget for another Account's Category", async () => {
+      const sara = await signIn('sara@example.com');
+      const omar = await signIn('omar@example.com');
+      await sync(omar, 0);
+
+      const res = await sync(sara, 0, [budget(sara.accountId, '2026-03', otherCategoryId(omar.accountId))]);
+      expect(res.status).toBe(422);
+      expect(res.body.data).toEqual([{ field: 'changes[0].record.categoryId', message: expect.any(String) }]);
+    });
   });
 
   describe('conflicts and deletion markers (ADR-0001)', () => {

@@ -1,7 +1,16 @@
 import type { CurrencyCode } from '@money-tracker/shared';
 
+/** The currencies offered at onboarding, in this order. Each has a name in the `currencies` strings. */
+export const ONBOARDING_CURRENCIES = ['EGP', 'USD', 'SAR', 'AED', 'KWD', 'QAR', 'BHD', 'OMR', 'JOD', 'EUR', 'GBP'] as const;
+
+export type OnboardingCurrency = (typeof ONBOARDING_CURRENCIES)[number];
+
 /**
- * Placeholder until the Account's currency is a synced setting (ticket 07,
- * onboarding). Amounts are stored in minor units either way.
+ * Shown only while the Account settings aren't on this device yet (a device
+ * that signed in to an onboarded Account and hasn't synced). Amounts are
+ * stored in minor units either way.
  */
-export const PLACEHOLDER_CURRENCY: CurrencyCode = 'EGP';
+export const FALLBACK_CURRENCY: CurrencyCode = 'EGP';
+
+/** Onboarding steps on the personal path: purpose, currency, Expected Income, split. The kid path counts its own (design flaw 9). */
+export const PERSONAL_STEPS = 4;

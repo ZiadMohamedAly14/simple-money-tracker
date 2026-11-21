@@ -5,6 +5,7 @@ export { SIGN_IN_CODE_LENGTH, findSignInCode, normalizeEmail, normalizeSignInCod
 export type {
   AuthErrorData,
   AuthErrorReason,
+  OnboardingData,
   RefreshBody,
   RequestCodeBody,
   TokenPair,
@@ -33,11 +34,28 @@ export type { Language, NumberingSystem } from './i18n/language';
 export { currencyMinorDigits, formatMoney, fromMinorUnits, toMinorUnits } from './money/money';
 export type { CurrencyCode, MoneyFormatOptions } from './money/money';
 export { toLocalDate } from './dates/localDate';
-export { isUuid, otherCategoryId, uuidv7 } from './sync/ids';
+export { currentMonth, formatMonth, monthOf } from './dates/month';
+export type { Month } from './dates/month';
+export { DEFAULT_CATEGORY_KEYS } from './budget/defaultCategories';
+export type { DefaultCategoryKey } from './budget/defaultCategories';
+export { monthFigures } from './budget/monthFigures';
+export type { MonthFigures, MonthFiguresInput } from './budget/monthFigures';
+export {
+  accountSettingsId,
+  categoryBudgetId,
+  defaultCategoryId,
+  isUuid,
+  monthPlanId,
+  otherCategoryId,
+  uuidv7,
+} from './sync/ids';
 export type { RandomBytes } from './sync/ids';
 export { MAX_PULLED_CHANGES, MAX_PUSHED_CHANGES, OTHER_CATEGORY, SYNC_ENTITIES, parsePushedChange } from './sync/records';
 export type {
+  AccountSettingsFields,
+  CategoryBudgetFields,
   CategoryFields,
+  MonthPlanFields,
   ParseResult,
   PulledChange,
   PulledRecord,

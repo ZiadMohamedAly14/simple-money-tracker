@@ -11,8 +11,8 @@ import {
   toMinorUnits,
   type KeypadKey,
 } from '@money-tracker/shared';
-import { PLACEHOLDER_CURRENCY } from '@/data/currency';
 import { recordExpense } from '@/data/transactions';
+import { useAccountSettings } from '@/data/useAccountSettings';
 import { localStore } from '@/db/appDatabase';
 import { useLanguage } from '@/i18n/useLanguage';
 import { AmountDisplay, Button, Chip, NumericKeypad, Screen, ScreenHeader, Text } from '@/ui';
@@ -25,7 +25,7 @@ import { AmountDisplay, Button, Chip, NumericKeypad, Screen, ScreenHeader, Text 
 export default function NewExpenseScreen() {
   const { t } = useTranslation();
   const language = useLanguage();
-  const currency = PLACEHOLDER_CURRENCY;
+  const { currency, numberingSystem } = useAccountSettings();
   const fractionDigits = currencyMinorDigits(currency);
   const [typed, setTyped] = useState('');
   const amount = toMinorUnits(typed, currency);
@@ -52,8 +52,8 @@ export default function NewExpenseScreen() {
       <ScreenHeader title={t('expenses.add')} onBack={() => router.back()} backIcon="close" />
       <View className="flex-1 justify-center gap-4">
         <AmountDisplay
-          amount={formatAmountInput(typed || '0', { language })}
-          currency={formatMoneyParts(0, { language, currency }).currency}
+          amount={formatAmountInput(typed || '0', { language, numberingSystem })}
+          currency={formatMoneyParts(0, { language, currency, numberingSystem }).currency}
           accessibilityLabel={t('expenses.amountLabel')}
         />
         <View className="flex-row justify-center">
