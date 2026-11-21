@@ -1,21 +1,21 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Redirect, router } from 'expo-router';
-import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { currentMonth, formatMonth, formatMoneyParts, ltrIsolate } from '@money-tracker/shared';
 import { useAuthStatus } from '@/auth/appSession';
-import { categoryBudgetsQuery, monthOverviewOf, monthPlansQuery, monthTransactionsQuery } from '@/data/budget';
+import { categoryIconFor } from '@/data/categoryIcons';
 import { useAccountSettings, useOnboardingState } from '@/data/useAccountSettings';
-import { localDb } from '@/db/appDatabase';
+import { useMonthBudget } from '@/data/useMonthBudget';
+import { localStore } from '@/db/appDatabase';
 import { useFormatMoney } from '@/i18n/useFormatMoney';
 import { useLanguage } from '@/i18n/useLanguage';
 import { syncTriggers } from '@/sync/appSync';
 import { useSyncOverdue } from '@/sync/useSyncOverdue';
 import { useTheme } from '@/theme/ThemeProvider';
-import { AmountDisplay, Button, Card, Fab, IconButton, IconCircle, Notice, PendingSyncLabel, Text } from '@/ui';
+import { AmountDisplay, Button, Card, Fab, IconButton, IconCircle, Notice, PendingSyncLabel, ProgressRow, Text } from '@/ui';
 import type { IconName } from '@/ui';
 
 /**
@@ -33,8 +33,9 @@ export default function HomeRoute() {
 
 /**
  * This Month's Remaining, Income, Spending and Unallocated (PDF pages 1 and
- * 13), all worked out from the local database by `monthFigures`. Category
- * rows are ticket 09; the Month switcher is ticket 10.
+ * 13), and each Category's budget, spent and remaining, all worked out from
+ * the local database by `monthFigures` and `categoryBreakdown`. The Month
+ * switcher is ticket 10.
  */
 function MonthOverview() {
   const { t } = useTranslation();
@@ -44,10 +45,8 @@ function MonthOverview() {
   const { currency, numberingSystem } = useAccountSettings();
   const formatMoney = useFormatMoney(numberingSystem);
   const month = currentMonth(new Date());
-  const { data: plans } = useLiveQuery(monthPlansQuery(localDb, month), [month]);
-  const { data: budgets } = useLiveQuery(categoryBudgetsQuery(localDb, month), [month]);
-  const { data: transactions } = useLiveQuery(monthTransactionsQuery(localDb, month), [month]);
-  const figures = monthOverviewOf(month, plans, budgets, transactions);
+  const { figures, rows, transactionCount } = useMonthBudget(month);
+  const iconOf = useMemo(() => categoryIconFor(localStore.accountId()), []);
   const syncOverdue = useSyncOverdue();
   const [syncing, setSyncing] = useState(false);
 
@@ -120,7 +119,7 @@ function MonthOverview() {
           <Notice text={t('home.overPlan', { amount: formatMoney(-figures.unallocated, currency) })} />
         ) : null}
 
-        {transactions.length === 0 ? (
+        {transactionCount === 0 ? (
           <Card className="items-center gap-3 px-6 py-12">
             <IconCircle icon="wallet-outline" size="lg" />
             <Text weight="bold" align="center" className="text-xl">
@@ -131,6 +130,32 @@ function MonthOverview() {
             </Text>
           </Card>
         ) : null}
+
+        <View className="gap-2">
+          <View className="min-h-11 flex-row items-center justify-between gap-2">
+            <Text weight="bold" accessibilityRole="header" className="text-lg">
+              {t('home.categories')}
+            </Text>
+            <IconButton icon="create-outline" accessibilityLabel={t('categories.manage')} onPress={() => router.push('/categories')} />
+          </View>
+          <Card className="gap-4 p-4">
+            {rows.map((row) => {
+              const over = row.remaining < 0;
+              return (
+                <ProgressRow
+                  key={row.categoryId}
+                  icon={iconOf(row.category)}
+                  title={row.category.isOther ? t('categories.other') : row.category.name}
+                  progress={row.budget > 0 ? row.spent / row.budget : row.spent > 0 ? 1 : 0}
+                  barTone={over ? 'negative' : 'primary'}
+                  end={t(over ? 'categories.over' : 'categories.left', { amount: number(Math.abs(row.remaining)) })}
+                  endTone={over ? 'negative' : 'positive'}
+                  caption={ltrIsolate(`${number(row.spent)} / ${number(row.budget)}`)}
+                />
+              );
+            })}
+          </Card>
+        </View>
 
         {/* Sync tracer bullet (ticket 05) until the Transactions screen (ticket 08). */}
         <Button label={t('expenses.open')} variant="secondary" onPress={() => router.push('/expenses')} />
