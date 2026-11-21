@@ -1,6 +1,8 @@
 /**
  * Colors are CSS variables set per theme (src/theme/themes.ts), so the
- * Personal and Kid themes (Mizan palette) swap without touching screens.
+ * Personal and Kid themes, light and dark (Mizan palettes), swap without
+ * touching screens. Every token in themes.ts needs a line here
+ * (themes.test.ts checks).
  * Text weight and font come from the <Text weight> component in src/ui, not
  * font-* classes (custom fonts on Android ignore fontWeight).
  * Layout must use start/end classes only (ms/me/ps/pe/start/end/text-start…);
@@ -31,7 +33,9 @@ module.exports = {
         negative: token('negative'),
         'negative-surface': token('negative-surface'),
         accent: token('accent'),
+        'on-accent': token('on-accent'),
         border: token('border'),
+        scrim: token('scrim'),
         'jar-save': token('jar-save'),
         'jar-spend': token('jar-spend'),
         'jar-give': token('jar-give'),

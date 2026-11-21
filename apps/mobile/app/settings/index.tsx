@@ -10,12 +10,14 @@ import { localDb, localStore } from '@/db/appDatabase';
 import { switchLanguage } from '@/i18n/i18n';
 import { useLanguage } from '@/i18n/useLanguage';
 import { parentPinGate } from '@/pin/appPinGate';
+import type { Appearance } from '@/theme/appearance';
+import { setAppearance, useAppearance } from '@/theme/appearanceStore';
 import { useTheme } from '@/theme/ThemeProvider';
 import { AppIcon, Button, Card, ListRow, Screen, ScreenHeader, SegmentedControl, Text } from '@/ui';
 
 /**
- * Settings (PDF pages 7–8): language (this device), digits and currency label
- * (Account settings, synced), Parent Area biometrics (this device, once a
+ * Settings (PDF pages 7–8): language and appearance (this device), digits and
+ * currency label (Account settings, synced), Parent Area biometrics (this device, once a
  * Parent PIN exists), sign-out and Delete account.
  */
 export default function SettingsRoute() {
@@ -30,6 +32,7 @@ function SettingsScreen() {
   const theme = useTheme();
   const language = useLanguage();
   const { currency, numberingSystem } = useAccountSettings();
+  const appearance = useAppearance();
   const needsSignIn = useAuthStatus() === 'needsSignIn';
   const [biometrics, setBiometrics] = useState<'hidden' | 'on' | 'off'>('hidden');
   const [biometricsBusy, setBiometricsBusy] = useState(false);
@@ -67,6 +70,11 @@ function SettingsScreen() {
   const numberingSystems: { value: NumberingSystem; label: string }[] = [
     { value: 'western', label: t('settings.western') },
     { value: 'arabic-indic', label: t('settings.arabicIndic') },
+  ];
+  const appearances: { value: Appearance; label: string }[] = [
+    { value: 'system', label: t('settings.appearanceSystem') },
+    { value: 'light', label: t('settings.appearanceLight') },
+    { value: 'dark', label: t('settings.appearanceDark') },
   ];
 
   return (
@@ -107,6 +115,21 @@ function SettingsScreen() {
           value={numberingSystem}
           onChange={(next) => changeAccountSettings(localStore, localDb, { numberingSystem: next })}
           accessibilityLabel={t('settings.numberingLabel')}
+        />
+      </Card>
+
+      <Card className="gap-2 p-4">
+        <View className="flex-row items-center gap-2">
+          <AppIcon name="appearance" size={16} color={theme.colors.muted} />
+          <Text tone="muted" className="text-sm">
+            {t('settings.appearanceLabel')}
+          </Text>
+        </View>
+        <SegmentedControl<Appearance>
+          options={appearances}
+          value={appearance}
+          onChange={(next) => void setAppearance(next)}
+          accessibilityLabel={t('settings.appearanceLabel')}
         />
       </Card>
 

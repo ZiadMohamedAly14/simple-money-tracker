@@ -1,6 +1,7 @@
 import type { FC } from 'react';
 import type { SvgProps } from 'react-native-svg';
 import Add from '../../assets/icon/add.svg';
+import Appearance from '../../assets/icon/appearance.svg';
 import Archive from '../../assets/icon/archive.svg';
 import Back from '../../assets/icon/back.svg';
 import Backspace from '../../assets/icon/backspace.svg';
@@ -74,6 +75,7 @@ import Wallet from '../../assets/icon/wallet.svg';
  */
 export const APP_ICONS = {
   add: Add,
+  appearance: Appearance,
   archive: Archive,
   back: Back,
   backspace: Backspace,
