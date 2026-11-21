@@ -61,6 +61,10 @@ function KidHome({ id }: { id: string }) {
         <Text weight="bold" accessibilityRole="header" numberOfLines={1} className="flex-1 text-2xl">
           {t('kid.home.hi', { name: kid.name })}
         </Text>
+        {isKidModeHome ? (
+          // The way into the Parent Area on the kid's phone: the PIN, checked online.
+          <IconButton icon="app:lock-pin" accessibilityLabel={t('parentArea.open')} onPress={() => router.push('/parent')} />
+        ) : null}
       </View>
 
       <View className="gap-1 rounded-theme bg-primary p-5">

@@ -39,8 +39,13 @@ export interface AuthContext {
   accountId: string;
   sessionId: string;
   scope: SessionScope;
-  /** The one Kid Profile a Kid Session covers (ADR-0002); null for a full session. */
+  /**
+   * The one Kid Profile a Kid-Mode device holds (ADR-0002): set for a Kid
+   * Session and for a full session elevated from one; null on a Personal-Mode device.
+   */
   kidProfileId: string | null;
+  /** For a full session elevated with the Parent PIN on a Kid-Mode device: the Kid Session it came from. */
+  elevatedFrom: string | null;
 }
 
 /** 401 with a reason the app acts on: `token_invalid` = refresh and retry; `session_ended` = sign in again. */
@@ -90,6 +95,14 @@ export function createTokenService(env: Pick<Env, 'jwtAccessSecret' | 'jwtRefres
     return { accessToken: signAccess(accountId, sessionId.toString(), fields.scope), refreshToken };
   }
 
+  /**
+   * Ends a Session (logout, reuse, revoking a Kid-Mode device): deletes it and any
+   * full session elevated from it, so all their tokens stop working at once.
+   */
+  async function endSession(sessionId: string): Promise<void> {
+    await Session.deleteMany({ $or: [{ _id: sessionId }, { elevatedFrom: sessionId }] });
+  }
+
   const refreshExpiry = (): Date => new Date(now().getTime() + REFRESH_TOKEN_TTL_SECONDS * 1000);
 
   /** Checks signature, expiry (against the injected clock) and the `typ` marker. */
@@ -119,7 +132,7 @@ export function createTokenService(env: Pick<Env, 'jwtAccessSecret' | 'jwtRefres
       if (!claims || !Types.ObjectId.isValid(claims.sid)) throw authFailure('token_invalid');
       // The scope comes from the stored Session, not the token, so it can't be widened by a token claim.
       const live = await Session.findOne({ _id: claims.sid, accountId: claims.sub, expiresAt: { $gt: now() } })
-        .select({ scope: 1, kidProfileId: 1 })
+        .select({ scope: 1, kidProfileId: 1, elevatedFrom: 1 })
         .lean();
       if (!live) throw authFailure('session_ended');
       if (live.scope === 'kid' && !live.kidProfileId) throw authFailure('session_ended');
@@ -127,7 +140,8 @@ export function createTokenService(env: Pick<Env, 'jwtAccessSecret' | 'jwtRefres
         accountId: claims.sub,
         sessionId: claims.sid,
         scope: live.scope,
-        kidProfileId: live.scope === 'kid' ? live.kidProfileId! : null,
+        kidProfileId: live.kidProfileId ?? null,
+        elevatedFrom: live.elevatedFrom ? String(live.elevatedFrom) : null,
       };
     },
 
@@ -153,25 +167,50 @@ export function createTokenService(env: Pick<Env, 'jwtAccessSecret' | 'jwtRefres
       ).lean();
 
       if (!session) {
-        await Session.deleteOne({ _id: claims.sid, accountId: claims.sub });
+        if (await Session.exists({ _id: claims.sid, accountId: claims.sub })) await endSession(claims.sid);
         throw authFailure('session_ended');
       }
       return { accessToken: signAccess(claims.sub, claims.sid, session.scope), refreshToken: next };
     },
 
-    /** Logout: deletes the Session, so its refresh and access tokens stop working. */
-    async endSession(sessionId: string): Promise<void> {
-      await Session.deleteOne({ _id: sessionId });
-    },
+    endSession,
 
-    /** Signs out every Kid-Mode device of a Kid Profile: deletes its Kid Sessions (archiving or deleting the profile). */
+    /**
+     * Signs out every Kid-Mode device of a Kid Profile: deletes its Kid Sessions
+     * and any PIN elevation from them, which carry the same Kid Profile
+     * (archiving or deleting the profile). Personal-Mode sessions have none.
+     */
     async endKidSessions(accountId: string, kidProfileId: string): Promise<void> {
-      await Session.deleteMany({ accountId, scope: 'kid', kidProfileId });
+      await Session.deleteMany({ accountId, kidProfileId });
     },
 
     /** Starts a new full-scope Session for the Account and returns its first token pair. */
     startSession(accountId: string, deviceLabel: string | null): Promise<IssuedTokens> {
       return start(accountId, { scope: 'full', kidProfileId: null, deviceLabel });
+    },
+
+    /**
+     * PIN elevation on a Kid-Mode device (ADR-0002): a full session that lasts as
+     * long as one access token and has no refresh token. It keeps the Kid Profile
+     * and label of the Kid Session it came from, and ends with it.
+     */
+    async startElevatedSession(kidSession: AuthContext): Promise<{ accessToken: string; expiresInSeconds: number }> {
+      const kid = await Session.findById(kidSession.sessionId).select({ deviceLabel: 1 }).lean();
+      const sessionId = new Types.ObjectId();
+      await Session.create({
+        _id: sessionId,
+        accountId: kidSession.accountId,
+        scope: 'full',
+        kidProfileId: kidSession.kidProfileId,
+        elevatedFrom: kidSession.sessionId,
+        deviceLabel: kid?.deviceLabel ?? null,
+        refreshTokenHash: hashRefreshToken(randomUUID()), // no refresh token is ever issued for it
+        expiresAt: new Date(now().getTime() + ACCESS_TOKEN_TTL_SECONDS * 1000),
+      });
+      return {
+        accessToken: signAccess(kidSession.accountId, sessionId.toString(), 'full'),
+        expiresInSeconds: ACCESS_TOKEN_TTL_SECONDS,
+      };
     },
 
     /** Starts a Kid Session limited to one Kid Profile (ADR-0002) and returns its first token pair. */

@@ -100,5 +100,14 @@ export {
   pinRetryAfterSeconds,
   verifyParentPin,
 } from './pin/parentPin';
-export type { ParentPinData, ParentPinErrorData, SetParentPinBody } from './pin/parentPin';
-export type { KidSessionData, KidSessionErrorData, StartKidSessionBody } from './kid/kidDevice';
+export type { ParentPinData, ParentPinErrorData, RequestPinResetBody, ResetParentPinBody, SetParentPinBody } from './pin/parentPin';
+export type {
+  ElevateBody,
+  ElevateErrorData,
+  ElevatedAccessData,
+  KidDeviceSummary,
+  KidDevicesData,
+  KidSessionData,
+  KidSessionErrorData,
+  StartKidSessionBody,
+} from './kid/kidDevice';

@@ -1,13 +1,17 @@
-import { View } from 'react-native';
+import { useState } from 'react';
+import { Alert, View } from 'react-native';
 import { router } from 'expo-router';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useTranslation } from 'react-i18next';
 import { formatMoneyParts } from '@money-tracker/shared';
 import { allJarsQuery, allKidTransactionsQuery, archivedKidProfilesQuery, kidProfilesQuery, walletOf } from '@/data/kidWallet';
+import { authSession, useKidModeProfileId } from '@/auth/appSession';
 import { useAccountSettings } from '@/data/useAccountSettings';
 import { localDb, localStore } from '@/db/appDatabase';
 import { useLanguage } from '@/i18n/useLanguage';
 import { KidAvatar } from '@/kid/KidAvatar';
+import { leaveKidMode } from '@/kid/kidDeviceSetup';
+import { syncEngine } from '@/sync/appSync';
 import { jarStyle } from '@/kid/useKidWallet';
 import { parentArea } from '@/pin/appPinGate';
 import { AppIcon, Button, Card, Glyph, ListRow, Notice, Screen, ScreenHeader, Text } from '@/ui';
@@ -21,6 +25,8 @@ import { useTheme } from '@/theme/ThemeProvider';
  */
 export default function ParentAreaScreen() {
   const { t } = useTranslation();
+  const kidMode = useKidModeProfileId() !== null;
+  const [leaving, setLeaving] = useState(false);
   const language = useLanguage();
   const theme = useTheme();
   const { currency, numberingSystem } = useAccountSettings();
@@ -34,6 +40,27 @@ export default function ParentAreaScreen() {
   function lock() {
     parentArea.lock();
     router.back();
+  }
+
+  /** Leaving Kid Mode: the PIN already elevated this device to open the Parent Area. */
+  function confirmLeave() {
+    Alert.alert(t('parentAccess.leaveTitle'), t('parentAccess.leaveBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('parentAccess.leaveConfirm'), style: 'destructive', onPress: () => void leave() },
+    ]);
+  }
+
+  async function leave() {
+    setLeaving(true);
+    const result = await leaveKidMode({ auth: authSession, sync: () => syncEngine.sync() });
+    setLeaving(false);
+    if (result.status === 'ok') {
+      parentArea.lock();
+      router.replace('/');
+      return;
+    }
+    if (result.status === 'locked') return lock();
+    Alert.alert(t(result.status === 'unreachable' ? 'parentAccess.needsInternet' : 'pin.errors.failed'));
   }
 
   return (
@@ -116,17 +143,27 @@ export default function ParentAreaScreen() {
           })}
         </View>
       ) : null}
-      <View className="gap-3">
-        <Button label={t('parentArea.addKid')} icon="app:add" onPress={() => router.push('/parent/kids/new')} />
-        <Button
-          label={t('parentArea.setUpKidDevice')}
-          variant="secondary"
-          icon="app:kid-device"
-          onPress={() => router.push('/parent/kid-device')}
-        />
-        <Button label={t('pin.change')} variant="secondary" onPress={() => router.push('/pin/set')} />
-        <Button label={t('parentArea.lock')} variant="secondary" icon="app:lock-pin" onPress={lock} />
-      </View>
+      {kidMode ? (
+        // On the kid's phone: no adding kids, setting up phones or changing the PIN (those need the parent's own phone).
+        <View className="gap-3">
+          <Button label={t('parentAccess.devices')} variant="secondary" icon="app:devices" onPress={() => router.push('/parent/devices')} />
+          <Button label={t('parentAccess.leaveKidMode')} variant="secondary" icon="app:exit" onPress={confirmLeave} loading={leaving} />
+          <Button label={t('parentArea.lock')} variant="secondary" icon="app:lock-pin" onPress={lock} />
+        </View>
+      ) : (
+        <View className="gap-3">
+          <Button label={t('parentArea.addKid')} icon="app:add" onPress={() => router.push('/parent/kids/new')} />
+          <Button
+            label={t('parentArea.setUpKidDevice')}
+            variant="secondary"
+            icon="app:kid-device"
+            onPress={() => router.push('/parent/kid-device')}
+          />
+          <Button label={t('parentAccess.devices')} variant="secondary" icon="app:devices" onPress={() => router.push('/parent/devices')} />
+          <Button label={t('pin.change')} variant="secondary" onPress={() => router.push('/pin/set')} />
+          <Button label={t('parentArea.lock')} variant="secondary" icon="app:lock-pin" onPress={lock} />
+        </View>
+      )}
     </Screen>
   );
 }

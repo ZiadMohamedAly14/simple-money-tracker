@@ -2,7 +2,7 @@ import { createHmac, randomInt, timingSafeEqual } from 'node:crypto';
 import type { AuthErrorData, Language, RequestCodeData, VerifyCodeData } from '@money-tracker/shared';
 import type { Env } from '../config/env';
 import type { Mailer } from '../email/mailer';
-import { signInCodeEmail } from '../email/signInCodeEmail';
+import { signInCodeEmail, type CodePurpose } from '../email/signInCodeEmail';
 import { Account } from '../models/account.model';
 import { SignInCode } from '../models/signInCode.model';
 import { BadRequestError, ServiceUnavailableError, TooManyRequestsError } from '../utils/AppError';
@@ -67,9 +67,45 @@ export function createAuthService({ env, mailer, now, tokens }: Deps) {
     }
   }
 
+  /** Checks a one-time code and uses it up, or throws why not (wrong, expired, too many guesses). */
+  async function useCode(email: string, code: string): Promise<void> {
+    const current = now();
+    const expired = authError(400, 'This code has expired. Request a new one', { reason: 'code_expired' });
+    const exhausted = authError(429, 'Too many wrong codes. Request a new one', { reason: 'too_many_guesses' });
+
+    const stored = await SignInCode.findOne({ email }).lean();
+    if (!stored?.codeHash || stored.expiresAt <= current) throw expired;
+    if (stored.wrongGuesses >= MAX_WRONG_GUESSES) throw exhausted;
+
+    // Count the guess atomically before comparing, so parallel guesses can't exceed the limit.
+    const claimed = await SignInCode.findOneAndUpdate(
+      { _id: stored._id, codeHash: stored.codeHash, wrongGuesses: { $lt: MAX_WRONG_GUESSES } },
+      { $inc: { wrongGuesses: 1 } },
+      { new: true },
+    ).lean();
+    if (!claimed) throw exhausted;
+
+    if (!sameHash(stored.codeHash, hashCode(email, code))) {
+      throw authError(400, 'That code is not right', {
+        reason: 'invalid_code',
+        attemptsRemaining: MAX_WRONG_GUESSES - claimed.wrongGuesses,
+      });
+    }
+
+    // One-time: only the first verify of this code gets through.
+    const used = await SignInCode.updateOne(
+      { _id: stored._id, codeHash: stored.codeHash },
+      { $set: { codeHash: null } },
+    );
+    if (used.modifiedCount === 0) throw expired;
+  }
+
   return {
-    /** Sends a new code, within the per-email resend limits. */
-    async requestCode(email: string, language: Language): Promise<RequestCodeData> {
+    /**
+     * Sends a new code, within the per-email resend limits. A PIN reset code is
+     * the same one-time code (proof of the email) in a different email.
+     */
+    async requestCode(email: string, language: Language, purpose: CodePurpose = 'signIn'): Promise<RequestCodeData> {
       const current = now();
       const existing = await SignInCode.findOne({ email }).lean();
 
@@ -126,46 +162,19 @@ export function createAuthService({ env, mailer, now, tokens }: Deps) {
       }
 
       try {
-        await mailer.send(signInCodeEmail(email, code, language, CODE_TTL_MS / 60_000));
+        await mailer.send(signInCodeEmail(email, code, language, CODE_TTL_MS / 60_000, purpose));
       } catch {
-        throw new ServiceUnavailableError('Could not send the sign-in email');
+        throw new ServiceUnavailableError('Could not send the code email');
       }
 
       return { expiresInSeconds: CODE_TTL_MS / 1000, resendAfterSeconds: RESEND_INTERVAL_MS / 1000 };
     },
 
+    useCode,
+
     /** Checks the code; on success uses it up, creates the Account if needed and starts a Session. */
     async verifyCode(email: string, code: string, deviceLabel: string | null): Promise<VerifyCodeData> {
-      const current = now();
-      const expired = authError(400, 'This code has expired. Request a new one', { reason: 'code_expired' });
-      const exhausted = authError(429, 'Too many wrong codes. Request a new one', { reason: 'too_many_guesses' });
-
-      const stored = await SignInCode.findOne({ email }).lean();
-      if (!stored?.codeHash || stored.expiresAt <= current) throw expired;
-      if (stored.wrongGuesses >= MAX_WRONG_GUESSES) throw exhausted;
-
-      // Count the guess atomically before comparing, so parallel guesses can't exceed the limit.
-      const claimed = await SignInCode.findOneAndUpdate(
-        { _id: stored._id, codeHash: stored.codeHash, wrongGuesses: { $lt: MAX_WRONG_GUESSES } },
-        { $inc: { wrongGuesses: 1 } },
-        { new: true },
-      ).lean();
-      if (!claimed) throw exhausted;
-
-      if (!sameHash(stored.codeHash, hashCode(email, code))) {
-        throw authError(400, 'That code is not right', {
-          reason: 'invalid_code',
-          attemptsRemaining: MAX_WRONG_GUESSES - claimed.wrongGuesses,
-        });
-      }
-
-      // One-time: only the first verify of this code gets through.
-      const used = await SignInCode.updateOne(
-        { _id: stored._id, codeHash: stored.codeHash },
-        { $set: { codeHash: null } },
-      );
-      if (used.modifiedCount === 0) throw expired;
-
+      await useCode(email, code);
       const account = await findOrCreateAccount(email);
       const issued = await tokens.startSession(account.id, deviceLabel);
       return {

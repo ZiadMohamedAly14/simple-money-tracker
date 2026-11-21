@@ -8,7 +8,7 @@ import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { createApiClient } from '@/api/client';
 import { requestCode, verifyCode } from '@/api/auth';
 import { createAccountDeletion } from '@/auth/accountDeletion';
-import { createAuthSession, type AuthSession, type AuthedResult } from '@/auth/authSession';
+import { createAuthSession, type AuthSession, type AuthedResult, type ElevateResult } from '@/auth/authSession';
 import type { SessionStore, StoredSession } from '@/auth/tokenStore';
 import {
   accountSettingsQuery,
@@ -80,7 +80,8 @@ import {
 import { createLocalStore } from '@/db/localStore';
 import { migrate } from '@/db/migrations';
 import { SYNCED_TABLES, schema } from '@/db/schema';
-import { setUpKidDevice, type KidDeviceChoice } from '@/kid/kidDeviceSetup';
+import { leaveKidMode, setUpKidDevice, type KidDeviceChoice } from '@/kid/kidDeviceSetup';
+import { listKidDevices, revokeKidDevice } from '@/kid/kidDevices';
 import type { LocalDb } from '@/db/types';
 import { isSyncOverdue } from '@/sync/pendingSync';
 import { createSyncEngine, type SyncOutcome } from '@/sync/syncEngine';
@@ -155,21 +156,22 @@ export async function createTestDevice(
   let online = true;
 
   async function startAuth(sessionStore: SessionStore): Promise<AuthSession> {
-    const session = createAuthSession({ client, store: sessionStore, localData: store });
+    const session = createAuthSession({ client, store: sessionStore, localData: store, now: () => clock });
     await session.start();
     return session;
   }
 
+  // The device clock for the PIN gate and PIN elevation; `advanceClock` moves it.
+  let clock = Date.now();
   let sessionStore = memorySessionStore();
   let auth = await startAuth(sessionStore);
   const request = (config: AxiosRequestConfig): Promise<AuthedResult> =>
     online ? auth.request(config) : Promise.resolve({ status: 'unreachable' });
   const engine = createSyncEngine({ store, request, pullLimit });
+  // The Parent PIN gate: its store outlives app restarts, like SecureStore.
   const triggers = createSyncTriggers({ sync: engine.sync });
   const stopListening = autoSync ? store.onWrite(triggers.localWrite) : () => undefined;
 
-  // The Parent PIN gate: its store outlives app restarts, like SecureStore.
-  let clock = Date.now();
   const pinStore = memoryPinGateStore();
   const biometrics = { enrolled: true, nextResult: true };
   const fakeBiometrics: Biometrics = {
@@ -229,6 +231,12 @@ export async function createTestDevice(
 
     /** The kid's phone setup step (after sign-in and picking a Kid Profile). */
     setUpKidDevice: (choice: KidDeviceChoice) => setUpKidDevice({ auth, sync: engine.sync }, choice),
+    /** Entering the Parent PIN on a Kid-Mode device, as the Parent Area gate does. */
+    elevate: (pin: string): Promise<ElevateResult> => (online ? auth.elevate(pin) : Promise.resolve({ status: 'unreachable' })),
+    elevated: () => auth.elevated(),
+    leaveKidMode: () => leaveKidMode({ auth, sync: engine.sync }),
+    kidDevices: () => listKidDevices(request),
+    revokeKidDevice: (id: string) => revokeKidDevice(request, id),
     /** The Kid Profile this device is in Kid Mode for (from the stored session), or null. */
     kidProfileId: () => auth.kidProfileId(),
     /** Every record in the local database, live or deleted, with its Kid Profile where it has one. */

@@ -8,7 +8,10 @@ interface Copy {
   ignore: string;
 }
 
-const COPY: Record<Language, Copy> = {
+/** What an emailed one-time code is for: signing in, or resetting a forgotten Parent PIN. */
+export type CodePurpose = 'signIn' | 'pinReset';
+
+const SIGN_IN_COPY: Record<Language, Copy> = {
   en: {
     subject: 'Your Mizan sign-in code',
     intro: 'Your Mizan sign-in code is:',
@@ -23,9 +26,32 @@ const COPY: Record<Language, Copy> = {
   },
 };
 
-/** The sign-in code email in the requesting device's language. The code itself is always Western digits. */
-export function signInCodeEmail(to: string, code: string, language: Language, expiresInMinutes: number): OutgoingEmail {
-  const copy = COPY[language];
+const PIN_RESET_COPY: Record<Language, Copy> = {
+  en: {
+    subject: 'Your Mizan Parent PIN reset code',
+    intro: 'Your code to reset the Mizan Parent PIN is:',
+    expiry: (minutes) => `It expires in ${minutes} minutes.`,
+    ignore: "If you didn't ask to reset your PIN, you can ignore this email. Your PIN stays the same.",
+  },
+  ar: {
+    subject: 'رمز إعادة تعيين رمز الوالدين (PIN) في ميزان',
+    intro: 'رمز إعادة تعيين رمز الوالدين في ميزان هو:',
+    expiry: (minutes) => `تنتهي صلاحيته خلال ${minutes} دقائق.`,
+    ignore: 'إذا لم تطلب إعادة تعيين الرمز، يمكنك تجاهل هذه الرسالة. سيبقى رمزك كما هو.',
+  },
+};
+
+const COPY: Record<CodePurpose, Record<Language, Copy>> = { signIn: SIGN_IN_COPY, pinReset: PIN_RESET_COPY };
+
+/** The one-time code email in the requesting device's language. The code itself is always Western digits. */
+export function signInCodeEmail(
+  to: string,
+  code: string,
+  language: Language,
+  expiresInMinutes: number,
+  purpose: CodePurpose = 'signIn',
+): OutgoingEmail {
+  const copy = COPY[purpose][language];
   const dir = language === 'ar' ? 'rtl' : 'ltr';
   const expiry = copy.expiry(expiresInMinutes);
   return {

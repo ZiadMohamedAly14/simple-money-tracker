@@ -34,3 +34,25 @@ export async function setUpKidDevice({ auth, sync }: KidDeviceSetupDeps, choice:
   if (swapped.status === 'ok') await sync();
   return swapped;
 }
+
+export type LeaveKidModeResult = { status: 'ok' | 'locked' | 'unreachable' | 'failed' };
+
+/**
+ * Leaves Kid Mode (spec story 65): only once the Parent PIN has elevated the
+ * device. Syncs first, so the kid's last Kid Expenses and the parent's changes
+ * reach the server, then ends the Kid Session and signs the device out with
+ * its local records. Nothing is dropped while offline: it waits for the internet.
+ */
+export async function leaveKidMode({
+  auth,
+  sync,
+}: {
+  auth: Pick<AuthSession, 'elevated' | 'leaveKidMode'>;
+  sync: () => Promise<SyncOutcome>;
+}): Promise<LeaveKidModeResult> {
+  if (!auth.elevated()) return { status: 'locked' };
+  const synced = await sync();
+  if (synced === 'offline') return { status: 'unreachable' };
+  if (synced !== 'synced') return { status: 'failed' };
+  return { status: await auth.leaveKidMode() };
+}

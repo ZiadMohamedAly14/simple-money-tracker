@@ -11,6 +11,7 @@
 import { pbkdf2Async } from '@noble/hashes/pbkdf2';
 import { sha256 } from '@noble/hashes/sha2';
 import { utf8ToBytes } from '@noble/hashes/utils';
+import type { Language } from '../i18n/language';
 
 export const PARENT_PIN_MIN_LENGTH = 4;
 export const PARENT_PIN_MAX_LENGTH = 6;
@@ -97,6 +98,21 @@ function fromBase64Url(text: string): Uint8Array | null {
 export interface SetParentPinBody {
   pin: string;
   currentPin?: string;
+}
+
+/** `POST /account/pin/reset-code` body: the language of the email. */
+export interface RequestPinResetBody {
+  language: Language;
+}
+
+/**
+ * `POST /account/pin/reset` body: a forgotten PIN replaced using the code emailed
+ * by `/account/pin/reset-code`. Answers like `PUT /account/pin`; a bad code fails
+ * like `POST /auth/verify` (`invalid_code`, `code_expired`, `too_many_guesses`).
+ */
+export interface ResetParentPinBody {
+  code: string;
+  pin: string;
 }
 
 /**

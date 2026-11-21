@@ -32,3 +32,49 @@ export interface KidSessionErrorData {
   attemptsRemaining?: number;
   retryAfterSeconds?: number;
 }
+
+/** `POST /kid-devices/elevate` body: a Kid Session asks for full access with the Parent PIN (ticket 15). */
+export interface ElevateBody {
+  pin: string;
+}
+
+/**
+ * `POST /kid-devices/elevate` success data: a short-lived full access token for
+ * the Parent Area on a Kid-Mode device. There is no refresh token; the device
+ * keeps it in memory only and asks for the PIN again once it expires (ADR-0002).
+ */
+export interface ElevatedAccessData {
+  accessToken: string;
+  expiresInSeconds: number;
+}
+
+/**
+ * `data.reason` of a refused `POST /kid-devices/elevate`:
+ * - `wrong_pin` (403) and `pin_locked` (429), throttled with the PIN gate's rule;
+ * - `no_pin` (409): no Parent PIN is set;
+ * - `not_kid_session` (403): only a Kid Session elevates; a full session already has full access.
+ */
+export interface ElevateErrorData {
+  reason: 'wrong_pin' | 'pin_locked' | 'no_pin' | 'not_kid_session';
+  attemptsRemaining?: number;
+  retryAfterSeconds?: number;
+}
+
+/** One Kid-Mode device in `GET /kid-devices`. */
+export interface KidDeviceSummary {
+  /** The Kid Session's id; `DELETE /kid-devices/:id` revokes it. */
+  id: string;
+  kidProfileId: string;
+  /** Set to the kid's name when the device was set up. */
+  deviceLabel: string | null;
+  /** When the device was set up, and when it last refreshed its sign-in (epoch ms). */
+  createdAt: number;
+  lastActiveAt: number;
+  /** The device asking: a Kid-Mode device elevated with the PIN. */
+  current: boolean;
+}
+
+/** `GET /kid-devices` success data, newest first. */
+export interface KidDevicesData {
+  devices: KidDeviceSummary[];
+}

@@ -1,6 +1,9 @@
 import type { AxiosInstance, AxiosRequestConfig } from 'axios';
 import {
   isApiEnvelope,
+  type ElevateBody,
+  type ElevateErrorData,
+  type ElevatedAccessData,
   type KidSessionData,
   type KidSessionErrorData,
   type RefreshBody,
@@ -34,6 +37,16 @@ export type KidSessionResult =
   | { status: 'pin_locked'; retryAfterSeconds: number }
   | { status: 'no_pin' | 'kid_not_found' | 'unreachable' | 'session_ended' | 'failed' };
 
+/** How entering the Parent PIN on a Kid-Mode device ended (`elevate`). */
+export type ElevateResult =
+  | { status: 'ok' }
+  | { status: 'wrong_pin'; attemptsRemaining: number }
+  | { status: 'pin_locked'; retryAfterSeconds: number }
+  | { status: 'no_pin' | 'unreachable' | 'session_ended' | 'failed' };
+
+/** An elevated token is dropped this long before it expires, so a call never goes out with one about to lapse. */
+export const ELEVATION_MARGIN_MS = 30_000;
+
 const reasonOf = (body: unknown): unknown =>
   isApiEnvelope(body) && typeof body.data === 'object' && body.data !== null
     ? (body.data as { reason?: unknown }).reason
@@ -60,12 +73,20 @@ export interface AuthSessionDeps {
   client: AxiosInstance;
   store: SessionStore;
   localData: LocalAccountData;
+  /** The device clock (epoch ms), for when an elevated token runs out. */
+  now?: () => number;
 }
 
-export function createAuthSession({ client, store, localData }: AuthSessionDeps) {
+export function createAuthSession({ client, store, localData, now = Date.now }: AuthSessionDeps) {
   let current: StoredSession | null = null;
   let status: AuthStatus = 'loading';
   let refreshing: Promise<RefreshOutcome> | null = null;
+  /**
+   * The short-lived full access token from entering the Parent PIN on a
+   * Kid-Mode device. Kept in memory only, never stored (ADR-0002): an app
+   * restart asks for the PIN again.
+   */
+  let elevation: { accessToken: string; usableUntil: number } | null = null;
   const listeners = new Set<() => void>();
 
   const notify = (): void => listeners.forEach((listener) => listener());
@@ -76,8 +97,29 @@ export function createAuthSession({ client, store, localData }: AuthSessionDeps)
     notify();
   }
 
+  function endElevation(): void {
+    if (!elevation) return;
+    elevation = null;
+    notify();
+  }
+
+  /** Forgets the session and every local record. */
+  async function forget(): Promise<void> {
+    elevation = null;
+    current = null;
+    await store.clear();
+    localData.wipe();
+    setStatus('signedOut');
+  }
+
+  /**
+   * The server ended the session. A Personal-Mode device keeps its data and
+   * waits for a new code; a Kid-Mode device (revoked by the parent) is signed
+   * out, so the kid's wallet doesn't stay on a lost phone.
+   */
   async function sessionEnded(): Promise<void> {
     if (!current) return;
+    if (current.kidProfileId) return forget();
     current = { ...current, tokens: null };
     await store.save(current);
     setStatus('needsSignIn');
@@ -144,7 +186,16 @@ export function createAuthSession({ client, store, localData }: AuthSessionDeps)
     /** The Kid Profile a Kid-Mode device is for, or null on a Personal-Mode device. */
     kidProfileId: (): string | null => current?.kidProfileId ?? null,
 
-    /** Calls `listener` whenever `status()` or `kidProfileId()` changes. Returns an unsubscribe function. */
+    /** A Kid-Mode device elevated with the Parent PIN, and the token still usable. */
+    elevated: (): boolean => elevation !== null && elevation.usableUntil > now(),
+
+    /** Ends PIN elevation on this device (the Parent Area locked). */
+    endElevation,
+
+    /** When the elevated token stops being used (epoch ms), or null. */
+    elevationEndsAt: (): number | null => elevation?.usableUntil ?? null,
+
+    /** Calls `listener` whenever `status()`, `kidProfileId()` or `elevated()` changes. Returns an unsubscribe function. */
     subscribe(listener: () => void): () => void {
       listeners.add(listener);
       return () => listeners.delete(listener);
@@ -165,6 +216,13 @@ export function createAuthSession({ client, store, localData }: AuthSessionDeps)
     async request(config: AxiosRequestConfig): Promise<AuthedResult> {
       const tokens = current?.tokens;
       if (!tokens) return { status: 'session_ended' };
+
+      if (elevation && elevation.usableUntil > now()) {
+        const elevated = await send(config, elevation.accessToken);
+        if (elevated.status !== 'ok' || elevated.httpStatus !== 401) return elevated;
+        // The elevation ended on the server: carry on as the Kid Session, which tells whether the device was revoked.
+      }
+      endElevation();
 
       const first = await send(config, tokens.accessToken);
       if (first.status !== 'ok' || first.httpStatus !== 401) return first;
@@ -214,24 +272,58 @@ export function createAuthSession({ client, store, localData }: AuthSessionDeps)
     },
 
     /**
+     * PIN elevation on a Kid-Mode device (ADR-0002): the server checks the
+     * Parent PIN (with its throttle) and returns a short-lived full access token
+     * with no refresh. Calls use it until it runs out or `endElevation`. Needs
+     * the internet: `unreachable` means the Parent Area can't open offline.
+     */
+    async elevate(pin: string): Promise<ElevateResult> {
+      if (!current?.tokens || !current.kidProfileId) return { status: 'session_ended' };
+      endElevation();
+      const body: ElevateBody = { pin };
+      const result = await this.request({ method: 'POST', url: '/kid-devices/elevate', data: body });
+      if (result.status !== 'ok') return { status: result.status };
+      if (!isApiEnvelope(result.body)) return { status: 'failed' };
+      if (!result.body.success) {
+        const data = (result.body.data ?? {}) as Partial<ElevateErrorData>;
+        if (data.reason === 'wrong_pin') return { status: 'wrong_pin', attemptsRemaining: data.attemptsRemaining ?? 0 };
+        if (data.reason === 'pin_locked') return { status: 'pin_locked', retryAfterSeconds: data.retryAfterSeconds ?? 0 };
+        if (data.reason === 'no_pin') return { status: 'no_pin' };
+        return { status: 'failed' };
+      }
+      const { accessToken, expiresInSeconds } = result.body.data as ElevatedAccessData;
+      elevation = { accessToken, usableUntil: now() + expiresInSeconds * 1000 - ELEVATION_MARGIN_MS };
+      notify();
+      return { status: 'ok' };
+    },
+
+    /**
+     * Leaves Kid Mode: only while elevated with the Parent PIN. Ends the Kid
+     * Session on the server and signs this device out, local records included,
+     * so the next person signs in fresh. Sync first (see `leaveKidMode`).
+     */
+    async leaveKidMode(): Promise<'ok' | 'locked'> {
+      if (!current?.kidProfileId || !this.elevated()) return 'locked';
+      endElevation(); // log out as the Kid Session, which ends its elevations too
+      await this.signOut();
+      return 'ok';
+    },
+
+    /**
      * Ends the session on the server if it can be reached, and always forgets
      * it on this device, local records included (unsynced ones too).
      */
     async signOut(): Promise<void> {
+      endElevation();
       if (current?.tokens) await this.request({ method: 'POST', url: '/auth/logout' });
-      await this.forget();
+      await forget();
     },
 
     /**
      * Forgets the session and wipes the local records without telling the
      * server, for when the server already ended it (the Account was deleted).
      */
-    async forget(): Promise<void> {
-      current = null;
-      await store.clear();
-      localData.wipe();
-      setStatus('signedOut');
-    },
+    forget,
   };
 }
 
