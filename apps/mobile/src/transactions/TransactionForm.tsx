@@ -100,12 +100,12 @@ export function TransactionForm({ kind, title, initial, defaultDate, defaultCate
           accessibilityLabel={t('transactions.amountLabel')}
         />
         {isExpense ? (
+          // Every Category in view at once, wrapping onto more rows; it only scrolls
+          // (vertically) when there are too many to fit above the keypad.
           <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
             accessibilityLabel={t('transactions.category')}
-            contentContainerClassName="gap-2"
-            className="max-h-12 grow-0"
+            contentContainerClassName="flex-row flex-wrap justify-center gap-2"
+            className="shrink grow-0"
           >
             {chips.map((category) => (
               <Chip

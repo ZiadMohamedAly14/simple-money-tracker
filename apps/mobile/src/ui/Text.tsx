@@ -41,6 +41,15 @@ export interface TextProps extends NativeTextProps {
 }
 
 /**
+ * Tailwind's text-* classes set a fixed line height, which is too short for
+ * Alexandria's tall marks (hamza, shadda, dots), and Android's non-linear font
+ * scaling shrinks it further at large font sizes, so Arabic text gets clipped.
+ * Clearing it lets Android size each line from the font's own metrics.
+ * Inline styles are applied after className ones, so this wins over text-*.
+ */
+const ARABIC_LINE_HEIGHT = { lineHeight: undefined };
+
+/**
  * All app text goes through this: Inter in English, Alexandria in Arabic,
  * theme color, start-aligned by default.
  */
@@ -50,7 +59,7 @@ export function Text({ weight = 'regular', tone = 'text', align = 'start', class
     <NativeText
       {...props}
       className={`${TONE_CLASS[tone]} ${ALIGN_CLASS[align]} ${className}`}
-      style={[{ fontFamily: fontFamily(language, weight) }, style]}
+      style={[{ fontFamily: fontFamily(language, weight) }, language === 'ar' ? ARABIC_LINE_HEIGHT : null, style]}
     />
   );
 }
@@ -88,6 +97,7 @@ export function TextField({ label, ltr, className = '', style, onFocus, onBlur, 
         }}
         style={[
           { fontFamily: fontFamily(language, 'regular') },
+          language === 'ar' ? ARABIC_LINE_HEIGHT : null,
           ltr ? { writingDirection: 'ltr' } : null,
           style,
         ]}
