@@ -32,8 +32,8 @@ export interface NumericKeypadProps {
 
 /**
  * 3×4 grid of white keys, plus a tint operator column when `showOperators`.
- * Follows the layout direction, so "1" sits at the start (right in Arabic),
- * as in the design.
+ * Always left to right, as phone and calculator keypads are in Arabic too:
+ * "1" at the top left, backspace at the bottom right, operators on the right.
  */
 export function NumericKeypad({ onKey, showDecimal = false, showOperators = false, numberingSystem, disabled }: NumericKeypadProps) {
   const { t } = useTranslation();
@@ -46,7 +46,7 @@ export function NumericKeypad({ onKey, showDecimal = false, showOperators = fals
   }, [language, numberingSystem]);
 
   return (
-    <View className="gap-2">
+    <View className="gap-2" style={{ direction: 'ltr' }}>
       {ROWS.map((row, index) => (
         <View key={index} className="flex-row gap-2">
           {row.map((key) => {
