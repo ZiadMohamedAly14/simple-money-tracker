@@ -65,8 +65,8 @@ export { DEFAULT_JAR_KEYS } from './kid/defaultJars';
 export type { DefaultJarKey } from './kid/defaultJars';
 export { jarBalances, negativeJarIds, spendableFrom } from './kid/jarBalances';
 export type { JarBalances } from './kid/jarBalances';
-export { suggestTopUpSplit, topUpSplitProblem } from './kid/topUpSplit';
-export type { SuggestSplitOptions } from './kid/topUpSplit';
+export { balancingJarOf, customSplit, presetOf, presetSplit, suggestTopUpSplit, topUpSplitProblem } from './kid/topUpSplit';
+export type { CustomShares, SuggestSplitOptions, TopUpPreset } from './kid/topUpSplit';
 export {
   accountSettingsId,
   categoryBudgetId,

@@ -20,6 +20,7 @@ export type { DateFieldProps } from './DateField';
 export type { AppIconName } from './appIcons';
 export { Glyph, IconCircle } from './icons';
 export type { AppIconRef, GlyphName, GlyphProps, IconCircleProps, IconCircleTone } from './icons';
+export { Caret } from './Caret';
 export { CodeBoxes, NumericKeypad, PinDots } from './Keypad';
 export type { CodeBoxesProps, NumericKeypadProps, PinDotsProps } from './Keypad';
 export { Screen, ScreenHeader } from './Screen';

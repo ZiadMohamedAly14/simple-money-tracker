@@ -1,4 +1,4 @@
-import { suggestTopUpSplit, topUpSplitProblem } from './topUpSplit';
+import { customSplit, presetOf, presetSplit, suggestTopUpSplit, topUpSplitProblem } from './topUpSplit';
 
 const SAVE = 'save-jar';
 const SPEND = 'spend-jar';
@@ -123,5 +123,119 @@ describe('suggestTopUpSplit', () => {
   it('suggests nothing for a zero total or a wallet with no Jars', () => {
     expect(suggestTopUpSplit(0, { jarIds: jars, spendJarId: SPEND, lastSplit: null })).toEqual([]);
     expect(suggestTopUpSplit(5000, { jarIds: [], spendJarId: SPEND, lastSplit: null })).toEqual([]);
+  });
+});
+
+describe('presetSplit', () => {
+  const jars = { jarIds: [SAVE, SPEND, GIVE], spendJarId: SPEND, lastSplit: null };
+
+  it('splits evenly across the Jars, with the rounding remainder in Spend', () => {
+    expect(presetSplit('evenly', 10000, jars)).toEqual([
+      { jarId: SAVE, amount: 3333 },
+      { jarId: SPEND, amount: 3334 },
+      { jarId: GIVE, amount: 3333 },
+    ]);
+  });
+
+  const lastSplit = [
+    { jarId: SAVE, amount: 2000 },
+    { jarId: SPEND, amount: 3000 },
+  ];
+
+  it('puts everything in Spend for All to Spend, whatever the last split was', () => {
+    expect(presetSplit('allToSpend', 5000, { ...jars, lastSplit })).toEqual([{ jarId: SPEND, amount: 5000 }]);
+  });
+
+  it('repeats the last split’s proportions for Same as last time', () => {
+    expect(presetSplit('sameAsLast', 10000, { ...jars, lastSplit })).toEqual([
+      { jarId: SAVE, amount: 4000 },
+      { jarId: SPEND, amount: 6000 },
+    ]);
+  });
+});
+
+describe('presetOf', () => {
+  const jars = { jarIds: [SAVE, SPEND, GIVE], spendJarId: SPEND, lastSplit: null };
+
+  it('recognises an even split, remainder and all', () => {
+    const split = [
+      { jarId: SAVE, amount: 333 },
+      { jarId: SPEND, amount: 334 },
+      { jarId: GIVE, amount: 333 },
+    ];
+    expect(presetOf(1000, split, jars)).toBe('evenly');
+  });
+
+  it('recognises everything in Spend as All to Spend', () => {
+    expect(presetOf(5000, [{ jarId: SPEND, amount: 5000 }], jars)).toBe('allToSpend');
+  });
+
+  it('recognises the last split only when one is given', () => {
+    const lastSplit = [
+      { jarId: SAVE, amount: 1000 },
+      { jarId: SPEND, amount: 4000 },
+    ];
+    const split = [
+      { jarId: SAVE, amount: 2000 },
+      { jarId: SPEND, amount: 8000 },
+    ];
+    expect(presetOf(10000, split, { ...jars, lastSplit })).toBe('sameAsLast');
+    expect(presetOf(10000, split, jars)).toBeNull();
+  });
+
+  it('calls any other split custom', () => {
+    const split = [
+      { jarId: SAVE, amount: 5000 },
+      { jarId: SPEND, amount: 5000 },
+    ];
+    expect(presetOf(10000, split, jars)).toBeNull();
+  });
+});
+
+describe('customSplit', () => {
+  const jars = { jarIds: [SAVE, SPEND, GIVE], spendJarId: SPEND };
+
+  it('gives Spend whatever the typed shares leave', () => {
+    expect(customSplit(10000, { total: 10000, shares: { [SAVE]: 5000, [GIVE]: 1000 } }, jars)).toEqual({
+      splits: [
+        { jarId: SAVE, amount: 5000 },
+        { jarId: SPEND, amount: 4000 },
+        { jarId: GIVE, amount: 1000 },
+      ],
+      over: 0,
+    });
+  });
+
+  it('keeps the typed proportions when the total changes', () => {
+    expect(customSplit(20000, { total: 10000, shares: { [SAVE]: 5000, [GIVE]: 1000 } }, jars)).toEqual({
+      splits: [
+        { jarId: SAVE, amount: 10000 },
+        { jarId: SPEND, amount: 8000 },
+        { jarId: GIVE, amount: 2000 },
+      ],
+      over: 0,
+    });
+  });
+
+  it('reports how far the typed shares go past the total, leaving Spend empty', () => {
+    expect(customSplit(10000, { total: 10000, shares: { [SAVE]: 8000, [GIVE]: 3000 } }, jars)).toEqual({
+      splits: [
+        { jarId: SAVE, amount: 8000 },
+        { jarId: GIVE, amount: 3000 },
+      ],
+      over: 1000,
+    });
+  });
+
+  it('balances with the first Jar when Spend is archived, ignoring a share typed for it', () => {
+    expect(
+      customSplit(10000, { total: 10000, shares: { [SAVE]: 9999, [GIVE]: 2000 } }, { jarIds: [SAVE, GIVE], spendJarId: SPEND }),
+    ).toEqual({
+      splits: [
+        { jarId: SAVE, amount: 8000 },
+        { jarId: GIVE, amount: 2000 },
+      ],
+      over: 0,
+    });
   });
 });

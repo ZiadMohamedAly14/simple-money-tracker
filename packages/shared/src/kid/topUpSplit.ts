@@ -35,7 +35,7 @@ export interface SuggestSplitOptions {
  */
 export function suggestTopUpSplit(total: number, { jarIds, spendJarId, lastSplit }: SuggestSplitOptions): JarSplit[] {
   if (total <= 0 || jarIds.length === 0) return [];
-  const sink = jarIds.includes(spendJarId) ? spendJarId : jarIds[0]!;
+  const sink = balancingJarOf(jarIds, spendJarId);
   const weights = lastSplit ?? [];
   const weightTotal = weights.reduce((acc, split) => acc + BigInt(split.amount), 0n);
 
@@ -51,4 +51,70 @@ export function suggestTopUpSplit(total: number, { jarIds, spendJarId, lastSplit
   }
   shares.set(sink, total - given);
   return jarIds.map((jarId) => ({ jarId, amount: shares.get(jarId)! })).filter((split) => split.amount > 0);
+}
+
+/** A ready-made way to split a Top-up, chosen under its total. */
+export type TopUpPreset = 'allToSpend' | 'evenly' | 'sameAsLast';
+
+/**
+ * The split a preset gives `total`. Split evenly gives every Jar the same
+ * share; the rest follow `suggestTopUpSplit`. Remainders go to Spend.
+ */
+export function presetSplit(preset: TopUpPreset, total: number, options: SuggestSplitOptions): JarSplit[] {
+  const lastSplit =
+    preset === 'evenly'
+      ? options.jarIds.map((jarId) => ({ jarId, amount: 1 }))
+      : preset === 'sameAsLast'
+        ? options.lastSplit
+        : null;
+  return suggestTopUpSplit(total, { ...options, lastSplit });
+}
+
+/**
+ * The preset that gives exactly this split of `total`, or null if none does
+ * (a custom split). All to Spend wins over the others when several match;
+ * Same as last time is checked only when `lastSplit` is given.
+ */
+export function presetOf(total: number, splits: readonly JarSplit[], options: SuggestSplitOptions): TopUpPreset | null {
+  const key = (list: readonly JarSplit[]) =>
+    [...list]
+      .sort((a, b) => (a.jarId < b.jarId ? -1 : a.jarId > b.jarId ? 1 : 0))
+      .map((split) => `${split.jarId}:${split.amount}`)
+      .join(',');
+  const wanted = key(splits);
+  const presets: TopUpPreset[] = options.lastSplit ? ['allToSpend', 'evenly', 'sameAsLast'] : ['allToSpend', 'evenly'];
+  return presets.find((preset) => key(presetSplit(preset, total, options)) === wanted) ?? null;
+}
+
+/** Shares a parent typed for a Custom split, and the total they were typed against. */
+export interface CustomShares {
+  total: number;
+  /** Minor units per Jar; the balancing Jar's entry, if any, is ignored. */
+  shares: Readonly<Record<string, number>>;
+}
+
+/**
+ * A Custom split of `total`: the typed shares, with the balancing Jar (Spend)
+ * taking whatever is left. If the total has changed since the shares were
+ * typed, each share keeps its proportion (rounded down). `over` is how far
+ * the shares go past the total; the split can't be saved until it is 0.
+ */
+export function customSplit(
+  total: number,
+  custom: CustomShares,
+  { jarIds, spendJarId }: Pick<SuggestSplitOptions, 'jarIds' | 'spendJarId'>,
+): { splits: JarSplit[]; over: number } {
+  const sink = balancingJarOf(jarIds, spendJarId);
+  const scaled = (amount: number) =>
+    custom.total > 0 && custom.total !== total ? Number((BigInt(amount) * BigInt(total)) / BigInt(custom.total)) : amount;
+  const shares = new Map<string, number>(jarIds.map((id) => [id, id === sink ? 0 : scaled(custom.shares[id] ?? 0)]));
+  const given = [...shares.values()].reduce((acc, amount) => acc + amount, 0);
+  shares.set(sink, Math.max(0, total - given));
+  const splits = jarIds.map((jarId) => ({ jarId, amount: shares.get(jarId)! })).filter((split) => split.amount > 0);
+  return { splits, over: Math.max(0, given - total) };
+}
+
+/** The Jar that takes remainders: Spend, or the first Jar if Spend is archived. */
+export function balancingJarOf(jarIds: readonly string[], spendJarId: string): string {
+  return jarIds.includes(spendJarId) ? spendJarId : jarIds[0]!;
 }
