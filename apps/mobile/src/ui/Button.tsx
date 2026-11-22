@@ -63,9 +63,11 @@ export function Button({
       {loading ? (
         <ActivityIndicator color={color} />
       ) : (
-        <View className="flex-row items-center gap-3">
+        // Without an icon the label spans the button: Android sizes a label to its exact text width and rounds it down,
+        // which can wrap a short Arabic label's last word onto a line the button has no room for ("تغيير الرمز").
+        <View className={`flex-row items-center gap-3 ${icon ? '' : 'flex-1'}`}>
           {icon ? <Glyph name={icon} size={large ? 24 : 20} color={color} directional={directionalIcon} /> : null}
-          <Text weight="bold" tone={style.tone} align="center" className={large ? 'text-xl' : 'text-base'}>
+          <Text weight="bold" tone={style.tone} align="center" className={`${large ? 'text-xl' : 'text-base'} ${icon ? '' : 'flex-1'}`}>
             {label}
           </Text>
         </View>
