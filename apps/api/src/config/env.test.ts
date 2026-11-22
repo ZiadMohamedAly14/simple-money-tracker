@@ -69,9 +69,27 @@ describe('loadEnv', () => {
     ]);
   });
 
-  it('requires RESEND_API_KEY in production, since Railway Hobby blocks outbound SMTP', () => {
+  it('sends through authenticated SMTP (e.g. Gmail) in production when RESEND_API_KEY is not given', () => {
+    const env = loadEnv({
+      ...valid,
+      NODE_ENV: 'production',
+      SMTP_HOST: 'smtp.gmail.com',
+      SMTP_PORT: '465',
+      SMTP_USER: 'mizan@example.com',
+      SMTP_PASS: 'app-password',
+    });
+    expect(env.email).toEqual({
+      transport: 'smtp',
+      host: 'smtp.gmail.com',
+      port: 465,
+      user: 'mizan@example.com',
+      pass: 'app-password',
+    });
+  });
+
+  it('requires SMTP credentials in production when RESEND_API_KEY is not given', () => {
     expect(problemsOf({ ...valid, NODE_ENV: 'production' })).toEqual([
-      'RESEND_API_KEY is required in production (outbound SMTP is blocked on Railway Hobby)',
+      'SMTP_USER and SMTP_PASS are required in production unless RESEND_API_KEY is set',
     ]);
   });
 });

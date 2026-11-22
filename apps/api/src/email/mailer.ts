@@ -8,7 +8,7 @@ export interface OutgoingEmail {
   html: string;
 }
 
-/** Sends email. Production uses Resend's HTTPS API, development SMTP; tests pass a recording mailer to `createApp`. */
+/** Sends email over Resend's HTTPS API or SMTP (Gmail in production, Mailpit in development); tests pass a recording mailer to `createApp`. */
 export interface Mailer {
   send(email: OutgoingEmail): Promise<void>;
 }
@@ -42,7 +42,7 @@ export function createResendMailer(options: { apiKey: string; from: string; fetc
   };
 }
 
-/** nodemailer over SMTP, for a local catcher such as Mailpit (`localhost:1025`) in development. */
+/** nodemailer over SMTP: Gmail (`smtp.gmail.com:465` with an App Password) in production, Mailpit (`localhost:1025`) in development. */
 export function createSmtpMailer(smtp: Extract<EmailTransport, { transport: 'smtp' }>, from: string): Mailer {
   const { host, port, user, pass } = smtp;
   const transport = nodemailer.createTransport({

@@ -26,7 +26,7 @@ npm test               # Jest in every workspace (API tests start an in-memory M
 npm run build          # builds packages/shared and apps/api to dist/
 ```
 
-API locally: copy `apps/api/.env.example` to `apps/api/.env`, start a MongoDB, then `npm run dev -w @money-tracker/api`, which loads `apps/api/.env` (variables already set in your shell take precedence). Sign-in code emails: set `RESEND_API_KEY` to send real emails through Resend, or leave it empty and run a local catcher, Mailpit (`docker run --rm -p 1025:1025 -p 8025:8025 axllent/mailpit`), reading the codes at http://localhost:8025.
+API locally: copy `apps/api/.env.example` to `apps/api/.env`, start a MongoDB, then `npm run dev -w @money-tracker/api`, which loads `apps/api/.env` (variables already set in your shell take precedence). Sign-in code emails: set the `SMTP_*` variables to Gmail (see Gmail below) or `RESEND_API_KEY` to send real emails, or leave them at the defaults and run a local catcher, Mailpit (`docker run --rm -p 1025:1025 -p 8025:8025 axllent/mailpit`), reading the codes at http://localhost:8025.
 
 Mobile locally: copy `apps/mobile/.env.example` to `apps/mobile/.env`, then `npm start -w @money-tracker/mobile` and open the development build on an Android device or emulator.
 
@@ -38,7 +38,7 @@ These steps are done by a human; nothing is deployed automatically.
 
 **Railway.** Create a project on the Hobby plan from this repo. `railway.json` at the repo root sets the build (`npm run build -w @money-tracker/shared -w @money-tracker/api`), the start command and the `/health` health check. Set variables `NODE_ENV=production`, `MONGODB_URI=<Atlas string>` and optionally `DB_NAME` (defaults to `money-tracker`; Railway provides `PORT`), three fresh random secrets `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `CODE_HASH_SECRET` (32+ characters, all different), and the email settings below. Generate a public domain.
 
-**Resend (email, ADR-0008).** Railway Hobby blocks outbound SMTP, so production sends through Resend's HTTPS API. Create a Resend account (not another project's) and an API key. On Railway set `RESEND_API_KEY=<API key>` and `EMAIL_FROM`. Without a verified domain use `EMAIL_FROM=Mizan <onboarding@resend.dev>`: Resend then only delivers to the address the Resend account was created with, which is enough for a single tester. Once a domain is verified in Resend, switch to `Mizan <no-reply@your-domain>` so anyone can sign in. Then request a code from the app in English and in Arabic and check both emails arrive.
+**Gmail (email, ADR-0008).** Production sends sign-in codes over Gmail SMTP from a personal Google account (not another project's). Turn on 2-Step Verification, create an App Password, and set `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=465`, `SMTP_USER=<the Gmail address>`, `SMTP_PASS=<App Password>` and `EMAIL_FROM=Mizan <the Gmail address>`, with `RESEND_API_KEY` left unset. Gmail allows about 500 emails a day and anyone can receive them. This needs a host that allows outbound SMTP: Railway Hobby blocks it, so on Railway use Resend instead (`RESEND_API_KEY` and `EMAIL_FROM=Mizan <onboarding@resend.dev>`, which only delivers to the Resend account owner until a domain is verified). Then request a code from the app in English and in Arabic and check both emails arrive.
 
 **EAS (Android).** `npm i -g eas-cli`, `eas login`, then from `apps/mobile`: `eas init` (writes the project ID into `app.json`), replace `REPLACE-WITH-RAILWAY-DOMAIN` in `eas.json` with the Railway domain, and run `eas build --profile development --platform android`. Install the APK, start Metro with `npm start -w @money-tracker/mobile`, and the app should show "API: ok".
 
@@ -49,7 +49,7 @@ These steps are done by a human; nothing is deployed automatically.
 | Mobile | Expo, React Native, TypeScript, expo-router, expo-sqlite + Drizzle, NativeWind, i18next |
 | API | Node.js, TypeScript, Express 4, Mongoose, express-validator, Jest |
 | Data | MongoDB Atlas |
-| Hosting | Railway (API), Resend (email) |
+| Hosting | Railway (API), Gmail SMTP (email) |
 
 It's planned as an npm-workspaces monorepo:
 

@@ -15,8 +15,9 @@ export interface Env {
   /** HMAC key for storing one-time sign-in codes hashed. */
   codeHashSecret: string;
   /**
-   * Outgoing email. Production uses Resend's HTTPS API, because Railway Hobby blocks outbound
-   * SMTP. Development without RESEND_API_KEY uses SMTP to a local catcher (Mailpit).
+   * Outgoing email. Resend's HTTPS API when RESEND_API_KEY is set (needed on Railway Hobby,
+   * which blocks outbound SMTP); otherwise SMTP: Gmail with an App Password in production,
+   * a local catcher (Mailpit) in development.
    */
   email: EmailTransport;
   /** The From address of every email, e.g. `Mizan <no-reply@example.com>`. */
@@ -101,10 +102,6 @@ function parseEmailTransport(
 ): EmailTransport {
   const apiKey = source.RESEND_API_KEY || undefined;
   if (apiKey) return { transport: 'resend', apiKey };
-  if (nodeEnv === 'production') {
-    problems.push('RESEND_API_KEY is required in production (outbound SMTP is blocked on Railway Hobby)');
-    return { transport: 'resend', apiKey: '' };
-  }
 
   const host = source.SMTP_HOST ?? '';
   if (!host) problems.push('SMTP_HOST is required');
@@ -112,5 +109,10 @@ function parseEmailTransport(
   if (!Number.isInteger(port) || port <= 0 || port > 65535) {
     problems.push('SMTP_PORT is required and must be an integer between 1 and 65535');
   }
-  return { transport: 'smtp', host, port, user: source.SMTP_USER || undefined, pass: source.SMTP_PASS || undefined };
+  const user = source.SMTP_USER || undefined;
+  const pass = source.SMTP_PASS || undefined;
+  if (nodeEnv === 'production' && !(user && pass)) {
+    problems.push('SMTP_USER and SMTP_PASS are required in production unless RESEND_API_KEY is set');
+  }
+  return { transport: 'smtp', host, port, user, pass };
 }
