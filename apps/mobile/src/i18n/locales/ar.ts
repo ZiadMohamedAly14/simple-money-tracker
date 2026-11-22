@@ -291,8 +291,8 @@ export const ar: Translations = {
   whosePhone: {
     title: 'لمن هذا الهاتف؟',
     intro: 'يمكنك استخدام ميزان هنا بنفسك، أو تجهيز هذا الهاتف لأحد أطفالك.',
-    mine: 'لي',
-    mineBody: 'ميزانيتك ومحافظ أطفالك',
+    personal: 'شخصي',
+    personalBody: 'ميزانيتك، ومحافظ أطفالك إن أردت',
     forKid: 'لطفل',
     forKidBody: 'يعرض محفظة طفل واحد وقسم «تعلّم» فقط',
   },

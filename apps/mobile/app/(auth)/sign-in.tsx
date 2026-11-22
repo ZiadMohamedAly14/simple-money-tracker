@@ -42,16 +42,17 @@ export default function SignInScreen() {
   }
 
   return (
-    <Screen className="justify-center">
-      <View className="h-16 w-16 items-center justify-center rounded-2xl bg-primary">
-        <AppIcon name="wallet" size={32} color={theme.colors['on-primary']} />
+    // Content sits in the top half so the keyboard never covers the field on small screens.
+    <Screen scroll className="pt-12">
+      <View className="items-center gap-3 pb-4">
+        <AppIcon name="app-mark" size={128} color={theme.colors.primary} style={{ marginBottom: 8 }} />
+        <Text weight="bold" accessibilityRole="header" align="center" className="text-3xl">
+          {t('auth.signInTitle')}
+        </Text>
+        <Text tone="muted" align="center" className="text-base">
+          {t('auth.signInIntro')}
+        </Text>
       </View>
-      <Text weight="bold" accessibilityRole="header" className="text-3xl">
-        {t('auth.signInTitle')}
-      </Text>
-      <Text tone="muted" className="text-base">
-        {t('auth.signInIntro')}
-      </Text>
 
       <TextField
         label={t('auth.emailLabel')}

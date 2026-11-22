@@ -290,8 +290,8 @@ export const en = {
   whosePhone: {
     title: 'Whose phone is this?',
     intro: 'You can use Mizan here yourself, or set this phone up for one of your kids.',
-    mine: 'Mine',
-    mineBody: 'Your budget and your kids’ wallets',
+    personal: 'Personal',
+    personalBody: 'Your budget and optional kids’ wallets',
     forKid: 'For a kid',
     forKidBody: 'Shows only one kid’s wallet and Learn',
   },

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="86 40 370 370" fill="none" stroke="currentColor" stroke-width="19" stroke-linecap="round" stroke-linejoin="round">
+  <!-- The launcher icon (icon.svg) drawn as a single-colour outline, without its background tile. -->
+
+  <!-- Accent marks -->
+  <path d="M365 91 L377 53" stroke-width="17"/>
+  <path d="M410 108 L437 80" stroke-width="17"/>
+
+  <!-- Wallet upper flap -->
+  <path d="M126 205 C151 181 184 166 218 157 L277 141 C307 133 329 151 329 180"/>
+
+  <!-- Wallet body, open on the right where the clasp sits -->
+  <path d="M374 252 V233 A43 43 0 0 0 331 190 H159 A43 43 0 0 0 116 233 V355 A43 43 0 0 0 159 398 H331 A43 43 0 0 0 374 355 V368"/>
+
+  <!-- Chart bars -->
+  <path d="M167 353 V318" stroke-width="28"/>
+  <path d="M220 353 V285" stroke-width="28"/>
+  <path d="M273 353 V250" stroke-width="28"/>
+
+  <!-- Clasp -->
+  <path d="M350 266 H395 C411 266 423 278 423 294 V326 C423 342 411 354 395 354 H350 C327 354 309 336 309 313 V307 C309 284 327 266 350 266Z"/>
+  <circle cx="365" cy="310" r="12" fill="currentColor" stroke="none"/>
+</svg>
