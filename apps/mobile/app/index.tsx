@@ -1,9 +1,9 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Redirect, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { formatMonth, formatMoneyParts, incomeProgress, ltrIsolate, type MonthFigures } from '@money-tracker/shared';
+import { categoryStatus, formatMonth, formatMoneyParts, ltrIsolate, expectedIncomeGap, type MonthFigures } from '@money-tracker/shared';
 import { useAuthStatus, useKidModeProfileId } from '@/auth/appSession';
 import { categoryIconFor } from '@/data/categoryIcons';
 import { useAccountSettings, useOnboardingState } from '@/data/useAccountSettings';
@@ -15,7 +15,7 @@ import { useLanguage } from '@/i18n/useLanguage';
 import { syncTriggers } from '@/sync/appSync';
 import { useSyncOverdue } from '@/sync/useSyncOverdue';
 import { useTheme } from '@/theme/ThemeProvider';
-import { Button, Card, Fab, Glyph, IconButton, IconCircle, joinSpoken, Notice, PendingSyncLabel, ProgressBar, ProgressRow, Text } from '@/ui';
+import { Button, Card, Fab, Glyph, IconButton, IconCircle, joinSpoken, Notice, PendingSyncLabel, ProgressRow, Text } from '@/ui';
 import type { GlyphName } from '@/ui';
 import { showDialog } from '@/ui/dialogStore';
 
@@ -109,7 +109,13 @@ function MonthOverview() {
           </Card>
         ) : null}
 
-        <HeroCard figures={figures} number={number} spoken={(minor) => formatMoney(minor, currency)} currencyLabel={parts(0).currency} />
+        <HeroCard
+          figures={figures}
+          number={number}
+          spoken={(minor) => formatMoney(minor, currency)}
+          currencyLabel={parts(0).currency}
+          onRecordExpectedIncome={(amount) => router.push({ pathname: '/transactions/new', params: { kind: 'income', month, amount: String(amount), note: t('home.salaryNote') } })}
+        />
 
         <UnallocatedRow
           value={number(figures.unallocated)}
@@ -142,9 +148,14 @@ function MonthOverview() {
           </View>
           <Card className="gap-4 p-4">
             {rows.map((row) => {
-              const over = row.remaining < 0;
+              const kind = categoryStatus({ isOther: row.category.isOther, budget: row.budget, spent: row.spent }, figures.unallocated);
+              const over = kind === 'over';
+              const covered = kind === 'covered';
               const name = row.category.isOther ? t('categories.other') : row.category.name;
-              const status = t(over ? 'categories.over' : 'categories.left', { amount: number(Math.abs(row.remaining)) });
+              // A Covered Other reads what it spent, in muted text with no bar (GLOSSARY, Category).
+              const status = covered
+                ? t('categories.covered', { amount: number(row.spent) })
+                : t(over ? 'categories.over' : 'categories.left', { amount: number(Math.abs(row.remaining)) });
               // Tapping a Category opens Add expense with that Category picked (the + button is the other way in).
               // The row reads its figures; what a tap does is the hint.
               return (
@@ -152,7 +163,7 @@ function MonthOverview() {
                   key={row.categoryId}
                   accessibilityRole="button"
                   accessibilityLabel={joinSpoken(
-                    [name, status, t('home.spentOfBudget', { spent: number(row.spent), budget: number(row.budget) })],
+                    covered ? [name, status] : [name, status, t('home.spentOfBudget', { spent: number(row.spent), budget: number(row.budget) })],
                     t('common.listSeparator'),
                   )}
                   accessibilityHint={t('home.addExpenseTo', { name })}
@@ -162,11 +173,11 @@ function MonthOverview() {
                   <ProgressRow
                     icon={iconOf(row.category)}
                     title={name}
-                    progress={row.budget > 0 ? row.spent / row.budget : row.spent > 0 ? 1 : 0}
+                    progress={covered ? undefined : row.budget > 0 ? row.spent / row.budget : row.spent > 0 ? 1 : 0}
                     barTone={over ? 'negative' : 'primary'}
                     end={status}
-                    endTone={over ? 'negative' : 'positive'}
-                    caption={ltrIsolate(`${number(row.spent)} / ${number(row.budget)}`)}
+                    endTone={over ? 'negative' : covered ? 'muted' : 'positive'}
+                    caption={covered ? undefined : ltrIsolate(`${number(row.spent)} / ${number(row.budget)}`)}
                   />
                 </Pressable>
               );
@@ -204,108 +215,125 @@ interface HeroCardProps {
   spoken: (minor: number) => string;
   /** The Account currency as the language shows it ("EGP"). */
   currencyLabel: string;
+  /** Opens Add income with the Expected Income still to be recorded (minor units). */
+  onRecordExpectedIncome: (amount: number) => void;
 }
 
 /**
- * The home "Hero card" (docs/design/mockups/home-hero-card.png): Remaining
- * (the larger of Expected Income and Income, minus Spending) large on the primary green, the income
- * progress bar with "X of Y expected" (recorded Income against the plan),
- * and Income and Spending in translucent tiles. Numbers sit in
- * direction isolates so a minus sign stays at the start of the number in RTL.
+ * The home "Hero card": Spent large on the primary green with the currency,
+ * then a divider and two figure columns, Income and Remaining (the larger of
+ * Expected Income and Income, minus Spending), split by a thin rule. Numbers
+ * sit in direction isolates so a minus sign stays at the start of the number
+ * in RTL. While Income is below Expected Income, a chip under Income offers
+ * to record the rest, noted as a salary.
  */
-function HeroCard({ figures, number, spoken, currencyLabel }: HeroCardProps) {
+function HeroCard({ figures, number, spoken, currencyLabel, onRecordExpectedIncome }: HeroCardProps) {
   const { t } = useTranslation();
   const theme = useTheme();
-  const progress = incomeProgress(figures);
+  const onPrimary = theme.colors['on-primary'];
+  const gap = expectedIncomeGap(figures);
   return (
     <View className="gap-4 rounded-theme bg-primary p-5">
-      <View
-        accessible
-        accessibilityLabel={t('home.figure', { label: t('home.remaining'), amount: spoken(figures.remaining) })}
-        className="gap-1"
-      >
-        <View className="flex-row items-center gap-2">
-          <Glyph name="app:wallet" size={16} color={theme.colors['on-primary']} />
-          <Text tone="on-primary" className="text-sm">
-            {t('home.remaining')}
-          </Text>
+      <View className="flex-row items-start gap-2">
+        <View
+          accessible
+          accessibilityLabel={t('home.figure', { label: t('home.spent'), amount: spoken(figures.spending) })}
+          className="flex-1 gap-1"
+        >
+          <View className="flex-row items-center gap-2">
+            <Glyph name="app:spending" size={16} color={onPrimary} />
+            <Text tone="on-primary" className="text-sm">
+              {t('home.spent')}
+            </Text>
+          </View>
+          <View className="flex-row items-baseline gap-2">
+            <Text weight="bold" tone="on-primary" numberOfLines={1} adjustsFontSizeToFit className="shrink text-5xl">
+              {ltrIsolate(number(figures.spending))}
+            </Text>
+            <Text weight="semibold" tone="on-primary" className="text-base">
+              {currencyLabel}
+            </Text>
+          </View>
         </View>
-        <View className="flex-row items-baseline gap-2">
-          <Text weight="bold" tone="on-primary" numberOfLines={1} adjustsFontSizeToFit className="shrink text-5xl">
-            {ltrIsolate(number(figures.remaining))}
-          </Text>
-          <Text weight="semibold" tone="on-primary" className="text-base">
-            {currencyLabel}
-          </Text>
-        </View>
+        <InfoButton label={t('home.spent')} info={t('home.spentInfo')} color={onPrimary} />
       </View>
 
-      {progress === null ? (
-        <Text tone="on-primary" className="text-sm opacity-80">
-          {t('home.noExpectedIncome')}
-        </Text>
-      ) : (
-        <View className="gap-2">
-          <ProgressBar progress={progress} onPrimary />
-          <Text tone="on-primary" className="text-sm opacity-80">
-            {t('home.incomeOfExpected', {
-              income: ltrIsolate(number(figures.income)),
-              expected: ltrIsolate(number(figures.expectedIncome)),
-            })}
-          </Text>
-        </View>
-      )}
+      <View className="h-px bg-on-primary/25" />
 
-      <View className="flex-row gap-3">
-        <HeroTile
+      <View className="flex-row">
+        <HeroFigure
           icon="app:income-money"
           label={t('home.income')}
           info={t('home.incomeInfo')}
           value={number(figures.income)}
           spoken={spoken(figures.income)}
-        />
-        <HeroTile
-          icon="app:spending"
-          label={t('home.spending')}
-          info={t('home.spendingInfo')}
-          value={number(figures.spending)}
-          spoken={spoken(figures.spending)}
+        >
+          {gap === null ? null : (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('home.recordExpectedIncome', { amount: spoken(gap) })}
+              accessibilityHint={t('home.recordExpectedIncomeHint')}
+              onPress={() => onRecordExpectedIncome(gap)}
+              className="min-h-11 justify-center active:opacity-60"
+            >
+              <View className="flex-row items-center gap-1 self-start rounded-full bg-on-primary/15 px-3 py-1">
+                <Glyph name="app:add" size={12} color={onPrimary} />
+                <Text weight="semibold" tone="on-primary" numberOfLines={1} className="shrink text-xs">
+                  {t('home.recordExpectedIncome', { amount: ltrIsolate(number(gap)) })}
+                </Text>
+              </View>
+            </Pressable>
+          )}
+        </HeroFigure>
+        <View className="mx-4 w-px bg-on-primary/25" />
+        <HeroFigure
+          icon="app:wallet"
+          label={t('home.remaining')}
+          info={t('home.remainingInfo')}
+          value={number(figures.remaining)}
+          spoken={spoken(figures.remaining)}
         />
       </View>
     </View>
   );
 }
 
-interface HeroTileProps {
+interface HeroFigureProps {
   icon: GlyphName;
   label: string;
   /** What the figure means, shown from the info button. */
   info: string;
   value: string;
   spoken: string;
+  /** Shown under the figure (the record chip under Income). */
+  children?: ReactNode;
 }
 
 /**
- * A translucent figure tile inside the hero card. The info button sits beside
- * the figure (not inside it), so a screen reader reaches both.
+ * One figure column under the hero card's divider. The info button and any
+ * child (the record chip) sit outside the grouped figure, so a screen reader
+ * reaches each.
  */
-function HeroTile({ icon, label, info, value, spoken }: HeroTileProps) {
+function HeroFigure({ icon, label, info, value, spoken, children }: HeroFigureProps) {
   const { t } = useTranslation();
   const theme = useTheme();
   return (
-    <View className="flex-1 flex-row items-start gap-1 rounded-theme bg-on-primary/15 p-3">
-      <View accessible accessibilityLabel={t('home.figure', { label, amount: spoken })} className="flex-1 gap-1">
-        <View className="flex-row items-center gap-1">
-          <Glyph name={icon} size={14} color={theme.colors['on-primary']} />
-          <Text tone="on-primary" numberOfLines={1} className="flex-1 text-xs">
-            {label}
+    <View className="flex-1">
+      <View className="flex-row items-start gap-1">
+        <View accessible accessibilityLabel={t('home.figure', { label, amount: spoken })} className="flex-1 gap-1">
+          <View className="flex-row items-center gap-1">
+            <Glyph name={icon} size={14} color={theme.colors['on-primary']} />
+            <Text tone="on-primary" numberOfLines={1} className="shrink text-xs opacity-90">
+              {label}
+            </Text>
+          </View>
+          <Text weight="bold" tone="on-primary" numberOfLines={1} adjustsFontSizeToFit className="text-lg">
+            {ltrIsolate(value)}
           </Text>
         </View>
-        <Text weight="bold" tone="on-primary" numberOfLines={1} adjustsFontSizeToFit className="text-lg">
-          {ltrIsolate(value)}
-        </Text>
+        <InfoButton label={label} info={info} color={theme.colors['on-primary']} />
       </View>
-      <InfoButton label={label} info={info} color={theme.colors['on-primary']} />
+      {children}
     </View>
   );
 }

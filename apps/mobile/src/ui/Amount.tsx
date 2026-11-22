@@ -86,7 +86,8 @@ export interface ProgressRowProps {
   icon: GlyphName;
   iconTone?: IconCircleTone;
   title: string;
-  progress: number;
+  /** The bar's fill, 0 to 1; no bar when left out (a Covered Other). */
+  progress?: number;
   barTone?: ProgressTone;
   /** Text at the end of the title line: "750 left", "420 over", or a Jar balance. */
   end?: string;
@@ -126,7 +127,7 @@ export function ProgressRow({
             </Text>
           ) : null}
         </View>
-        <ProgressBar progress={progress} tone={barTone} />
+        {progress === undefined ? null : <ProgressBar progress={progress} tone={barTone} />}
         {caption ? (
           <Text tone="muted" className="text-xs">
             {caption}

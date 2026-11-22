@@ -106,13 +106,23 @@ describe('monthFigures', () => {
     expect(figures.unallocated).toBe(-100000);
   });
 
-  it('Unallocated depends on the plan, not on what was actually received or spent', () => {
+  it('Unallocated counts recorded Income once it is above Expected Income, so extra Income can get a budget', () => {
     const figures = monthFigures({
       month: '2026-03',
       expectedIncome: 800000,
-      budgets: [{ month: '2026-03', amount: 300000 }],
-      transactions: [income(1000000, '2026-03-01'), expense(50000, '2026-03-02')],
+      budgets: [{ month: '2026-03', amount: 800000 }],
+      transactions: [income(820000, '2026-03-01'), expense(10000, '2026-03-02')],
     });
-    expect(figures.unallocated).toBe(500000);
+    expect(figures.unallocated).toBe(20000);
+  });
+
+  it('Unallocated counts Expected Income while recorded Income is below it, and Spending does not lower it', () => {
+    const figures = monthFigures({
+      month: '2026-03',
+      expectedIncome: 800000,
+      budgets: [{ month: '2026-03', amount: 700000 }],
+      transactions: [income(50000, '2026-03-01'), expense(30000, '2026-03-02')],
+    });
+    expect(figures.unallocated).toBe(100000);
   });
 });

@@ -51,7 +51,7 @@ The larger of Expected Income and Income for a Month, minus Spending: what is le
 _Avoid_: Balance, money left
 
 **Category**:
-A named bucket that every Expense belongs to. **Other** is the default catch-all. An **Archived** Category is hidden from new Months but kept in history. A **Deleted** Category is gone for good: its Expenses show as Other, and its Category Budgets are removed. The app always keeps at least one Category besides Other.
+A named bucket that every Expense belongs to. **Other** is the default catch-all. An **Archived** Category is hidden from new Months but kept in history. A **Deleted** Category is gone for good: its Expenses show as Other, and its Category Budgets are removed. The app always keeps at least one Category besides Other. When Other's spending above its budget is no more than Unallocated, Other is **Covered**: it shows what it spent, not a warning, and Unallocated is not lowered. Once the overspend is more than Unallocated, Other shows the full amount over.
 _Avoid_: Tag, envelope
 
 **Category Budget**:
@@ -59,7 +59,7 @@ The amount allocated to a Category for a specific Month.
 _Avoid_: Limit, allocation
 
 **Unallocated**:
-Expected Income minus the sum of Category Budgets for a Month. May be negative.
+The larger of Expected Income and Income for a Month, minus the sum of Category Budgets: money not yet given a budget. Income above the plan raises it. May be negative.
 _Avoid_: Free money, unassigned
 
 **Transaction**:
