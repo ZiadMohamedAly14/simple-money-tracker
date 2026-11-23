@@ -61,7 +61,8 @@ interface CustomTyped {
  *
  * The keypad takes sums (`+ − × ÷`, ticket 08) for the total and each share.
  * Every sum is evaluated to whole minor units first; Save waits while any sum
- * is unfinished.
+ * is unfinished. Tapping the total or a Jar selects its whole amount, like
+ * select-all in a text field: the first digit replaces it.
  */
 export function TopUpForm({ kidProfileId, editing, header, onSaved, footerExtra }: TopUpFormProps) {
   const { t } = useTranslation();
@@ -76,6 +77,8 @@ export function TopUpForm({ kidProfileId, editing, header, onSaved, footerExtra 
   const [chosen, setChosen] = useState<Choice | null>(null);
   const [customState, setCustomState] = useState<CustomTyped | null>(null);
   const [target, setTarget] = useState<Target>('total');
+  // The target's amount is "selected" right after it is tapped: the next digit replaces it rather than appending.
+  const [replaceNext, setReplaceNext] = useState(false);
 
   // Null while the typed sum is unfinished, negative or divides by zero.
   const totalResult = evaluateNonNegativeAmount(totalTyped, currency);
@@ -145,23 +148,33 @@ export function TopUpForm({ kidProfileId, editing, header, onSaved, footerExtra 
     if (next === 'custom' && choice !== 'custom') setCustomState(customAtTotal());
     setChosen(next);
     setTarget('total');
+    setReplaceNext(false);
   }
 
   function tapJar(jarId: string) {
     if (choice !== 'custom' || jarId === sink) return;
     setChosen('custom');
     setCustomState(customAtTotal());
-    setTarget(jarId);
+    selectTarget(jarId);
+  }
+
+  function selectTarget(next: Target) {
+    setTarget(next);
+    setReplaceNext(true);
   }
 
   function press(key: KeypadKey) {
     const mode = { kind: 'expression', fractionDigits } as const;
+    // While selected, a digit, decimal point or backspace replaces the amount; an operator builds on it.
+    const type = (typed: string) =>
+      !replaceNext ? applyKeypadKey(typed, key, mode) : key === 'backspace' ? '' : applyKeypadKey(/^\d$|^decimal$/.test(key) ? '' : typed, key, mode);
+    setReplaceNext(false);
     if (target === 'total') {
-      setTotalTyped((current) => applyKeypadKey(current, key, mode));
+      setTotalTyped(type(totalTyped));
       return;
     }
     const current = customAtTotal();
-    setCustomState({ ...current, typed: { ...current.typed, [target]: applyKeypadKey(current.typed[target] ?? '', key, mode) } });
+    setCustomState({ ...current, typed: { ...current.typed, [target]: type(current.typed[target] ?? '') } });
   }
 
   function save() {
@@ -194,7 +207,7 @@ export function TopUpForm({ kidProfileId, editing, header, onSaved, footerExtra 
       {header}
       <Card
         selected={target === 'total'}
-        onPress={() => setTarget('total')}
+        onPress={() => selectTarget('total')}
         accessibilityLabel={t('home.figure', {
           label: t('kid.topUp.amountLabel'),
           amount: totalResult === null ? typedNumber(totalTyped) : formatMoney(total, { language, currency, numberingSystem }),
@@ -205,6 +218,7 @@ export function TopUpForm({ kidProfileId, editing, header, onSaved, footerExtra 
           entry={{ typed: totalTyped, result: evaluateAmountExpression(totalTyped, currency) }}
           currency={currency}
           numberingSystem={numberingSystem}
+          selected={target === 'total' && replaceNext}
         />
       </Card>
 
@@ -249,9 +263,14 @@ export function TopUpForm({ kidProfileId, editing, header, onSaved, footerExtra 
               </View>
               <View style={{ flexDirection: 'row', direction: 'ltr' }} className="items-center">
                 <Text weight="bold" className="text-base">
-                  {`${percent} · ${shown}`}
+                  {`${percent} · `}
                 </Text>
-                {typing ? <Caret size="sm" /> : null}
+                <View className={typing && replaceNext ? 'rounded bg-primary/20' : undefined}>
+                  <Text weight="bold" className="text-base">
+                    {shown}
+                  </Text>
+                </View>
+                {typing && !replaceNext ? <Caret size="sm" /> : null}
               </View>
             </Card>
           );

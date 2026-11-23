@@ -58,13 +58,15 @@ export interface AmountEntryDisplayProps {
   currency: CurrencyCode;
   numberingSystem?: NumberingSystem;
   accessibilityLabel?: string;
+  /** The whole amount is selected (the next key replaces it): highlighted, with no cursor. */
+  selected?: boolean;
 }
 
 /**
  * The amount line. A plain amount shows big; a sum shows as typed, left to
  * right even in Arabic, with its live result (or why there is none) below.
  */
-export function AmountEntryDisplay({ entry, currency, numberingSystem, accessibilityLabel }: AmountEntryDisplayProps) {
+export function AmountEntryDisplay({ entry, currency, numberingSystem, accessibilityLabel, selected }: AmountEntryDisplayProps) {
   const { t } = useTranslation();
   const language = useLanguage();
   const currencyLabel = formatMoneyParts(0, { language, currency, numberingSystem }).currency;
@@ -76,6 +78,7 @@ export function AmountEntryDisplay({ entry, currency, numberingSystem, accessibi
         currency={currencyLabel}
         accessibilityLabel={accessibilityLabel}
         caret
+        selected={selected}
       />
     );
   }
@@ -92,11 +95,11 @@ export function AmountEntryDisplay({ entry, currency, numberingSystem, accessibi
   return (
     <View accessible accessibilityLabel={accessibilityLabel} accessibilityValue={{ text: below.text }} className="gap-1">
       <View className="flex-row items-baseline justify-center gap-2">
-        <View style={{ flexDirection: 'row', direction: 'ltr' }} className="shrink">
+        <View style={{ flexDirection: 'row', direction: 'ltr' }} className={`shrink ${selected ? 'rounded bg-primary/20' : ''}`}>
           <Text weight="bold" align="center" numberOfLines={1} adjustsFontSizeToFit className="shrink text-4xl">
             {formatAmountExpression(entry.typed, { language, numberingSystem })}
           </Text>
-          <Caret size="lg" />
+          {selected ? null : <Caret size="lg" />}
         </View>
         <Text weight="semibold" className="text-lg">
           {currencyLabel}

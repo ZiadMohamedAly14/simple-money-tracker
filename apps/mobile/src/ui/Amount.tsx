@@ -23,10 +23,12 @@ export interface AmountDisplayProps {
   accessibilityLabel?: string;
   /** A blinking cursor after the number: the amount being typed on the app's keypad. */
   caret?: boolean;
+  /** The whole number is selected (the next key replaces it): highlighted, with no cursor. */
+  selected?: boolean;
 }
 
 /** Big amount with the currency smaller beside it ("1,250 EGP"); currency sits at the end side. */
-export function AmountDisplay({ amount, currency, size = 'lg', align = 'center', tone = 'text', accessibilityLabel, caret }: AmountDisplayProps) {
+export function AmountDisplay({ amount, currency, size = 'lg', align = 'center', tone = 'text', accessibilityLabel, caret, selected }: AmountDisplayProps) {
   const { t } = useTranslation();
   const sizes = AMOUNT_SIZE[size];
   const spokenAmount = `${amount} ${currency}`;
@@ -37,11 +39,11 @@ export function AmountDisplay({ amount, currency, size = 'lg', align = 'center',
       className={`flex-row items-baseline gap-2 ${align === 'center' ? 'justify-center' : 'justify-start'}`}
     >
       {/* The number and its cursor stay left to right, so the cursor sits after the last digit in Arabic too. */}
-      <View style={{ flexDirection: 'row', direction: 'ltr' }} className="shrink">
+      <View style={{ flexDirection: 'row', direction: 'ltr' }} className={`shrink ${selected ? 'rounded bg-primary/20' : ''}`}>
         <Text weight="bold" tone={tone} numberOfLines={1} adjustsFontSizeToFit className={`shrink ${sizes.amount}`}>
           {amount}
         </Text>
-        {caret ? <Caret size={sizes.caret} /> : null}
+        {caret && !selected ? <Caret size={sizes.caret} /> : null}
       </View>
       <Text weight="semibold" tone={tone} className={sizes.currency}>
         {currency}
