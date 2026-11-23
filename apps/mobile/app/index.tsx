@@ -216,7 +216,7 @@ function ShortcutTile({ label, icon, onPress }: { label: string; icon: GlyphName
       className="aspect-square flex-1 items-center justify-center gap-2 rounded-theme bg-surface p-2 active:opacity-80"
     >
       <Glyph name={icon} size={28} color={theme.colors.primary} />
-      <Text weight="bold" align="center" numberOfLines={2} className="text-sm">
+      <Text weight="bold" align="center" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} className="text-sm">
         {label}
       </Text>
     </Pressable>
