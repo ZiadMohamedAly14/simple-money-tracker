@@ -147,7 +147,7 @@ All money is virtual. Everything works offline, and changes sync between devices
 ### Domain rules
 
 - Money is stored as integers in the currency's smallest unit (ADR-0004). There is one currency per Account, inherited by Kid Wallets, and changing it relabels amounts without converting them.
-- A Month is a calendar month. Each Transaction carries a local calendar date, which decides its Month and is never converted between time zones, plus a separate edit time used for sync.
+- A Month runs from the Account's Pay Day to the day before the next one (calendar months with Pay Day 1; see `.scratch/pay-day/spec.md` and ADR-0009). Each Transaction carries a local calendar date, which decides its Month and is never converted between time zones, plus a separate edit time used for sync.
 - Income, Spending, Remaining, Unallocated, per-Category figures and Jar balances are always worked out from Transactions and the Month plan, never stored or synced.
 - Home screen figures: Remaining is the larger of Expected Income and recorded Income, minus Spending (Income still to come doesn't lower it, Income above the plan raises it, and Category Budgets don't count as spent). The income bar, the "X of Y expected" caption and the Income tile show recorded Income against Expected Income. Unallocated is Expected Income minus the Month's Category Budgets.
 - A Month is created lazily, the first time it is opened or receives a Transaction, by copying the previous Month's Expected Income and Category Budgets.
@@ -266,7 +266,7 @@ All money is virtual. Everything works offline, and changes sync between devices
 
 ## Out of Scope
 
-Recurring top-ups or allowances, recurring expenses, notifications, any charts or reports (the category breakdown is a list), receipts or photos, several currencies per Account, payday-based Months, carry-over, Learn progress tracking, kid-requested Jar Transfers, analytics, data export, web app, iOS release, Google/Apple/guest login, background sync, linking Top-ups to the parent's Personal Budget, automated mobile UI tests, any account or infrastructure shared with another project, income categories, expense templates, savings goals (Jar or personal), an app lock, gold (XAU) as a currency, an AI assistant, and any premium tier or billing. The order of post-MVP work is in the MVP scope note.
+Recurring top-ups or allowances, recurring expenses, notifications, any charts or reports (the category breakdown is a list), receipts or photos, several currencies per Account, carry-over, Learn progress tracking, kid-requested Jar Transfers, analytics, data export, web app, iOS release, Google/Apple/guest login, background sync, linking Top-ups to the parent's Personal Budget, automated mobile UI tests, any account or infrastructure shared with another project, income categories, expense templates, savings goals (Jar or personal), an app lock, gold (XAU) as a currency, an AI assistant, and any premium tier or billing. The order of post-MVP work is in the MVP scope note.
 
 ## Further Notes
 

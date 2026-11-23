@@ -3,7 +3,7 @@
 ## In
 
 - Email sign-in with a one-time code; one Account per adult.
-- Personal Budget: Expected Income, Categories, Category Budgets, Income and Expense Transactions, calendar Months, review of past Months, Income shown against Expected Income.
+- Personal Budget: Expected Income, Categories, Category Budgets, Income and Expense Transactions, Months that start on a chosen Pay Day (default the 1st), review of past Months, Income shown against Expected Income.
 - Simple math (`+ − × ÷`) on adult amount keypads.
 - Kid Wallet: several Kid Profiles, Jars (Save, Spend, Give by default), Top-ups, Jar Transfers, Kid Expenses, history.
 - Kid-Mode devices with a Kid Session, Parent PIN and optional biometrics (offered after the PIN is set, switchable in settings).
@@ -15,7 +15,7 @@
 
 ## Out
 
-Recurring top-ups or allowances, recurring expenses, notifications, any charts or reports (the category breakdown is a list), receipts or photos, several currencies per Account, payday-based Months, carry-over, Learn progress tracking, kid-requested Jar Transfers, analytics, data export, web app, iOS release, Google/Apple/guest login, background sync, linking Top-ups to the parent's budget, income categories, expense templates, savings goals, app lock, gold (XAU) as a currency, AI assistant, premium tier or billing.
+Recurring top-ups or allowances, recurring expenses, notifications, any charts or reports (the category breakdown is a list), receipts or photos, several currencies per Account, carry-over, Learn progress tracking, kid-requested Jar Transfers, analytics, data export, web app, iOS release, Google/Apple/guest login, background sync, linking Top-ups to the parent's budget, income categories, expense templates, savings goals, app lock, gold (XAU) as a currency, AI assistant, premium tier or billing.
 
 ## Later (in priority order)
 

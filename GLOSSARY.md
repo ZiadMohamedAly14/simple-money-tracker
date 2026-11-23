@@ -31,8 +31,16 @@ _Avoid_: Kid login, kid account
 ## Personal Budget
 
 **Month**:
-A calendar month; the unit of budgeting. Each Month starts fresh with no carry-over.
+The unit of budgeting: runs from one Pay Day to the day before the next. With Pay Day 1 it is a calendar month. Named after the calendar month it starts in when Pay Day is 1–15, and after the next calendar month when Pay Day is 16 or later (Pay Day 28: 28 Oct – 27 Nov is "November"). Changing Pay Day never redraws past Months. Each Month starts fresh with no carry-over.
 _Avoid_: Period, cycle
+
+**Pay Day**:
+The day of the month the adult's Months start on, set once for the Account (default 1). Not moved by an early or late payment: that Income is simply dated when it arrived.
+_Avoid_: Salary day, start day, cycle start
+
+**Bridge Month**:
+The one Month after a Pay Day change that runs from the end of the old pattern to the first Month on the new Pay Day. It may be shorter or longer than usual and is budgeted like any other Month.
+_Avoid_: Transition period, partial month
 
 **Expected Income**:
 The amount the adult plans to receive in a Month, used to allocate Category Budgets. Defaults from the previous Month.
