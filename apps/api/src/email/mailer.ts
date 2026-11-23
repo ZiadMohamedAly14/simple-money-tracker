@@ -21,7 +21,7 @@ export function createMailer(env: Pick<Env, 'email' | 'emailFrom'>): Mailer {
 }
 
 /**
- * Resend's HTTPS API. Used in production because Railway Hobby blocks outbound SMTP ports.
+ * Resend's HTTPS API. Used when RESEND_API_KEY is set, e.g. on hosts that block outbound SMTP (Railway Hobby).
  * Without a verified domain, send from `onboarding@resend.dev`; Resend then only delivers
  * to the Resend account owner's own address.
  */
