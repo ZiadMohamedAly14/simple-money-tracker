@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable } from 'react-native';
+import { AppState, Pressable } from 'react-native';
 import { Redirect, router } from 'expo-router';
 import { getNetworkStateAsync } from 'expo-network';
 import { useTranslation } from 'react-i18next';
@@ -42,6 +42,7 @@ function ParentGate() {
 
   useEffect(() => {
     let cancelled = false;
+    let subscription: { remove: () => void } | null = null;
     void (async () => {
       // Pick up a PIN set or changed on another device, if online; the stored copy otherwise.
       await parentPinGate.refresh();
@@ -49,10 +50,24 @@ function ParentGate() {
       if (cancelled) return;
       setHasPin(pinSet);
       setBiometrics(useBiometrics);
-      if (pinSet && useBiometrics) void tryBiometrics();
+      if (!pinSet || !useBiometrics) return;
+      // The gate mounts as the app goes to the background (that locks the Parent
+      // Area). A prompt started then never shows and stays "in progress", which
+      // blocks every later scan, so wait until the app is back in front.
+      if (AppState.currentState === 'active') {
+        void tryBiometrics();
+        return;
+      }
+      subscription = AppState.addEventListener('change', (state) => {
+        if (state !== 'active') return;
+        subscription?.remove();
+        subscription = null;
+        void tryBiometrics();
+      });
     })();
     return () => {
       cancelled = true;
+      subscription?.remove();
     };
   }, [tryBiometrics]);
 
