@@ -9,7 +9,7 @@
 - Kid-Mode devices with a Kid Session, Parent PIN and optional biometrics (offered after the PIN is set, switchable in settings).
 - Learn section: about 8–10 lessons bundled with the app, in English and Arabic.
 - Offline-first with multi-device sync.
-- English and Arabic, full right-to-left layout, Western or Arabic-Indic digits.
+- English and Arabic, full right-to-left layout, Western or Arabic-Indic digits (Arabic only; English always uses Western digits).
 - Delete account; archive a Kid Profile.
 - Android builds through EAS.
 

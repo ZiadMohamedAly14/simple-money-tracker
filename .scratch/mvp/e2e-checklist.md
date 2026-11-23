@@ -131,7 +131,7 @@ A script to run by hand on real phones before testers get the APK. Each step say
 - [ ] **Language:** switch to Arabic. The app asks to restart. After it restarts:
   - everything mirrors: back arrows point right, bars fill from the right, chips start on the right;
   - amounts, emails and "spent / budget" stay readable.
-- [ ] **Digits:** switch to Arabic-Indic. Every amount and count uses ٠١٢٣.
+- [ ] **Digits:** switch to Arabic-Indic. Every amount and count uses ٠١٢٣. Switch to English: the Digits setting is hidden and everything shows 0123; back to Arabic restores ٠١٢٣.
 - [ ] **Appearance:** System, Light and Dark each switch at once with no restart.
   - The status bar and navigation bar follow the choice.
   - Cards are still visible against the background in dark mode.

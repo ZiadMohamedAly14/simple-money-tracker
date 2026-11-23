@@ -29,14 +29,18 @@ export function directionChanges(from: Language, to: Language): boolean {
   return isRtl(from) !== isRtl(to);
 }
 
-/** Digit style for numbers. An Account setting; Western by default. */
+/**
+ * Digit style for numbers. An Account setting; Western by default. It only
+ * applies in Arabic: English always shows Western digits.
+ */
 export type NumberingSystem = 'western' | 'arabic-indic';
 export const DEFAULT_NUMBERING_SYSTEM: NumberingSystem = 'western';
 
 /** Unicode locale extension value (`-u-nu-…`) for a numbering system. */
 const NU: Record<NumberingSystem, string> = { western: 'latn', 'arabic-indic': 'arab' };
 
-/** BCP 47 tag for Intl formatting, e.g. "ar-u-nu-arab". */
+/** BCP 47 tag for Intl formatting, e.g. "ar-u-nu-arab". English always gets Western digits. */
 export function intlLocale(language: Language, numberingSystem: NumberingSystem = DEFAULT_NUMBERING_SYSTEM): string {
-  return `${language}-u-nu-${NU[numberingSystem]}`;
+  const shown = language === 'ar' ? numberingSystem : 'western';
+  return `${language}-u-nu-${NU[shown]}`;
 }

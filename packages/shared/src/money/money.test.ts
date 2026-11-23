@@ -22,10 +22,10 @@ describe('formatMoney', () => {
     ).toBe('١٬٢٣٤٫٥٠ ج.م.');
   });
 
-  it('formats in English with Arabic-Indic digits when chosen', () => {
+  it('keeps Western digits in English even when Arabic-Indic is chosen', () => {
     expect(
       visible(formatMoney(123450, { language: 'en', currency: 'EGP', numberingSystem: 'arabic-indic' })),
-    ).toBe('١٬٢٣٤٫٥٠ EGP');
+    ).toBe('EGP 1,234.50');
   });
 
   it('uses the currency’s own minor digits', () => {

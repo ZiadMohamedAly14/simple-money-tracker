@@ -1,4 +1,4 @@
-import { directionChanges, isRtl, resolveLanguage } from './language';
+import { directionChanges, intlLocale, isRtl, resolveLanguage } from './language';
 
 describe('resolveLanguage', () => {
   it.each([
@@ -24,5 +24,17 @@ describe('direction', () => {
     expect(directionChanges('en', 'ar')).toBe(true);
     expect(directionChanges('ar', 'en')).toBe(true);
     expect(directionChanges('en', 'en')).toBe(false);
+  });
+});
+
+describe('intlLocale', () => {
+  it('uses the chosen digits in Arabic', () => {
+    expect(intlLocale('ar', 'western')).toBe('ar-u-nu-latn');
+    expect(intlLocale('ar', 'arabic-indic')).toBe('ar-u-nu-arab');
+  });
+
+  it('always uses Western digits in English', () => {
+    expect(intlLocale('en', 'western')).toBe('en-u-nu-latn');
+    expect(intlLocale('en', 'arabic-indic')).toBe('en-u-nu-latn');
   });
 });

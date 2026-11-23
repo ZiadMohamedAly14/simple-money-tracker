@@ -104,24 +104,27 @@ function SettingsScreen() {
         />
       </Card>
 
-      <Card className="gap-2 p-4">
-        <View className="flex-row items-center gap-2">
-          <AppIcon name="digits" size={16} color={theme.colors.muted} />
-          <Text tone="muted" className="text-sm">
-            {t('settings.numberingLabel')}
-          </Text>
-        </View>
-        <SegmentedControl<NumberingSystem>
-          options={numberingSystems}
-          value={numberingSystem}
-          onChange={(next) => {
-            if (changeAccountSettings(localStore, localDb, { numberingSystem: next }) === 'not_ready') {
-              showDialog(t('settings.settingsNotReady'));
-            }
-          }}
-          accessibilityLabel={t('settings.numberingLabel')}
-        />
-      </Card>
+      {/* Digits only apply in Arabic: English always shows Western digits. */}
+      {language === 'ar' ? (
+        <Card className="gap-2 p-4">
+          <View className="flex-row items-center gap-2">
+            <AppIcon name="digits" size={16} color={theme.colors.muted} />
+            <Text tone="muted" className="text-sm">
+              {t('settings.numberingLabel')}
+            </Text>
+          </View>
+          <SegmentedControl<NumberingSystem>
+            options={numberingSystems}
+            value={numberingSystem}
+            onChange={(next) => {
+              if (changeAccountSettings(localStore, localDb, { numberingSystem: next }) === 'not_ready') {
+                showDialog(t('settings.settingsNotReady'));
+              }
+            }}
+            accessibilityLabel={t('settings.numberingLabel')}
+          />
+        </Card>
+      ) : null}
 
       <Card className="gap-2 p-4">
         <View className="flex-row items-center gap-2">
