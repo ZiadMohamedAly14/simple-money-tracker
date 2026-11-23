@@ -122,7 +122,7 @@ export default function CategoriesScreen() {
                   <Glyph name="app:lock-pin" size={18} color={theme.colors.muted} />
                 </View>
               ) : (
-                <View className="flex-row">
+                <View className="flex-row gap-2">
                   <IconButton
                     icon="app:chevron-up"
                     accessibilityLabel={t('categories.moveUp', { name })}
