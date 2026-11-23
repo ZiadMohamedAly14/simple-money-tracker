@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useTranslation } from 'react-i18next';
-import { currentMonth, formatMonth, formatMoneyParts, intlLocale, ltrIsolate } from '@money-tracker/shared';
+import { currentMonth, formatMoneyParts, intlLocale, ltrIsolate } from '@money-tracker/shared';
 import { useAuthStatus } from '@/auth/appSession';
 import { categoryIconFor } from '@/data/categoryIcons';
 import { allCategoriesQuery, shownCategoryOf } from '@/data/categories';
@@ -129,7 +129,8 @@ function TransactionList() {
           />
         ) : (
           <ScreenHeader
-            title={`${t('transactions.title')} · ${formatMonth(month, { language, numberingSystem })}`}
+            title={t('transactions.title')}
+            centerTitle
             onBack={() => router.back()}
             end={
               transactions.length > 0 ? (

@@ -186,17 +186,15 @@ function MonthOverview() {
         </View>
 
         <View className="flex-row gap-3">
-          <Button
+          <ShortcutTile
             label={t('transactions.addIncome')}
-            variant="secondary"
             icon="app:income-money"
-            className="flex-1"
             onPress={() => router.push({ pathname: '/transactions/new', params: { kind: 'income', month } })}
           />
-          <Button label={t('transactions.open')} variant="secondary" icon="app:reorder-history" className="flex-1" onPress={() => router.push({ pathname: '/transactions', params: { month } })} />
+          <ShortcutTile label={t('transactions.open')} icon="app:reorder-history" onPress={() => router.push({ pathname: '/transactions', params: { month } })} />
+          {/* PIN-gated Parent Area (ticket 11); the kid wallet entry point (ticket 12) will lead here. */}
+          <ShortcutTile label={t('parentArea.open')} icon="app:lock-pin" onPress={() => router.push('/parent')} />
         </View>
-        {/* PIN-gated Parent Area (ticket 11); the kid wallet entry point (ticket 12) will lead here. */}
-        <Button label={t('parentArea.open')} variant="secondary" icon="app:lock-pin" onPress={() => router.push('/parent')} />
       </ScrollView>
       <Fab
         icon="app:add"
@@ -204,6 +202,24 @@ function MonthOverview() {
         onPress={() => router.push({ pathname: '/transactions/new', params: { month } })}
       />
     </SafeAreaView>
+  );
+}
+
+/** An equal-width square tile on the surface: a big primary icon above a bold label. */
+function ShortcutTile({ label, icon, onPress }: { label: string; icon: GlyphName; onPress: () => void }) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      className="aspect-square flex-1 items-center justify-center gap-2 rounded-theme bg-surface p-2 active:opacity-80"
+    >
+      <Glyph name={icon} size={28} color={theme.colors.primary} />
+      <Text weight="bold" align="center" numberOfLines={2} className="text-sm">
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 

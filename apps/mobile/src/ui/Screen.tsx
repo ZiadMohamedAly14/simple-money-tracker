@@ -45,10 +45,12 @@ export interface ScreenHeaderProps {
   backIcon?: 'back' | 'close';
   /** Element at the end of the header (e.g. "Pending sync"). */
   end?: ReactNode;
+  /** Centers the title between the start and end elements (keep their widths equal). */
+  centerTitle?: boolean;
 }
 
 /** Round back/close button, then the title, then an optional end element. */
-export function ScreenHeader({ title, onBack, backIcon = 'back', end }: ScreenHeaderProps) {
+export function ScreenHeader({ title, onBack, backIcon = 'back', end, centerTitle }: ScreenHeaderProps) {
   const { t } = useTranslation();
   const back = onBack ? (
     <IconButton
@@ -62,7 +64,7 @@ export function ScreenHeader({ title, onBack, backIcon = 'back', end }: ScreenHe
     <View className="min-h-11 flex-row items-center gap-3 pt-2">
       {backIcon === 'back' ? back : null}
       {title ? (
-        <Text weight="bold" accessibilityRole="header" numberOfLines={1} className="flex-1 text-xl">
+        <Text weight="bold" accessibilityRole="header" numberOfLines={1} className={`flex-1 text-xl ${centerTitle ? 'text-center' : ''}`}>
           {title}
         </Text>
       ) : (
