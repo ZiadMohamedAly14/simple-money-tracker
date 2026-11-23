@@ -11,7 +11,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://REPLACE-WITH-PRODUCTION-API-URL"
+        "EXPO_PUBLIC_API_URL": "https://REPLACE-WITH-DEV-API-URL"
       },
       "channel": "development"
     },
@@ -21,7 +21,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://REPLACE-WITH-PRODUCTION-API-URL"
+        "EXPO_PUBLIC_API_URL": "https://REPLACE-WITH-DEV-API-URL"
       },
       "channel": "preview"
     },
