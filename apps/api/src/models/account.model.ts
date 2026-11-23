@@ -15,4 +15,4 @@ const accountSchema = new Schema(
 );
 
 export type AccountDoc = InferSchemaType<typeof accountSchema>;
-export const Account = model('Account', accountSchema);
+export const Account = model('Account', accountSchema, 'Accounts');

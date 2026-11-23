@@ -23,4 +23,4 @@ const signInCodeSchema = new Schema({
 
 signInCodeSchema.index({ email: 1, purpose: 1 }, { unique: true });
 
-export const SignInCode = model('SignInCode', signInCodeSchema);
+export const SignInCode = model('SignInCode', signInCodeSchema, 'SignInCodes');

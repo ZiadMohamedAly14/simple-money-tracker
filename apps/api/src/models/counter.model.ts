@@ -14,7 +14,7 @@ const counterSchema = new Schema(
   { versionKey: false },
 );
 
-export const Counter = model('Counter', counterSchema);
+export const Counter = model('Counter', counterSchema, 'Counters');
 
 const COUNTER_ID = 'serverVersion';
 

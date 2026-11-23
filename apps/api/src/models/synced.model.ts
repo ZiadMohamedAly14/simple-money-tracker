@@ -30,6 +30,7 @@ export const AccountSettings = model(
     currency: { type: String, required: true },
     numberingSystem: { type: String, enum: ['western', 'arabic-indic'], required: true },
   }),
+  'AccountSettings',
 );
 
 export const Category = model(
@@ -42,6 +43,7 @@ export const Category = model(
     // Any short kebab-case app icon name (checked by the sync contract); null before icons synced.
     icon: { type: String, default: null },
   }),
+  'Categories',
 );
 
 export const Transaction = model(
@@ -53,6 +55,7 @@ export const Transaction = model(
     date: { type: String, required: true },
     note: { type: String, default: null },
   }),
+  'Transactions',
 );
 
 export const MonthPlan = model(
@@ -61,6 +64,7 @@ export const MonthPlan = model(
     month: { type: String, required: true },
     expectedIncome: { type: Number, required: true },
   }),
+  'MonthPlans',
 );
 
 export const CategoryBudget = model(
@@ -70,6 +74,7 @@ export const CategoryBudget = model(
     categoryId: { type: String, required: true },
     amount: { type: Number, required: true },
   }),
+  'CategoryBudgets',
 );
 
 export const KidProfile = model(
@@ -79,6 +84,7 @@ export const KidProfile = model(
     avatar: { type: String, default: null },
     archivedAt: { type: Number, default: null },
   }),
+  'KidProfiles',
 );
 
 export const Jar = model(
@@ -89,6 +95,7 @@ export const Jar = model(
     order: { type: Number, required: true },
     archivedAt: { type: Number, default: null },
   }),
+  'Jars',
 );
 
 export const KidTransaction = model(
@@ -107,6 +114,7 @@ export const KidTransaction = model(
     date: { type: String, required: true },
     note: { type: String, default: null },
   }),
+  'KidTransactions',
 );
 
 /** The collection behind each synced entity. Add new synced entities here and to `SYNC_ENTITIES`. */
