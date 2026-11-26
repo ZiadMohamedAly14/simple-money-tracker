@@ -1,4 +1,4 @@
-import { monthOf, type Month } from '../dates/month';
+import { monthOf, type Month, type PayDayHistory } from '../dates/month';
 import type { TransactionKind } from '../sync/records';
 
 /** The headline figures of a Month (GLOSSARY). All amounts in minor units (ADR-0004). */
@@ -24,6 +24,8 @@ export interface MonthFigures {
 
 export interface MonthFiguresInput {
   month: Month;
+  /** The Account's Pay Day history, which draws the Month's dates. */
+  history: PayDayHistory;
   /** The Month plan's Expected Income (0 when the Month has no plan yet). */
   expectedIncome: number;
   /** Category Budgets; only the ones for `month` count. */
@@ -36,11 +38,11 @@ export interface MonthFiguresInput {
  * Works out a Month's figures from its plan and Transactions. They are never
  * stored or synced (spec), so every screen shows the same numbers.
  */
-export function monthFigures({ month, expectedIncome, budgets, transactions }: MonthFiguresInput): MonthFigures {
+export function monthFigures({ month, history, expectedIncome, budgets, transactions }: MonthFiguresInput): MonthFigures {
   let income = 0;
   let spending = 0;
   for (const transaction of transactions) {
-    if (monthOf(transaction.date) !== month) continue;
+    if (monthOf(transaction.date, history) !== month) continue;
     if (transaction.kind === 'income') income += transaction.amount;
     else spending += transaction.amount;
   }

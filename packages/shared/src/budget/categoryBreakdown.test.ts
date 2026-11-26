@@ -10,6 +10,7 @@ describe('categoryBreakdown', () => {
   it('shows each Category in display order with its budget, spent and remaining', () => {
     const rows = categoryBreakdown({
       month: '2026-03',
+      history: [],
       categories: [other, food, housing],
       budgets: [budget('food', 300000), budget('housing', 500000)],
       transactions: [expense('food', 12550, '2026-03-02'), expense('food', 7450, '2026-03-31')],
@@ -24,6 +25,7 @@ describe('categoryBreakdown', () => {
   it('counts an Expense whose Category is deleted (not among the live Categories) under Other', () => {
     const rows = categoryBreakdown({
       month: '2026-03',
+      history: [],
       categories: [food, other],
       budgets: [budget('deleted', 50000)],
       transactions: [expense('deleted', 1500, '2026-03-02'), expense('other', 500, '2026-03-03')],
@@ -37,6 +39,7 @@ describe('categoryBreakdown', () => {
   it('a Category with no Category Budget has a budget of 0, so any spending puts it over', () => {
     const [row] = categoryBreakdown({
       month: '2026-03',
+      history: [],
       categories: [other],
       budgets: [],
       transactions: [expense('other', 4200, '2026-03-10')],
@@ -47,6 +50,7 @@ describe('categoryBreakdown', () => {
   it('remaining goes negative when a Category is over budget', () => {
     const [row] = categoryBreakdown({
       month: '2026-03',
+      history: [],
       categories: [food],
       budgets: [budget('food', 100000)],
       transactions: [expense('food', 142000, '2026-03-05')],
@@ -57,6 +61,7 @@ describe('categoryBreakdown', () => {
   it('counts only the Month’s budgets and Expenses: Income and other Months are ignored', () => {
     const [row] = categoryBreakdown({
       month: '2026-03',
+      history: [],
       categories: [food],
       budgets: [budget('food', 100000, '2026-02'), budget('food', 50000)],
       transactions: [
@@ -71,7 +76,7 @@ describe('categoryBreakdown', () => {
 
   it('an Archived Category is hidden from a Month where it has no budget and no spending', () => {
     const archived = { ...food, archivedAt: Date.parse('2026-02-15T00:00:00Z') };
-    const rows = categoryBreakdown({ month: '2026-03', categories: [archived, other], budgets: [], transactions: [] });
+    const rows = categoryBreakdown({ history: [], month: '2026-03', categories: [archived, other], budgets: [], transactions: [] });
     expect(rows.map((r) => r.categoryId)).toEqual(['other']);
   });
 
@@ -79,6 +84,7 @@ describe('categoryBreakdown', () => {
     const archived = { ...food, archivedAt: Date.parse('2026-03-15T00:00:00Z') };
     const withSpending = categoryBreakdown({
       month: '2026-01',
+      history: [],
       categories: [archived],
       budgets: [],
       transactions: [expense('food', 500, '2026-01-20')],
@@ -86,6 +92,7 @@ describe('categoryBreakdown', () => {
     expect(withSpending).toEqual([{ categoryId: 'food', budget: 0, spent: 500, remaining: -500 }]);
     const withBudget = categoryBreakdown({
       month: '2026-02',
+      history: [],
       categories: [archived],
       budgets: [budget('food', 70000, '2026-02')],
       transactions: [],
@@ -96,10 +103,20 @@ describe('categoryBreakdown', () => {
   it('Other always sorts last, whatever its order number', () => {
     const rows = categoryBreakdown({
       month: '2026-03',
+      history: [],
       categories: [{ ...other, order: -5 }, { ...food, order: 20000 }],
       budgets: [],
       transactions: [],
     });
     expect(rows.map((r) => r.categoryId)).toEqual(['food', 'other']);
+  });
+
+  it('with Pay Day 26, counts an Expense dated 26 Nov in December and one dated 25 Nov in November', () => {
+    const history = [{ payDay: 26, startsOn: '2026-10-26' }];
+    const transactions = [expense('food', 2600, '2026-11-26'), expense('food', 2500, '2026-11-25')];
+    const spentIn = (month: string) =>
+      categoryBreakdown({ month, history, categories: [food], budgets: [], transactions })[0]!.spent;
+    expect(spentIn('2026-12')).toBe(2600);
+    expect(spentIn('2026-11')).toBe(2500);
   });
 });

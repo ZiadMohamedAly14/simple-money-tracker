@@ -30,7 +30,7 @@ export type PayDayOption = { entry: PayDayEntry; history: PayDayHistory };
 export type PayDayOptions = { startAfterThisMonth: PayDayOption; startNow: PayDayOption | null };
 
 /** The Month a local date `YYYY-MM-DD` falls in under the Account's Pay Day history. */
-export function monthOf(localDate: string, history: PayDayHistory = []): Month {
+export function monthOf(localDate: string, history: PayDayHistory): Month {
   const { payDay, next } = segmentAt(sorted(history), (entry) => entry.startsOn <= localDate);
   const month = monthOnPayDay(localDate, payDay);
   // The last Month before a change stretches up to the change, keeping names consecutive.
@@ -39,7 +39,7 @@ export function monthOf(localDate: string, history: PayDayHistory = []): Month {
 }
 
 /** The first and last day of a Month under the Account's Pay Day history. */
-export function monthDates(month: Month, history: PayDayHistory = []): MonthDates {
+export function monthDates(month: Month, history: PayDayHistory): MonthDates {
   const { payDay, next } = segmentAt(sorted(history), (entry) => nameOf(entry) <= month);
   const following = addMonths(month, 1);
   const nextStart = next && nameOf(next) === following ? next.startsOn : startOnPayDay(following, payDay);
@@ -90,7 +90,7 @@ export function addMonths(month: Month, count: number): Month {
 }
 
 /** The Month the device's calendar is in at `moment`, under the Account's Pay Day history. */
-export function currentMonth(moment: Date, history: PayDayHistory = []): Month {
+export function currentMonth(moment: Date, history: PayDayHistory): Month {
   return monthOf(toLocalDate(moment), history);
 }
 
