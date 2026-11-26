@@ -1,12 +1,11 @@
 import { useMemo, useState } from 'react';
 import { View } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router } from 'expo-router';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useTranslation } from 'react-i18next';
 import {
   applyKeypadKey,
   currencyMinorDigits,
-  currentMonth,
   evaluateNonNegativeAmount,
   monthFigures,
   type KeypadKey,
@@ -15,7 +14,8 @@ import { monthPlansQuery, setCategoryBudgets } from '@/data/budget';
 import { categoryIconFor } from '@/data/categoryIcons';
 import { PERSONAL_STEPS } from '@/data/currency';
 import { categoriesQuery } from '@/data/transactions';
-import { useAccountSettings, usePayDayHistory } from '@/data/useAccountSettings';
+import { useAccountSettings } from '@/data/useAccountSettings';
+import { useMonthParam } from '@/data/useMonthParam';
 import { localDb, localStore } from '@/db/appDatabase';
 import { useFormatMoney } from '@/i18n/useFormatMoney';
 import { AmountKeypad, Button, Card, IconCircle, Screen, ScreenHeader, Text, useTypedAmountText } from '@/ui';
@@ -29,9 +29,7 @@ import { Caret } from '@/ui/Caret';
  */
 export default function SplitScreen() {
   const { t } = useTranslation();
-  const params = useLocalSearchParams<{ month?: string }>();
-  const history = usePayDayHistory();
-  const month = params.month ?? currentMonth(new Date(), history);
+  const { month, history } = useMonthParam();
   const { currency, numberingSystem } = useAccountSettings();
   const formatMoney = useFormatMoney(numberingSystem);
   const typedText = useTypedAmountText(numberingSystem);

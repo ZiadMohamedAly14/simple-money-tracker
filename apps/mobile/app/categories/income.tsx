@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
 import { View } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { currentMonth, formatMonth, fromMinorUnits } from '@money-tracker/shared';
+import { formatMonth, fromMinorUnits } from '@money-tracker/shared';
 import { monthPlansQuery, setExpectedIncome } from '@/data/budget';
-import { useAccountSettings, usePayDayHistory } from '@/data/useAccountSettings';
+import { useAccountSettings } from '@/data/useAccountSettings';
+import { useMonthParam } from '@/data/useMonthParam';
 import { localDb, localStore } from '@/db/appDatabase';
 import { useLanguage } from '@/i18n/useLanguage';
 import { AmountEntryDisplay, AmountKeypad, Button, Screen, ScreenHeader, Text, useAmountEntry } from '@/ui';
@@ -17,9 +18,7 @@ import { AmountEntryDisplay, AmountKeypad, Button, Screen, ScreenHeader, Text, u
 export default function EditExpectedIncomeScreen() {
   const { t } = useTranslation();
   const language = useLanguage();
-  const params = useLocalSearchParams<{ month?: string }>();
-  const history = usePayDayHistory();
-  const month = params.month ?? currentMonth(new Date(), history);
+  const { month } = useMonthParam();
   const { currency, numberingSystem } = useAccountSettings();
   const initial = useMemo(() => {
     const current = monthPlansQuery(localDb, month).all()[0]?.expectedIncome ?? 0;

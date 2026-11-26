@@ -3,13 +3,14 @@ import { Keyboard, Pressable, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
-import { CATEGORY_NAME_MAX_LENGTH, currentMonth, formatMonth, fromMinorUnits, guessCategoryIcon } from '@money-tracker/shared';
+import { CATEGORY_NAME_MAX_LENGTH, formatMonth, fromMinorUnits, guessCategoryIcon } from '@money-tracker/shared';
 import { CategoryIconPicker } from '@/categories/CategoryIconPicker';
 import { useConfirmDeleteCategory } from '@/categories/useConfirmDeleteCategory';
 import { categoryBudgetsQuery, setCategoryBudgets } from '@/data/budget';
 import { activeCategoriesQuery, allCategoriesQuery, categoryActions, categoryNameOf } from '@/data/categories';
 import { categoryIconFor } from '@/data/categoryIcons';
-import { useAccountSettings, usePayDayHistory } from '@/data/useAccountSettings';
+import { useAccountSettings } from '@/data/useAccountSettings';
+import { useMonthParam } from '@/data/useMonthParam';
 import { localDb, localStore } from '@/db/appDatabase';
 import { useLanguage } from '@/i18n/useLanguage';
 import { AmountEntryDisplay, AmountKeypad, Button, Card, Screen, ScreenHeader, Text, TextField, useAmountEntry, useKeyboardVisible } from '@/ui';
@@ -29,9 +30,8 @@ const actions = categoryActions(localStore, localDb);
 export default function EditCategoryScreen() {
   const { t } = useTranslation();
   const language = useLanguage();
-  const params = useLocalSearchParams<{ id?: string; month?: string }>();
-  const history = usePayDayHistory();
-  const month = params.month ?? currentMonth(new Date(), history);
+  const params = useLocalSearchParams<{ id?: string }>();
+  const { month } = useMonthParam();
   const { currency, numberingSystem } = useAccountSettings();
   const monthName = formatMonth(month, { language, numberingSystem });
 
