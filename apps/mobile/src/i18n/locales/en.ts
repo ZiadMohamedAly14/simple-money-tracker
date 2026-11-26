@@ -501,6 +501,14 @@ export const en = {
     deleteConfirm: 'Delete my account',
     deleteOffline: 'Deleting your account needs the internet. Connect and try again.',
   },
+  payDay: {
+    dayOrdinal: { one: '{{day}}st', two: '{{day}}nd', few: '{{day}}rd', other: '{{day}}th' },
+    lastDay: 'Last day of the month',
+    range: '{{start}} – {{end}}',
+    from: 'from {{date}}',
+    pending: '{{from}} → {{to}} from {{date}}',
+    bridgeMonth: '{{month}} (Bridge Month)',
+  },
   language: {
     label: 'Language',
     en: 'English',

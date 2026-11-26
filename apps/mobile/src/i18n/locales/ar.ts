@@ -502,6 +502,14 @@ export const ar: Translations = {
     deleteConfirm: 'احذف حسابي',
     deleteOffline: 'حذف الحساب يحتاج إلى الإنترنت. اتصل وحاول مجددًا.',
   },
+  payDay: {
+    dayOrdinal: { one: 'يوم {{day}}', two: 'يوم {{day}}', few: 'يوم {{day}}', other: 'يوم {{day}}' },
+    lastDay: 'آخر يوم في الشهر',
+    range: '{{start}} – {{end}}',
+    from: 'من {{date}}',
+    pending: '{{from}} ← {{to}} من {{date}}',
+    bridgeMonth: '{{month}} (شهر انتقالي)',
+  },
   language: {
     label: 'اللغة',
     en: 'English',
