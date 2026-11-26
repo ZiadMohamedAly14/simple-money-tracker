@@ -2,9 +2,9 @@ import { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { DEFAULT_CATEGORY_KEYS, currentMonth, type DefaultCategoryKey } from '@money-tracker/shared';
-import { completePersonalOnboarding } from '@/data/budget';
+import { completePersonalOnboarding, readPayDayHistory } from '@/data/budget';
 import { FALLBACK_CURRENCY, PERSONAL_STEPS } from '@/data/currency';
-import { localStore } from '@/db/appDatabase';
+import { localDb, localStore } from '@/db/appDatabase';
 import { AmountEntryDisplay, AmountKeypad, Button, Screen, ScreenHeader, Text, useAmountEntry } from '@/ui';
 
 /**
@@ -23,7 +23,7 @@ export default function ExpectedIncomeScreen() {
 
   function next() {
     if (amount === null) return;
-    const month = currentMonth(new Date());
+    const month = currentMonth(new Date(), readPayDayHistory(localDb));
     const categoryNames = Object.fromEntries(
       DEFAULT_CATEGORY_KEYS.map((key) => [key, t(`categories.defaults.${key}`)]),
     ) as Record<DefaultCategoryKey, string>;

@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull, like } from 'drizzle-orm';
+import { and, asc, between, eq, inArray, isNull } from 'drizzle-orm';
 import {
   DEFAULT_CATEGORY_ICONS,
   DEFAULT_CATEGORY_KEYS,
@@ -6,6 +6,7 @@ import {
   accountSettingsId,
   categoryBudgetId,
   defaultCategoryId,
+  monthDates,
   monthFigures,
   monthPlanId,
   payDayHistoryId,
@@ -14,6 +15,7 @@ import {
   type CurrencyCode,
   type DefaultCategoryKey,
   type Month,
+  type MonthDates,
   type MonthFigures,
   type NumberingSystem,
   type PayDayHistory,
@@ -38,7 +40,7 @@ export interface PersonalOnboarding {
   currency: CurrencyCode;
   /** In minor units. */
   expectedIncome: number;
-  /** The Month onboarding happens in (`currentMonth(new Date())`). */
+  /** The Month onboarding happens in (`currentMonth(new Date(), history)`). */
   month: Month;
   /** Each default Category's name in the device language (from the `categories.defaults` strings). */
   categoryNames: Record<DefaultCategoryKey, string>;
@@ -199,8 +201,11 @@ export function payDayHistoryQuery(db: LocalDb) {
   return db.select().from(payDayHistories).where(isNull(payDayHistories.deletedAt)).limit(1);
 }
 
+// One shared empty history, so hooks that depend on it don't recompute on every render.
+const NO_PAY_DAY_CHANGES: PayDayHistory = [];
+
 /** The history in a `payDayHistoryQuery` result: no row means Pay Day 1 (an empty history). */
-export const payDayHistoryOf = (rows: readonly { entries: PayDayHistory | null }[]): PayDayHistory => rows[0]?.entries ?? [];
+export const payDayHistoryOf = (rows: readonly { entries: PayDayHistory | null }[]): PayDayHistory => rows[0]?.entries ?? NO_PAY_DAY_CHANGES;
 
 /** The Account's current Pay Day history, for date-to-Month lookups outside React. */
 export function readPayDayHistory(db: LocalDb): PayDayHistory {
@@ -240,12 +245,15 @@ export function categoryBudgetsQuery(db: LocalDb, month: Month) {
     );
 }
 
-/** Live-queryable: the Transactions dated in a Month. */
-export function monthTransactionsQuery(db: LocalDb, month: Month) {
+/** The condition for a Transaction dated within a Month's dates (`monthDates(month, history)`). */
+export const datedIn = ({ start, end }: MonthDates) => between(transactions.date, start, end);
+
+/** Live-queryable: the Transactions dated in a Month, given its dates (`monthDates(month, history)`). */
+export function monthTransactionsQuery(db: LocalDb, dates: MonthDates) {
   return db
     .select()
     .from(transactions)
-    .where(and(isNull(transactions.deletedAt), like(transactions.date, `${month}-%`)));
+    .where(and(isNull(transactions.deletedAt), datedIn(dates)));
 }
 
 /** Live-queryable: the earliest dated Transaction (one row, or none), which bounds how far back Months go. */
@@ -261,19 +269,22 @@ export function earliestTransactionQuery(db: LocalDb) {
 /** A Month's figures from what the live queries above return. */
 export function monthOverviewOf(
   month: Month,
+  history: PayDayHistory,
   plans: readonly { expectedIncome: number }[],
   budgets: readonly { month: Month; amount: number }[],
   monthTransactions: Parameters<typeof monthFigures>[0]['transactions'],
 ): MonthFigures {
-  return monthFigures({ month, expectedIncome: plans[0]?.expectedIncome ?? 0, budgets, transactions: monthTransactions });
+  return monthFigures({ month, history, expectedIncome: plans[0]?.expectedIncome ?? 0, budgets, transactions: monthTransactions });
 }
 
 /** A Month's figures, read once (tests; screens use the live queries with `monthOverviewOf`). */
 export function readMonthOverview(db: LocalDb, month: Month): MonthFigures {
+  const history = readPayDayHistory(db);
   return monthOverviewOf(
     month,
+    history,
     monthPlansQuery(db, month).all(),
     categoryBudgetsQuery(db, month).all(),
-    monthTransactionsQuery(db, month).all(),
+    monthTransactionsQuery(db, monthDates(month, history)).all(),
   );
 }

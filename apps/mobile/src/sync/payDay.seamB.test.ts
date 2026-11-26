@@ -121,4 +121,48 @@ describe('Pay Day history (Seam B)', () => {
     await laptop.sync();
     expect(laptop.payDayHistory()).toEqual([{ payDay: 25, startsOn: '2026-12-25' }]);
   });
+
+  describe('Months drawn from Pay Day 26', () => {
+    // Pay Day 26 from 26 Oct: "November" is 26 Oct – 25 Nov, "December" 26 Nov – 25 Dec.
+    const PAY_DAY_26 = payDayOptions([], 26, '2026-10-05').startNow!.history;
+
+    async function phoneOnPayDay26() {
+      const { phone } = await phoneAndTablet();
+      phone.savePayDayHistory(PAY_DAY_26);
+      return phone;
+    }
+
+    it('an Expense dated 26 Nov counts in December, and one dated 25 Nov counts in November', async () => {
+      const phone = await phoneOnPayDay26();
+      const food = phone.categories().find((c) => c.name === 'food')!.id;
+
+      phone.recordExpense({ amount: 2600, date: '2026-11-26', categoryId: food });
+      phone.recordExpense({ amount: 2500, date: '2026-11-25', categoryId: food });
+
+      expect(phone.monthOverview('2026-12').spending).toBe(2600);
+      expect(phone.monthOverview('2026-11').spending).toBe(2500);
+      expect(phone.monthTransactions('2026-12').map((t) => t.amount)).toEqual([2600]);
+      expect(phone.monthTransactions('2026-11').map((t) => t.amount)).toEqual([2500]);
+      expect(phone.categoryBreakdown('2026-12').find((row) => row.categoryId === food)?.spent).toBe(2600);
+    });
+
+    it("an Expense dated after the Pay Day creates the next Month, copying the current Month's plan", async () => {
+      const phone = await phoneOnPayDay26();
+
+      phone.recordExpense({ amount: 2600, date: '2026-11-26' });
+
+      expect(phone.monthPlans().map((p) => p.month)).toEqual(['2026-11', '2026-12']);
+      expect(phone.monthOverview('2026-12')).toMatchObject({ expectedIncome: 800000, spending: 2600 });
+    });
+
+    it('moving an Expense across the Pay Day by editing its date moves it to that Month', async () => {
+      const phone = await phoneOnPayDay26();
+      const id = phone.recordExpense({ amount: 900, date: '2026-11-20' });
+
+      phone.editExpense(id, { date: '2026-11-27' });
+
+      expect(phone.monthOverview('2026-11').spending).toBe(0);
+      expect(phone.monthOverview('2026-12').spending).toBe(900);
+    });
+  });
 });

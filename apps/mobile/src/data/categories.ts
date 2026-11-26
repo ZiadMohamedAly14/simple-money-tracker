@@ -4,13 +4,14 @@ import {
   categoryBreakdown,
   guessCategoryIcon,
   isCategoryIconName,
+  monthDates,
   type CategoryFigures,
   type Month,
 } from '@money-tracker/shared';
 import type { LocalStore } from '@/db/localStore';
 import { categories, categoryBudgets, transactions } from '@/db/schema';
 import type { LocalDb } from '@/db/types';
-import { categoryBudgetsQuery, monthTransactionsQuery } from './budget';
+import { categoryBudgetsQuery, monthTransactionsQuery, readPayDayHistory } from './budget';
 
 /** A Category name as saved: trimmed, 1 to `CATEGORY_NAME_MAX_LENGTH` characters; null if it isn't valid. */
 export function categoryNameOf(input: string): string | null {
@@ -237,10 +238,12 @@ export function allCategoriesQuery(db: LocalDb) {
 
 /** A Month's per-Category breakdown, read once (tests; screens use the live queries with `categoryBreakdown`). */
 export function readCategoryBreakdown(db: LocalDb, month: Month): CategoryFigures[] {
+  const history = readPayDayHistory(db);
   return categoryBreakdown({
     month,
+    history,
     categories: allCategoriesQuery(db).all(),
     budgets: categoryBudgetsQuery(db, month).all(),
-    transactions: monthTransactionsQuery(db, month).all(),
+    transactions: monthTransactionsQuery(db, monthDates(month, history)).all(),
   });
 }

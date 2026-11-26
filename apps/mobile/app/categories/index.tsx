@@ -7,7 +7,7 @@ import { currentMonth, formatMonth } from '@money-tracker/shared';
 import { useConfirmDeleteCategory } from '@/categories/useConfirmDeleteCategory';
 import { activeCategoriesQuery, archivedCategoriesQuery, categoryActions } from '@/data/categories';
 import { categoryIconFor } from '@/data/categoryIcons';
-import { useAccountSettings } from '@/data/useAccountSettings';
+import { useAccountSettings, usePayDayHistory } from '@/data/useAccountSettings';
 import { useMonthBudget } from '@/data/useMonthBudget';
 import { localDb, localStore } from '@/db/appDatabase';
 import { useFormatMoney } from '@/i18n/useFormatMoney';
@@ -33,7 +33,8 @@ export default function CategoriesScreen() {
   const { currency, numberingSystem } = useAccountSettings();
   const formatMoney = useFormatMoney(numberingSystem);
   const params = useLocalSearchParams<{ month?: string }>();
-  const month = params.month ?? currentMonth(new Date());
+  const history = usePayDayHistory();
+  const month = params.month ?? currentMonth(new Date(), history);
   const monthName = formatMonth(month, { language, numberingSystem });
   const { figures, rows } = useMonthBudget(month);
   const { data: active } = useLiveQuery(activeCategoriesQuery(localDb));

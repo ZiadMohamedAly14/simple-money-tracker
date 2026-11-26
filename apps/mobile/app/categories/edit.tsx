@@ -9,7 +9,7 @@ import { useConfirmDeleteCategory } from '@/categories/useConfirmDeleteCategory'
 import { categoryBudgetsQuery, setCategoryBudgets } from '@/data/budget';
 import { activeCategoriesQuery, allCategoriesQuery, categoryActions, categoryNameOf } from '@/data/categories';
 import { categoryIconFor } from '@/data/categoryIcons';
-import { useAccountSettings } from '@/data/useAccountSettings';
+import { useAccountSettings, usePayDayHistory } from '@/data/useAccountSettings';
 import { localDb, localStore } from '@/db/appDatabase';
 import { useLanguage } from '@/i18n/useLanguage';
 import { AmountEntryDisplay, AmountKeypad, Button, Card, Screen, ScreenHeader, Text, TextField, useAmountEntry, useKeyboardVisible } from '@/ui';
@@ -30,7 +30,8 @@ export default function EditCategoryScreen() {
   const { t } = useTranslation();
   const language = useLanguage();
   const params = useLocalSearchParams<{ id?: string; month?: string }>();
-  const month = params.month ?? currentMonth(new Date());
+  const history = usePayDayHistory();
+  const month = params.month ?? currentMonth(new Date(), history);
   const { currency, numberingSystem } = useAccountSettings();
   const monthName = formatMonth(month, { language, numberingSystem });
 

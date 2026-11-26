@@ -15,7 +15,7 @@ import { monthPlansQuery, setCategoryBudgets } from '@/data/budget';
 import { categoryIconFor } from '@/data/categoryIcons';
 import { PERSONAL_STEPS } from '@/data/currency';
 import { categoriesQuery } from '@/data/transactions';
-import { useAccountSettings } from '@/data/useAccountSettings';
+import { useAccountSettings, usePayDayHistory } from '@/data/useAccountSettings';
 import { localDb, localStore } from '@/db/appDatabase';
 import { useFormatMoney } from '@/i18n/useFormatMoney';
 import { AmountKeypad, Button, Card, IconCircle, Screen, ScreenHeader, Text, useTypedAmountText } from '@/ui';
@@ -30,7 +30,8 @@ import { Caret } from '@/ui/Caret';
 export default function SplitScreen() {
   const { t } = useTranslation();
   const params = useLocalSearchParams<{ month?: string }>();
-  const month = params.month ?? currentMonth(new Date());
+  const history = usePayDayHistory();
+  const month = params.month ?? currentMonth(new Date(), history);
   const { currency, numberingSystem } = useAccountSettings();
   const formatMoney = useFormatMoney(numberingSystem);
   const typedText = useTypedAmountText(numberingSystem);
@@ -56,6 +57,7 @@ export default function SplitScreen() {
 
   const { unallocated } = monthFigures({
     month,
+    history,
     expectedIncome: plans[0]?.expectedIncome ?? 0,
     budgets: Object.values(amounts).map((amount) => ({ month, amount })),
     transactions: [],

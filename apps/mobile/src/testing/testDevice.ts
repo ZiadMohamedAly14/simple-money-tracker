@@ -101,7 +101,7 @@ import {
   type PinGateState,
   type PinGateStore,
 } from '@/pin/parentPinGate';
-import { SYNC_ENTITIES, defaultJarId, type PayDayHistory, type SyncEntity } from '@money-tracker/shared';
+import { SYNC_ENTITIES, defaultJarId, monthDates, type PayDayHistory, type SyncEntity } from '@money-tracker/shared';
 import type { AxiosRequestConfig } from 'axios';
 import type { TestServer } from './testServer';
 
@@ -282,7 +282,7 @@ export async function createTestDevice(
     deleteTransactions: (ids: readonly string[]) => deleteTransactions(store, ids),
     expenses: () => expensesQuery(db).all(),
     recordIncome: (income: NewIncome) => recordIncome(store, db, income),
-    monthTransactions: (month: string) => monthTransactionListQuery(db, month).all(),
+    monthTransactions: (month: string) => monthTransactionListQuery(db, monthDates(month, readPayDayHistory(db))).all(),
     categories: () => categoriesQuery(db).all(),
     categoryChoices: () => categoryChoicesQuery(db).all(),
     pendingChanges: () => store.pendingCount(),

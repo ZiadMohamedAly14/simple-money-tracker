@@ -1,6 +1,6 @@
-import { and, asc, desc, eq, isNull, like } from 'drizzle-orm';
-import { monthOf, otherCategoryId, type Month } from '@money-tracker/shared';
-import { openMonth } from './budget';
+import { and, asc, desc, eq, isNull } from 'drizzle-orm';
+import { monthOf, otherCategoryId, type MonthDates } from '@money-tracker/shared';
+import { datedIn, openMonth, readPayDayHistory } from './budget';
 import type { LocalStore } from '@/db/localStore';
 import { categories, transactions } from '@/db/schema';
 import type { LocalDb } from '@/db/types';
@@ -23,7 +23,7 @@ export interface NewExpense {
 export function recordExpense(store: LocalStore, db: LocalDb, { amount, date, note = null, categoryId }: NewExpense): string {
   const accountId = store.accountId();
   if (!accountId) throw new Error('No Account is signed in on this device');
-  openMonth(store, db, monthOf(date));
+  openMonthOf(store, db, date);
   return store.create('transaction', {
     kind: 'expense',
     amount,
@@ -47,9 +47,13 @@ export interface NewIncome {
  */
 export function recordIncome(store: LocalStore, db: LocalDb, { amount, date, note = null }: NewIncome): string {
   if (!store.accountId()) throw new Error('No Account is signed in on this device');
-  openMonth(store, db, monthOf(date));
+  openMonthOf(store, db, date);
   return store.create('transaction', { kind: 'income', amount, date, note, categoryId: null });
 }
+
+/** Opens the Month a local date falls in under the Account's Pay Day history. */
+const openMonthOf = (store: LocalStore, db: LocalDb, date: string): void =>
+  openMonth(store, db, monthOf(date, readPayDayHistory(db)));
 
 /** The parts of an Expense an adult can change. */
 export type ExpenseChanges = Partial<Pick<NewExpense, 'amount' | 'date' | 'note' | 'categoryId'>>;
@@ -68,7 +72,7 @@ export function editExpense(store: LocalStore, db: LocalDb, id: string, changes:
   const categoryId = changes.categoryId ?? current.categoryId;
   if (categoryId && !isLiveCategory(db, categoryId)) changes = { ...changes, categoryId: otherCategoryId(accountId) };
   const edited = store.update('transaction', id, changes);
-  if (edited && changes.date) openMonth(store, db, monthOf(changes.date));
+  if (edited && changes.date) openMonthOf(store, db, changes.date);
   return edited;
 }
 
@@ -89,7 +93,7 @@ export function editIncome(store: LocalStore, db: LocalDb, id: string, { amount,
   if (date !== undefined) changes.date = date;
   if (note !== undefined) changes.note = note;
   const edited = store.update('transaction', id, changes);
-  if (edited && date) openMonth(store, db, monthOf(date));
+  if (edited && date) openMonthOf(store, db, date);
   return edited;
 }
 
@@ -116,12 +120,15 @@ export function expensesQuery(db: LocalDb) {
     .orderBy(desc(transactions.date), desc(transactions.id));
 }
 
-/** Live-queryable: a Month's Transactions (Income and Expenses), newest date first, then newest recorded. */
-export function monthTransactionListQuery(db: LocalDb, month: Month) {
+/**
+ * Live-queryable: a Month's Transactions (Income and Expenses), newest date
+ * first, then newest recorded, given its dates (`monthDates(month, history)`).
+ */
+export function monthTransactionListQuery(db: LocalDb, dates: MonthDates) {
   return db
     .select()
     .from(transactions)
-    .where(and(isNull(transactions.deletedAt), like(transactions.date, `${month}-%`)))
+    .where(and(isNull(transactions.deletedAt), datedIn(dates)))
     .orderBy(desc(transactions.date), desc(transactions.id));
 }
 
