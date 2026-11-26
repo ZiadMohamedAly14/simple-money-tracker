@@ -18,8 +18,8 @@ describe('payDaySummary (the Settings row)', () => {
   it('while a Start after this Month change is pending, shows "1st → 25th from" the Bridge Month\'s first day', async () => {
     const t = await translator('en');
     const history = payDayOptions([], 25, '2026-11-10').startAfterThisMonth.history;
-    expect(payDaySummary(history, '2026-11-10', { t, language: 'en' })).toBe('1st → 25th from Dec 1');
-    expect(payDaySummary(history, '2026-11-30', { t, language: 'en' })).toBe('1st → 25th from Dec 1');
+    expect(payDaySummary(history, '2026-11-10', { t, language: 'en' })).toBe('1st → 25th from 1 Dec');
+    expect(payDaySummary(history, '2026-11-30', { t, language: 'en' })).toBe('1st → 25th from 1 Dec');
   });
 
   it('once the Bridge Month has started, shows just the new Pay Day: the change is settled', async () => {
@@ -43,7 +43,7 @@ describe('payDaySummary (the Settings row)', () => {
   it('labels 31 as the last day of the month', async () => {
     const t = await translator('en');
     const history = payDayOptions([], 31, '2026-11-10').startAfterThisMonth.history;
-    expect(payDaySummary(history, '2026-11-10', { t, language: 'en' })).toBe('1st → Last day of the month from Dec 1');
+    expect(payDaySummary(history, '2026-11-10', { t, language: 'en' })).toBe('1st → Last day of the month from 1 Dec');
   });
 
   it('in Arabic, points the arrow the reading way', async () => {

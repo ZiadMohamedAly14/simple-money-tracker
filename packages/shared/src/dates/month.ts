@@ -1,4 +1,4 @@
-import { intlLocale, type Language, type NumberingSystem } from '../i18n/language';
+import { dateLocale, type Language, type NumberingSystem } from '../i18n/language';
 import { toLocalDate } from './localDate';
 
 /**
@@ -16,6 +16,14 @@ export type Month = string;
  * starts. The Month before that date ends the day before it.
  */
 export type PayDayEntry = { payDay: number; startsOn: string };
+
+/** The highest Pay Day, shown as "Last day of the month" (spec decision 2). */
+export const LAST_PAY_DAY = 31;
+
+/** Whether a value is a Pay Day: a whole day 1–31. */
+export function isPayDay(value: unknown): value is number {
+  return Number.isInteger(value) && (value as number) >= 1 && (value as number) <= LAST_PAY_DAY;
+}
 
 /** An Account's Pay Day changes, in any order. Empty means Pay Day 1 (calendar months). */
 export type PayDayHistory = readonly PayDayEntry[];
@@ -108,15 +116,26 @@ export function setupPayDayHistory(payDay: number, today: string): PayDayHistory
   return [{ payDay, startsOn: startOnPayDay(monthOnPayDay(today, payDay), payDay) }];
 }
 
-/** A Month's name and year for display, e.g. "November 2026" or "نوفمبر 2026". */
-export function formatMonth(month: Month, { language, numberingSystem }: { language: Language; numberingSystem?: NumberingSystem }): string {
-  const [year, monthNumber] = month.split('-').map(Number) as [number, number];
+/** How dates are shown: the language, and the digits (Western by default). */
+export type DateTextOptions = { language: Language; numberingSystem?: NumberingSystem };
+
+/** A Month's name and year for display, e.g. "November 2026" or "نوفمبر 2026"; just "November" with `year: false`. */
+export function formatMonth(month: Month, { language, numberingSystem, year = true }: DateTextOptions & { year?: boolean }): string {
+  const [yearNumber, monthNumber] = month.split('-').map(Number) as [number, number];
   // Built and formatted in UTC so the device's zone can't shift it.
-  return new Intl.DateTimeFormat(intlLocale(language, numberingSystem), {
+  return new Intl.DateTimeFormat(dateLocale(language, numberingSystem), {
     month: 'long',
-    year: 'numeric',
+    ...(year ? { year: 'numeric' } : {}),
     timeZone: 'UTC',
-  }).format(new Date(Date.UTC(year, monthNumber - 1, 1)));
+  }).format(new Date(Date.UTC(yearNumber, monthNumber - 1, 1)));
+}
+
+/** A local date `YYYY-MM-DD` as day and short month: "1 Dec", "١ ديسمبر". */
+export function formatDayMonth(localDate: string, { language, numberingSystem }: DateTextOptions): string {
+  // Formatted in UTC so the device's zone can't shift it.
+  return new Intl.DateTimeFormat(dateLocale(language, numberingSystem), { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(
+    new Date(`${localDate}T00:00:00Z`),
+  );
 }
 
 /**

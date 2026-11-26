@@ -1,6 +1,7 @@
 import {
   addMonths,
   currentMonth,
+  formatDayMonth,
   formatMonth,
   monthDates,
   monthOf,
@@ -150,6 +151,27 @@ describe('formatMonth', () => {
   it('is not moved into a neighbouring Month by the time zone', () => {
     // The suite runs at UTC+14; midnight UTC on the 1st is still the same Month.
     expect(formatMonth('2026-12', { language: 'en' })).toBe('December 2026');
+  });
+
+  it('can leave the year out, for lists of nearby Months', () => {
+    expect(formatMonth('2026-11', { language: 'en', year: false })).toBe('November');
+    expect(formatMonth('2026-11', { language: 'ar', year: false })).toBe('نوفمبر');
+  });
+});
+
+describe('formatDayMonth', () => {
+  it('writes the day first in English, "1 Dec" (spec decision 8)', () => {
+    expect(formatDayMonth('2026-12-01', { language: 'en' })).toBe('1 Dec');
+    expect(formatDayMonth('2027-01-25', { language: 'en' })).toBe('25 Jan');
+  });
+
+  it('uses Arabic month names and the chosen digits', () => {
+    expect(formatDayMonth('2026-12-01', { language: 'ar' })).toBe('1 ديسمبر');
+    expect(formatDayMonth('2026-12-01', { language: 'ar', numberingSystem: 'arabic-indic' })).toBe('١ ديسمبر');
+  });
+
+  it('is not moved to a neighbouring day by the time zone', () => {
+    expect(formatDayMonth('2026-12-31', { language: 'en' })).toBe('31 Dec');
   });
 });
 

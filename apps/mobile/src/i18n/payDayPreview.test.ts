@@ -22,13 +22,13 @@ describe('changeoverPreview: the worked examples', () => {
   it('1 → 25 on 10 Nov', async () => {
     expect(await englishPreview([], 25, '2026-11-10')).toEqual({
       startNow: [
-        { title: 'November', dates: 'Nov 1 – Nov 24' },
-        { title: 'December', dates: 'from Nov 25' },
+        { title: 'November', dates: '1 Nov – 24 Nov' },
+        { title: 'December', dates: 'from 25 Nov' },
       ],
       startAfterThisMonth: [
-        { title: 'November', dates: 'Nov 1 – Nov 30' },
-        { title: 'December (Bridge Month)', dates: 'Dec 1 – Dec 24' },
-        { title: 'January', dates: 'from Dec 25' },
+        { title: 'November', dates: '1 Nov – 30 Nov' },
+        { title: 'December (Bridge Month)', dates: '1 Dec – 24 Dec' },
+        { title: 'January', dates: 'from 25 Dec' },
       ],
     });
   });
@@ -36,13 +36,13 @@ describe('changeoverPreview: the worked examples', () => {
   it('1 → 26 on 23 Nov', async () => {
     expect(await englishPreview([], 26, '2026-11-23')).toEqual({
       startNow: [
-        { title: 'November', dates: 'Nov 1 – Nov 25' },
-        { title: 'December', dates: 'from Nov 26' },
+        { title: 'November', dates: '1 Nov – 25 Nov' },
+        { title: 'December', dates: 'from 26 Nov' },
       ],
       startAfterThisMonth: [
-        { title: 'November', dates: 'Nov 1 – Nov 30' },
-        { title: 'December (Bridge Month)', dates: 'Dec 1 – Dec 25' },
-        { title: 'January', dates: 'from Dec 26' },
+        { title: 'November', dates: '1 Nov – 30 Nov' },
+        { title: 'December (Bridge Month)', dates: '1 Dec – 25 Dec' },
+        { title: 'January', dates: 'from 26 Dec' },
       ],
     });
   });
@@ -51,9 +51,9 @@ describe('changeoverPreview: the worked examples', () => {
     expect(await englishPreview([], 20, '2026-11-25')).toEqual({
       startNow: null,
       startAfterThisMonth: [
-        { title: 'November', dates: 'Nov 1 – Nov 30' },
-        { title: 'December (Bridge Month)', dates: 'Dec 1 – Dec 19' },
-        { title: 'January', dates: 'from Dec 20' },
+        { title: 'November', dates: '1 Nov – 30 Nov' },
+        { title: 'December (Bridge Month)', dates: '1 Dec – 19 Dec' },
+        { title: 'January', dates: 'from 20 Dec' },
       ],
     });
   });
@@ -61,13 +61,13 @@ describe('changeoverPreview: the worked examples', () => {
   it('25 → 10 on 30 Nov', async () => {
     expect(await englishPreview(payDay25, 10, '2026-11-30')).toEqual({
       startNow: [
-        { title: 'December', dates: 'Nov 25 – Jan 9' },
-        { title: 'January', dates: 'from Jan 10' },
+        { title: 'December', dates: '25 Nov – 9 Jan' },
+        { title: 'January', dates: 'from 10 Jan' },
       ],
       startAfterThisMonth: [
-        { title: 'December', dates: 'Nov 25 – Dec 24' },
-        { title: 'January (Bridge Month)', dates: 'Dec 25 – Feb 9' },
-        { title: 'February', dates: 'from Feb 10' },
+        { title: 'December', dates: '25 Nov – 24 Dec' },
+        { title: 'January (Bridge Month)', dates: '25 Dec – 9 Feb' },
+        { title: 'February', dates: 'from 10 Feb' },
       ],
     });
   });
@@ -79,9 +79,9 @@ describe('changeoverPreview during a Bridge Month', () => {
     expect(await englishPreview(bridgeTo25, 10, '2026-12-10')).toEqual({
       startNow: null,
       startAfterThisMonth: [
-        { title: 'December', dates: 'Dec 1 – Dec 24' },
-        { title: 'January (Bridge Month)', dates: 'Dec 25 – Feb 9' },
-        { title: 'February', dates: 'from Feb 10' },
+        { title: 'December', dates: '1 Dec – 24 Dec' },
+        { title: 'January (Bridge Month)', dates: '25 Dec – 9 Feb' },
+        { title: 'February', dates: 'from 10 Feb' },
       ],
     });
   });

@@ -2,9 +2,8 @@ import { useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { DEFAULT_NUMBERING_SYSTEM, formatMonth, monthDates, monthOf, setupPayDayHistory, toLocalDate } from '@money-tracker/shared';
+import { DEFAULT_NUMBERING_SYSTEM, formatDayMonth, formatMonth, monthDates, monthOf, setupPayDayHistory, toLocalDate } from '@money-tracker/shared';
 import { FALLBACK_CURRENCY, PERSONAL_STEPS } from '@/data/currency';
-import { formatDayMonth } from '@/i18n/payDayPreview';
 import { useLanguage } from '@/i18n/useLanguage';
 import { Button, PayDayPicker, Screen, ScreenHeader, Text } from '@/ui';
 
@@ -22,15 +21,15 @@ export default function PayDayScreen() {
   const [payDay, setPayDay] = useState(1);
 
   const firstMonth = useMemo(() => {
-    const formatDate = (localDate: string) => formatDayMonth(localDate, { t, language, numberingSystem: DEFAULT_NUMBERING_SYSTEM });
+    const text = { language, numberingSystem: DEFAULT_NUMBERING_SYSTEM };
     const today = toLocalDate(new Date());
     const history = setupPayDayHistory(payDay, today);
     const month = monthOf(today, history);
     const { start, end } = monthDates(month, history);
     return t('onboarding.payDay.firstMonth', {
-      month: formatMonth(month, { language, numberingSystem: DEFAULT_NUMBERING_SYSTEM }),
-      start: formatDate(start),
-      end: formatDate(end),
+      month: formatMonth(month, text),
+      start: formatDayMonth(start, text),
+      end: formatDayMonth(end, text),
     });
   }, [language, payDay, t]);
 

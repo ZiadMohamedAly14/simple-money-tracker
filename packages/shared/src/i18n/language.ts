@@ -44,3 +44,11 @@ export function intlLocale(language: Language, numberingSystem: NumberingSystem 
   const shown = language === 'ar' ? numberingSystem : 'western';
   return `${language}-u-nu-${NU[shown]}`;
 }
+
+/**
+ * BCP 47 tag for formatting dates: as `intlLocale`, but English writes the
+ * day before the month ("1 Dec", "5 Mar 2025"), as the spec does.
+ */
+export function dateLocale(language: Language, numberingSystem: NumberingSystem = DEFAULT_NUMBERING_SYSTEM): string {
+  return language === 'en' ? 'en-GB-u-nu-latn' : intlLocale(language, numberingSystem);
+}

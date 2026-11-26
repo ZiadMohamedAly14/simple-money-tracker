@@ -1,7 +1,7 @@
 import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { intlLocale, type NumberingSystem } from '@money-tracker/shared';
-import { LAST_PAY_DAY, payDayLabel } from '@/i18n/payDayLabel';
+import { formatDigits, LAST_PAY_DAY, type NumberingSystem } from '@money-tracker/shared';
+import { payDayLabel } from '@/i18n/payDayLabel';
 import { useLanguage } from '@/i18n/useLanguage';
 import { Chip, Notice } from './Card';
 
@@ -26,7 +26,6 @@ const DAYS = Array.from({ length: LAST_PAY_DAY - 1 }, (_, index) => index + 1);
 export function PayDayPicker({ value, onChange, numberingSystem, firstDayLabel, showAdvice = true }: PayDayPickerProps) {
   const { t } = useTranslation();
   const language = useLanguage();
-  const digits = new Intl.NumberFormat(intlLocale(language, numberingSystem), { useGrouping: false });
   const spoken = (day: number) => payDayLabel(day, { t, language, numberingSystem });
   return (
     <View className="gap-3">
@@ -35,7 +34,7 @@ export function PayDayPicker({ value, onChange, numberingSystem, firstDayLabel, 
         {DAYS.map((day) => (
           <Chip
             key={day}
-            label={day === 1 && firstDayLabel ? firstDayLabel : digits.format(day)}
+            label={day === 1 && firstDayLabel ? firstDayLabel : formatDigits(day, { language, numberingSystem })}
             accessibilityLabel={day === 1 && firstDayLabel ? firstDayLabel : spoken(day)}
             selected={day === value}
             onPress={() => onChange(day)}
