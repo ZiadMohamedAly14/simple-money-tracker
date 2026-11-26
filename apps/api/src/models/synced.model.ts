@@ -33,6 +33,19 @@ export const AccountSettings = model(
   'AccountSettings',
 );
 
+// The Account's Pay Day changes (ADR-0009): one per Account, kept apart from the settings so a
+// stale settings edit can't undo a Pay Day change. No record means Pay Day 1.
+export const PayDayHistory = model(
+  'PayDayHistory',
+  syncedSchema({
+    entries: {
+      type: [new Schema({ payDay: { type: Number, required: true }, startsOn: { type: String, required: true } }, { _id: false })],
+      default: [],
+    },
+  }),
+  'PayDayHistories',
+);
+
 export const Category = model(
   'Category',
   syncedSchema({
@@ -120,6 +133,7 @@ export const KidTransaction = model(
 /** The collection behind each synced entity. Add new synced entities here and to `SYNC_ENTITIES`. */
 export const SYNCED_MODELS = {
   accountSettings: AccountSettings,
+  payDayHistory: PayDayHistory,
   category: Category,
   monthPlan: MonthPlan,
   categoryBudget: CategoryBudget,

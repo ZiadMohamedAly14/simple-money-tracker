@@ -2,6 +2,7 @@ import type { NumberingSystem } from '../i18n/language';
 import { isCategoryIconName } from '../budget/categoryIcon';
 import { topUpSplitProblem } from '../kid/topUpSplit';
 import { isUuid } from './ids';
+import { isPayDayStart, type PayDayEntry } from '../dates/month';
 
 /**
  * The sync contract (ADR-0001, ADR-0007). Every synced record has device-made
@@ -12,6 +13,7 @@ import { isUuid } from './ids';
  */
 export const SYNC_ENTITIES = [
   'accountSettings',
+  'payDayHistory',
   'category',
   'monthPlan',
   'categoryBudget',
@@ -45,6 +47,20 @@ export interface AccountSettingsFields {
   currency: string;
   numberingSystem: NumberingSystem;
 }
+
+/**
+ * One per Account, ID `payDayHistoryId(accountId)`: the Account's Pay Day
+ * changes (ADR-0009). Its own record, not part of the Account settings, so a
+ * device editing the currency with a stale copy can't undo a Pay Day change
+ * (last edit wins per record, ADR-0001). No record, or no entries, means Pay
+ * Day 1. Store only histories made by `payDayOptions`.
+ */
+export interface PayDayHistoryFields {
+  entries: PayDayEntry[];
+}
+
+/** Most Pay Day changes one history may hold. */
+export const MAX_PAY_DAY_ENTRIES = 240;
 
 /** Longest Category name, in UTF-16 code units. */
 export const CATEGORY_NAME_MAX_LENGTH = 60;
@@ -144,6 +160,7 @@ export interface KidTransactionFields {
 
 export interface SyncFieldsByEntity {
   accountSettings: AccountSettingsFields;
+  payDayHistory: PayDayHistoryFields;
   category: CategoryFields;
   monthPlan: MonthPlanFields;
   categoryBudget: CategoryBudgetFields;
@@ -293,6 +310,29 @@ class FieldReader {
     return splits.map((split) => ({ jarId: split.jarId as string, amount: split.amount as number }));
   }
 
+  /**
+   * A Pay Day history: a list of `{ payDay, startsOn }`, keeping only those
+   * fields. Each Pay Day is 1–31 and each start date is a day that Pay Day
+   * falls on, no two the same. Missing (an older app) reads as empty.
+   */
+  payDayEntries(field: string): PayDayEntry[] {
+    const value = this.source[field];
+    if (value === undefined || value === null) return [];
+    const problem = 'must be a list of Pay Days (1–31), each with a different date its first Month starts';
+    if (!Array.isArray(value) || value.length > MAX_PAY_DAY_ENTRIES) return this.fail(field, problem, []);
+    const entries = value.map((item) => (typeof item === 'object' && item !== null ? (item as Fields) : {}));
+    const valid = entries.every(
+      ({ payDay, startsOn }) =>
+        Number.isInteger(payDay) &&
+        (payDay as number) >= 1 &&
+        (payDay as number) <= 31 &&
+        isLocalDate(startsOn) &&
+        isPayDayStart(payDay as number, startsOn),
+    );
+    if (!valid || new Set(entries.map((e) => e.startsOn)).size !== entries.length) return this.fail(field, problem, []);
+    return entries.map(({ payDay, startsOn }) => ({ payDay: payDay as number, startsOn: startsOn as string }));
+  }
+
   localDate(field: string): string {
     const value = this.source[field];
     return isLocalDate(value) ? value : this.fail(field, 'must be a date YYYY-MM-DD', '');
@@ -318,6 +358,7 @@ const FIELD_PARSERS: { [E in SyncEntity]: (read: FieldReader) => SyncFieldsByEnt
     currency: read.currency('currency'),
     numberingSystem: read.oneOf('numberingSystem', ['western', 'arabic-indic'] as const),
   }),
+  payDayHistory: (read) => ({ entries: read.payDayEntries('entries') }),
   monthPlan: (read) => ({ month: read.month('month'), expectedIncome: read.nonNegativeAmount('expectedIncome') }),
   categoryBudget: (read) => ({
     month: read.month('month'),

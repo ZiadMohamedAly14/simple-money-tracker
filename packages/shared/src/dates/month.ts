@@ -118,6 +118,11 @@ function monthOnPayDay(localDate: string, payDay: number): Month {
 /** The first day of a Month if one Pay Day had always been in force. */
 const startOnPayDay = (month: Month, payDay: number): string => payDayDate(payDay, addMonths(month, payDay >= 16 ? -1 : 0));
 
+/** Whether a local date is where a Month on `payDay` starts (clamped to the last day of a short month). */
+export function isPayDayStart(payDay: number, startsOn: string): boolean {
+  return payDayDate(payDay, startsOn.slice(0, 7)) === startsOn;
+}
+
 /** The date Pay Day falls on in a calendar month, on its last day when the month is too short. */
 function payDayDate(payDay: number, calendarMonth: string): string {
   const [year, monthNumber] = calendarMonth.split('-').map(Number) as [number, number];

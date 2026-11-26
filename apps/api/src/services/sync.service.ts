@@ -7,6 +7,7 @@ import {
   categoryBudgetId,
   monthPlanId,
   otherCategoryId,
+  payDayHistoryId,
   parsePushedChange,
   type ScopeErrorData,
   type KidTransactionFields,
@@ -66,6 +67,7 @@ interface EntityRules {
  */
 const RULES: { [E in SyncEntity]: EntityRules } = {
   accountSettings: { kidReads: () => ({}), references: () => [], requiredId: (accountId) => accountSettingsId(accountId) },
+  payDayHistory: { kidReads: null, references: () => [], requiredId: (accountId) => payDayHistoryId(accountId) },
   category: { kidReads: null, references: () => [] },
   monthPlan: {
     kidReads: null,

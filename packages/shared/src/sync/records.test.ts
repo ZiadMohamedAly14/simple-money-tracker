@@ -103,6 +103,57 @@ describe('parsePushedChange', () => {
     });
   });
 
+  describe('Pay Day history', () => {
+    const history = {
+      id,
+      updatedAt: 1,
+      deletedAt: null,
+      entries: [
+        { payDay: 25, startsOn: '2026-12-25' },
+        { payDay: 31, startsOn: '2027-02-28' },
+      ],
+    };
+
+    it('accepts a list of Pay Days, each with the date its first Month starts', () => {
+      expect(parsePushedChange({ entity: 'payDayHistory', record: history })).toEqual({
+        ok: true,
+        change: { entity: 'payDayHistory', record: history },
+      });
+    });
+
+    it('keeps only the known fields of each entry', () => {
+      const record = { ...history, entries: [{ payDay: 25, startsOn: '2026-12-25', note: 'x' }] };
+      expect(parsePushedChange({ entity: 'payDayHistory', record })).toEqual({
+        ok: true,
+        change: { entity: 'payDayHistory', record: { ...history, entries: [{ payDay: 25, startsOn: '2026-12-25' }] } },
+      });
+    });
+
+    it('reads a missing list (an older app) as no changes, which is Pay Day 1', () => {
+      const { entries: _entries, ...withoutEntries } = history;
+      expect(parsePushedChange({ entity: 'payDayHistory', record: withoutEntries })).toEqual({
+        ok: true,
+        change: { entity: 'payDayHistory', record: { ...withoutEntries, entries: [] } },
+      });
+    });
+
+    it.each([
+      ['a Pay Day of 0', [{ payDay: 0, startsOn: '2026-12-01' }]],
+      ['a Pay Day of 32', [{ payDay: 32, startsOn: '2026-12-01' }]],
+      ['a fractional Pay Day', [{ payDay: 1.5, startsOn: '2026-12-01' }]],
+      ['a start date that does not exist', [{ payDay: 30, startsOn: '2027-02-30' }]],
+      ['a start date that is not on its Pay Day', [{ payDay: 25, startsOn: '2026-12-24' }]],
+      ['Pay Day 31 starting before the last day', [{ payDay: 31, startsOn: '2027-04-29' }]],
+      ['two entries starting the same day', [{ payDay: 1, startsOn: '2027-01-01' }, { payDay: 1, startsOn: '2027-01-01' }]],
+      ['an entry that is not an object', ['2027-01-01']],
+      ['a list that is too long', Array.from({ length: 1001 }, () => ({ payDay: 1, startsOn: '2027-01-01' }))],
+      ['something that is not a list', 'none'],
+    ])('rejects %s', (_label, entries) => {
+      const result = parsePushedChange({ entity: 'payDayHistory', record: { ...history, entries } });
+      expect(result).toEqual({ ok: false, problems: [{ field: 'entries', message: expect.any(String) }] });
+    });
+  });
+
   describe('Month plan', () => {
     const plan = { id, updatedAt: 1, deletedAt: null, month: '2026-03', expectedIncome: 800000 };
 

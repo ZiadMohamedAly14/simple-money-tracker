@@ -75,6 +75,7 @@ export {
   isUuid,
   monthPlanId,
   otherCategoryId,
+  payDayHistoryId,
   uuidv7,
 } from './sync/ids';
 export type { RandomBytes } from './sync/ids';
@@ -90,6 +91,7 @@ export type {
   KidTransactionKind,
   MonthPlanFields,
   ParseResult,
+  PayDayHistoryFields,
   PulledChange,
   PulledRecord,
   PushedChange,
