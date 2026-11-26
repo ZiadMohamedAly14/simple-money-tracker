@@ -1,6 +1,6 @@
 # 02: Store and sync the Pay Day history
 
-**Status:** ready-for-agent
+**Status:** resolved (merged to `mvp` via `pay-day`)
 **Blocked by:** 01
 
 **What to build:** Store the Pay Day history (each entry is a Pay Day and the date the first Month on it starts) in the shared sync contract, the local SQLite schema with a migration, and the Mongo model. Kid sessions don't need it. A second change before a pending one takes effect replaces the pending one (spec decision 8).

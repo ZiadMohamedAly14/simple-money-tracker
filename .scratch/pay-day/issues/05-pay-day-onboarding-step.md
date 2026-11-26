@@ -1,6 +1,6 @@
 # 05: "When do you get paid?" setup step
 
-**Status:** needs-triage (no screen design in `docs/design/` yet)
+**Status:** resolved (merged to `mvp` via `pay-day`)
 **Blocked by:** 03
 
 **What to build:** One optional step in personal setup, before Expected Income, defaulting to 1st / not sure. The first Month written by `completePersonalOnboarding` is the current Month under the chosen Pay Day. Accounts that have already finished setup don't see it.
