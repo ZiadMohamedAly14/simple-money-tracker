@@ -149,7 +149,7 @@ describe('personal onboarding and Month plans (Seam B)', () => {
       income: 1000000,
       spending: 50000,
       remaining: 950000, // Income is above the plan, so Remaining counts Income: 1,000,000 − 50,000
-      unallocated: 800000,
+      unallocated: 1000000, // Income is above the plan, so Unallocated counts Income too: 1,000,000 − 0 in Category Budgets
     });
   });
 
