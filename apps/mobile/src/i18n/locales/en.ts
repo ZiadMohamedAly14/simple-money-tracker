@@ -108,8 +108,6 @@ export const en = {
       title: 'When do you get paid?',
       body: 'Choose the earliest day you usually get paid. Your months will start on that day. You can change it later in Settings.',
       notSure: '1st / not sure',
-      otherDay: 'Or pick a day',
-      lastDay: 'Last day of the month',
       firstMonth: 'Your first month: {{month}}, {{start}} – {{end}}',
     },
     incomeTitle: 'Expected income',
