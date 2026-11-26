@@ -9,9 +9,28 @@ All money is virtual: there are no bank connections and no payments. The app wor
 
 ## Screenshots
 
-| Home | Record an expense | Kid Wallet | Arabic (RTL) |
-|---|---|---|---|
-| ![Home](docs/screenshots/home.png) | ![Record an expense](docs/screenshots/record-expense.png) | ![Kid Wallet](docs/screenshots/kid-wallet.png) | ![Arabic](docs/screenshots/arabic.png) |
+<table>
+  <tr>
+    <th>Month overview</th>
+    <th>Record an expense</th>
+    <th>Arabic, right to left</th>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/home-screen.png" alt="Month overview with spending, income, remaining and category budgets" width="250"></td>
+    <td><img src="docs/screenshots/expenses-page.png" alt="Add expense screen with category chips and a calculator keypad" width="250"></td>
+    <td><img src="docs/screenshots/arabic-home-page.png" alt="The month overview in Arabic with a right-to-left layout and Arabic-Indic digits" width="250"></td>
+  </tr>
+  <tr>
+    <th>Kid Wallet (kid's phone)</th>
+    <th>Kid Wallet (parent's view)</th>
+    <th></th>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/kids-wallet.png" alt="A child's wallet in Kid Mode with Save, Spend and Give jars" width="250"></td>
+    <td><img src="docs/screenshots/manage-kids-wallet.png" alt="The parent's view of a child's wallet with top-up, jar transfer and history actions" width="250"></td>
+    <td></td>
+  </tr>
+</table>
 
 ## Features
 
