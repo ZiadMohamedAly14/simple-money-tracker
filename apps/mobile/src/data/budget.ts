@@ -8,6 +8,7 @@ import {
   defaultCategoryId,
   monthFigures,
   monthPlanId,
+  payDayHistoryId,
   copiedPlanEditTime,
   newMonthPlan,
   type CurrencyCode,
@@ -15,9 +16,10 @@ import {
   type Month,
   type MonthFigures,
   type NumberingSystem,
+  type PayDayHistory,
 } from '@money-tracker/shared';
 import { ONBOARDING_STATE_KEY, type KnownRecord, type LocalStore } from '@/db/localStore';
-import { accountSettings, categories, categoryBudgets, deviceState, monthPlans, transactions } from '@/db/schema';
+import { accountSettings, categories, categoryBudgets, deviceState, monthPlans, payDayHistories, transactions } from '@/db/schema';
 import type { LocalDb } from '@/db/types';
 
 function requireAccount(store: LocalStore): string {
@@ -175,6 +177,34 @@ export function changeAccountSettings(store: LocalStore, db: LocalDb, changes: A
 /** Live-queryable: the Account's settings (one row, or none before onboarding or first sync). */
 export function accountSettingsQuery(db: LocalDb) {
   return db.select().from(accountSettings).where(isNull(accountSettings.deletedAt)).limit(1);
+}
+
+/**
+ * Stores the Account's new Pay Day history: pass the `history` of the option
+ * the adult picked from `payDayOptions` (Settings or the setup step), which
+ * already replaces a pending change (last edit wins). It is its own synced
+ * record, so a currency change can't undo it. Returns `not_ready` and writes
+ * nothing while the device hasn't received the Account yet: its history
+ * would be built on a guessed Pay Day 1 and could overwrite one set elsewhere.
+ */
+export function savePayDayHistory(store: LocalStore, db: LocalDb, history: PayDayHistory): 'saved' | 'not_ready' {
+  const accountId = requireAccount(store);
+  if (!accountSettingsQuery(db).get()) return 'not_ready';
+  store.put([{ entity: 'payDayHistory', id: payDayHistoryId(accountId), fields: { entries: [...history] } }]);
+  return 'saved';
+}
+
+/** Live-queryable: the Pay Day history row (none until the Pay Day is first changed). Read it with `payDayHistoryOf`. */
+export function payDayHistoryQuery(db: LocalDb) {
+  return db.select().from(payDayHistories).where(isNull(payDayHistories.deletedAt)).limit(1);
+}
+
+/** The history in a `payDayHistoryQuery` result: no row means Pay Day 1 (an empty history). */
+export const payDayHistoryOf = (rows: readonly { entries: PayDayHistory | null }[]): PayDayHistory => rows[0]?.entries ?? [];
+
+/** The Account's current Pay Day history, for date-to-Month lookups outside React. */
+export function readPayDayHistory(db: LocalDb): PayDayHistory {
+  return payDayHistoryOf(payDayHistoryQuery(db).all());
 }
 
 /** Live-queryable: the device's onboarding state row (see `OnboardingState`; no row = not started). */
