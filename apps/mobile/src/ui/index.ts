@@ -1,5 +1,5 @@
 /**
- * Mizan component library (docs/design). Screens compose these instead of
+ * Mizan component library. Screens compose these instead of
  * styling from scratch; see notes in each file for props.
  */
 export { AmountDisplay, ProgressBar, ProgressRow } from './Amount';

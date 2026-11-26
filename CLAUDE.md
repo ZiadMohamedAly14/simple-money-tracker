@@ -1,6 +1,6 @@
 # Money Tracker
 
-A personal monthly budget app plus a Kid Wallet. Uses virtual money only, works offline first, and supports English and Arabic. Read `GLOSSARY.md` and `docs/adr/` before working; `docs/mvp-scope.md` says what's in and out of the MVP. Screens follow `docs/design/` (the visual design and its known flaws).
+A personal monthly budget app plus a Kid Wallet. Uses virtual money only, works offline first, and supports English and Arabic. Read `GLOSSARY.md` and `docs/adr/` before working; `docs/mvp-scope.md` says what's in and out of the MVP.
 
 ## Agent skills
 

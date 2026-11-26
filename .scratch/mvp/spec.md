@@ -139,9 +139,9 @@ All money is virtual. Everything works offline, and changes sync between devices
 ### Architecture
 
 - A monorepo using npm workspaces, with three parts: the mobile app, the API, and a shared package. The shared package holds domain types, sync payload types, money and date helpers, and pure domain logic, and must not depend on React Native or Node APIs.
-- The API mirrors the a previous backend stack and conventions (ADR-0005): Express 4, Mongoose and express-validator. Requests flow routes → validation → controller → service → model. Responses use the `{ message, data, success }` envelope, errors are `AppError` subclasses caught by a central error handler, and email goes through a swappable mailer (Resend's HTTPS API in production, nodemailer to a local catcher in development; see ADR-0008). Deliberate differences from another project are listed in ADR-0005.
+- The API uses a familiar Express stack and conventions (ADR-0005): Express 4, Mongoose and express-validator. Requests flow routes → validation → controller → service → model. Responses use the `{ message, data, success }` envelope, errors are `AppError` subclasses caught by a central error handler, and email goes through a swappable mailer (Resend's HTTPS API in production, nodemailer to a local catcher in development; see ADR-0008). The deliberate hardening is listed in ADR-0005.
 - The mobile app uses Expo with expo-router (separate route groups for authentication, onboarding, Personal, Kid and the PIN-gated Parent Area), expo-sqlite with Drizzle as the single source of truth for screens (ADR-0003), zustand for UI and session state only, axios for authentication and sync calls, NativeWind with start/end styling classes, i18next with expo-localization, SecureStore for tokens, and expo-local-authentication for biometrics.
-- Hosting is fully separate from another project (ADR-0008): Railway Hobby runs the API, MongoDB Atlas M0 holds the data (with a nightly `mongodump`), and Resend sends email through its HTTPS API (Railway Hobby blocks outbound SMTP).
+- Hosting is kept separate and cheap (ADR-0008): Railway Hobby runs the API, MongoDB Atlas M0 holds the data (with a nightly `mongodump`), and Resend sends email through its HTTPS API (Railway Hobby blocks outbound SMTP).
 - Builds use EAS: a development client and a preview APK for Android, with over-the-air updates switched on. iOS is set up but not released.
 
 ### Domain rules
@@ -262,11 +262,11 @@ All money is virtual. Everything works offline, and changes sync between devices
   - Top-up split validation;
   - keypad expression evaluation (operator order, rounding, incomplete expressions, division by zero).
 - Mobile screens are tested by hand in the MVP, including a right-to-left visual pass. Automated UI tests are out of scope.
-- **Prior art:** a previous backend uses Jest with ts-jest, which we follow. It only has unit tests without a database, so seams A and B go beyond it on purpose.
+- **Prior art:** Jest with ts-jest, the team's usual setup. Typical projects only have unit tests without a database, so seams A and B go beyond that on purpose.
 
 ## Out of Scope
 
-Recurring top-ups or allowances, recurring expenses, notifications, any charts or reports (the category breakdown is a list), receipts or photos, several currencies per Account, carry-over, Learn progress tracking, kid-requested Jar Transfers, analytics, data export, web app, iOS release, Google/Apple/guest login, background sync, linking Top-ups to the parent's Personal Budget, automated mobile UI tests, any account or infrastructure shared with another project, income categories, expense templates, savings goals (Jar or personal), an app lock, gold (XAU) as a currency, an AI assistant, and any premium tier or billing. The order of post-MVP work is in the MVP scope note.
+Recurring top-ups or allowances, recurring expenses, notifications, any charts or reports (the category breakdown is a list), receipts or photos, several currencies per Account, carry-over, Learn progress tracking, kid-requested Jar Transfers, analytics, data export, web app, iOS release, Google/Apple/guest login, background sync, linking Top-ups to the parent's Personal Budget, automated mobile UI tests, any account or infrastructure shared with other projects, income categories, expense templates, savings goals (Jar or personal), an app lock, gold (XAU) as a currency, an AI assistant, and any premium tier or billing. The order of post-MVP work is in the MVP scope note.
 
 ## Further Notes
 

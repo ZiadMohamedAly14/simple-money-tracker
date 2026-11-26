@@ -2,8 +2,8 @@ import type { ColorScheme } from './appearance';
 
 /**
  * Color tokens for the two experiences (Personal, Kid), each in a light and a
- * dark variant, from the Mizan palettes (docs/design/mockups/palette-light.png
- * and palette-dark.png). Screens use token classes (bg-background,
+ * dark variant, from the Mizan light and dark palettes. Screens use token
+ * classes (bg-background,
  * text-primary, bg-tint, rounded-theme…) from tailwind.config.js, never raw
  * colors, so palette changes mean editing only this file. ThemeProvider
  * passes the active variant to NativeWind as CSS variables.

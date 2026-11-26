@@ -1,21 +1,94 @@
-# Money Tracker
+# Mizan — a simple, offline-first money tracker (English/Arabic)
 
-A simple mobile app for tracking monthly income, spending and budgets, plus a Kid Wallet where parents give children virtual money and teach them basic money habits.
+[![CI](https://github.com/ZiadMohamedAly14/simple-money-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/ZiadMohamedAly14/simple-money-tracker/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-All money in the app is virtual: no bank connections, no payments. It works offline first and supports English and Arabic (full right-to-left layout) from day one.
+Mizan (ميزان, "balance") is an Android app for planning a monthly budget and teaching kids about money. Adults split their expected income into category budgets and record spending in about three taps. Parents give each child a Kid Wallet with Save, Spend and Give jars, and the child's own phone can run a locked-down Kid Mode.
 
-## Features (MVP)
+All money is virtual: there are no bank connections and no payments. The app works fully offline, syncs across devices when online, and supports English and Arabic with a full right-to-left layout.
 
-- **Personal Budget:** set your Expected Income, split it into Category Budgets, record Income and Expenses in about three taps, and see what's Remaining each Month.
-- **Kid Wallet:** parents top up a child's wallet split into Jars (Save, Spend, Give). Children record what they spend and read short Learn lessons. A child's own phone can run in Kid Mode, protected by a Parent PIN.
-- **Offline sync:** everything works without internet and syncs across devices when online.
-- **Passwordless sign-in:** sign in with a one-time code sent by email.
+## Screenshots
 
-## Status
+| Home | Record an expense | Kid Wallet | Arabic (RTL) |
+|---|---|---|---|
+| ![Home](docs/screenshots/home.png) | ![Record an expense](docs/screenshots/record-expense.png) | ![Kid Wallet](docs/screenshots/kid-wallet.png) | ![Arabic](docs/screenshots/arabic.png) |
 
-Implementation is in progress. The work is broken into tickets in [`.scratch/mvp/issues/`](.scratch/mvp/issues/).
+## Features
 
-## Development
+- **Monthly budget.** Set an Expected Income, split it into Category Budgets and see what's Remaining. Months start on your own Pay Day, not just the 1st.
+- **Fast recording.** Record income and expenses in about three taps. The keypad does simple math (`+ − × ÷`).
+- **Kid Wallet.** Parents top up each child's wallet, split across jars (Save, Spend, Give), and can move money between jars. Kids record what they spend and read short lessons in the Learn section.
+- **Kid Mode.** A child's phone holds a session limited to their own wallet. Leaving Kid Mode needs a Parent PIN or the parent's biometrics.
+- **Offline-first sync.** Everything works without internet. Changes sync between devices when a connection returns.
+- **Passwordless sign-in.** Sign in with a one-time code sent by email.
+- **Bilingual.** English and Arabic, full RTL layout, and an option for Arabic-Indic digits. Light and dark themes.
+
+## Tech stack
+
+| Part | Stack |
+|---|---|
+| Mobile | Expo, React Native, TypeScript, expo-router, expo-sqlite with Drizzle, NativeWind (Tailwind), i18next |
+| API | Node.js, TypeScript, Express 4, Mongoose, express-validator, JWT |
+| Shared | One TypeScript package of domain logic, used by both the app and the API |
+| Data | SQLite on the device, MongoDB on the server |
+| Testing | Jest, mongodb-memory-server, more than 1,000 tests |
+| CI and hosting | GitHub Actions, Railway (API), MongoDB Atlas, EAS Build (Android) |
+
+## Architecture
+
+```mermaid
+flowchart LR
+  subgraph Phone["Android app (apps/mobile)"]
+    UI[Screens<br/>expo-router] --> Data[Data layer]
+    Data --> SQLite[(SQLite<br/>expo-sqlite + Drizzle)]
+    SQLite --> Sync[Sync engine<br/>pending-changes queue]
+  end
+  Shared[[packages/shared<br/>money · months · budgets · jars · sync contract]]
+  Phone -.uses.-> Shared
+  API -.uses.-> Shared
+  Sync <-->|"POST /sync<br/>push changes, pull since cursor"| API
+  subgraph Server["REST API (apps/api)"]
+    API[Express<br/>routes → validation → controllers → services] --> Mongo[(MongoDB)]
+  end
+```
+
+The phone is the source of truth for what the user sees: every screen reads from and writes to the local SQLite database, so the app works the same offline. A sync engine pushes local changes and pulls changes from other devices through a single endpoint, using a server-version cursor. Conflicts are resolved per record by last write wins.
+
+```
+apps/mobile      Expo app (Android)
+apps/api         REST API
+packages/shared  domain logic, money/date helpers, sync contract
+docs/adr         architecture decision records
+.scratch         specs and tickets the app was built from
+```
+
+## Key decisions
+
+Each decision is written up as a short [architecture decision record](docs/adr/):
+
+| ADR | Decision | Why |
+|---|---|---|
+| [0001](docs/adr/0001-offline-sync-last-write-wins.md) | Per-record last-write-wins with tombstones | Data is mostly add-only, so CRDTs would be overkill; losing a rare concurrent edit is acceptable for virtual money |
+| [0002](docs/adr/0002-scoped-kid-session.md) | Kid devices hold a narrowed Kid Session | A child's phone can never read or change the parent's budget |
+| [0003](docs/adr/0003-local-store-expo-sqlite.md) | expo-sqlite with a hand-written sync layer | Real SQL for totals, and no dependency on a patchy sync framework |
+| [0004](docs/adr/0004-money-as-integer-minor-units.md) | Money as integer minor units | No floating-point drift in budget totals |
+| [0005](docs/adr/0005-backend-stack-with-deliberate-hardening.md) | A familiar Express stack, with hardened auth | Fast to build; rotating, hashed refresh tokens and rate limits |
+| [0006](docs/adr/0006-client-generated-uuidv7-ids.md) | Client-generated UUIDv7 ids | Records can be created offline without asking the server for an id |
+| [0007](docs/adr/0007-sync-protocol-server-version-cursor.md) | One sync endpoint with a server-version cursor | Devices never miss or repeat changes, even if a phone's clock is wrong |
+| [0008](docs/adr/0008-hosting-on-a-small-budget.md) | Hosting for about $5 a month | An always-on API without paying for idle capacity |
+| [0009](docs/adr/0009-pay-day-changes-keep-past-months.md) | Changing Pay Day never redraws past Months | Months you've already reviewed keep their numbers |
+
+## How this was built
+
+The project was built spec-first, with AI coding agents doing most of the implementation:
+
+1. **Domain language first.** [GLOSSARY.md](GLOSSARY.md) defines every term (Month, Remaining, Jar, Top-up, Kid Session…), and the code uses exactly these names.
+2. **Spec and scope.** [.scratch/mvp/spec.md](.scratch/mvp/spec.md) holds the user stories; [docs/mvp-scope.md](docs/mvp-scope.md) says what's in, what's out and what comes later.
+3. **Decisions recorded as ADRs** as they were made, so trade-offs aren't lost.
+4. **Tickets.** The spec is split into small vertical slices ([.scratch/mvp/issues/](.scratch/mvp/issues/), [.scratch/pay-day/](.scratch/pay-day/)), each with acceptance criteria.
+5. **Agents implement, tests verify.** Each ticket was built test-first on its own branch and reviewed against the spec before merging. [CLAUDE.md](CLAUDE.md) and [docs/agents/](docs/agents/) hold the agent setup.
+
+## Running it yourself
 
 Requires Node 22 (see `.nvmrc`).
 
@@ -26,43 +99,30 @@ npm test               # Jest in every workspace (API tests start an in-memory M
 npm run build          # builds packages/shared and apps/api to dist/
 ```
 
-API locally: copy `apps/api/.env.example` to `apps/api/.env`, start a MongoDB, then `npm run dev -w @money-tracker/api`, which loads `apps/api/.env` (variables already set in your shell take precedence). Sign-in code emails: set the `SMTP_*` variables to Gmail (see Gmail below) or `RESEND_API_KEY` to send real emails, or leave them at the defaults and run a local catcher, Mailpit (`docker run --rm -p 1025:1025 -p 8025:8025 axllent/mailpit`), reading the codes at http://localhost:8025.
+### API
 
-Mobile locally: copy `apps/mobile/.env.example` to `apps/mobile/.env`, then `npm start -w @money-tracker/mobile` and open the development build on an Android device or emulator.
+1. Copy `apps/api/.env.example` to `apps/api/.env`. Every variable is described there and checked at start-up.
+2. Start a MongoDB (local, Docker or Atlas) and set `MONGODB_URI`.
+3. Run `npm run dev -w @money-tracker/api`.
 
-## Deployment
+Sign-in codes are sent by email. For local development, run a mail catcher and read the codes at http://localhost:8025:
 
-These steps are done by a human; nothing is deployed automatically.
-
-**MongoDB Atlas (ADR-0008).** Create a new Atlas organization (not another project's), a project and an M0 cluster. Add a database user and allow Railway's egress (or `0.0.0.0/0` for M0). Copy the `mongodb+srv://` connection string. Set up a nightly `mongodump` since M0 has no backups.
-
-**Railway.** Create a project on the Hobby plan from this repo. `railway.json` at the repo root sets the build (`npm run build -w @money-tracker/shared -w @money-tracker/api`), the start command and the `/health` health check. Set variables `NODE_ENV=production`, `MONGODB_URI=<Atlas string>` and optionally `DB_NAME` (defaults to `money-tracker`; Railway provides `PORT`), three fresh random secrets `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `CODE_HASH_SECRET` (32+ characters, all different), and the email settings below. Generate a public domain.
-
-**Gmail (email, ADR-0008).** Production sends sign-in codes over Gmail SMTP from a personal Google account (not another project's). Turn on 2-Step Verification, create an App Password, and set `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=465`, `SMTP_USER=<the Gmail address>`, `SMTP_PASS=<App Password>` and `EMAIL_FROM=Mizan <the Gmail address>`, with `RESEND_API_KEY` left unset. Gmail allows about 500 emails a day and anyone can receive them. This needs a host that allows outbound SMTP: Railway Hobby blocks it, so on Railway use Resend instead (`RESEND_API_KEY` and `EMAIL_FROM=Mizan <onboarding@resend.dev>`, which only delivers to the Resend account owner until a domain is verified). Then request a code from the app in English and in Arabic and check both emails arrive.
-
-**EAS (Android).** `npm i -g eas-cli`, `eas login`, then from `apps/mobile`: `eas init` (writes the project ID into `app.json`), replace `REPLACE-WITH-RAILWAY-DOMAIN` in `eas.json` with the Railway domain, and run `eas build --profile development --platform android`. Install the APK, start Metro with `npm start -w @money-tracker/mobile`, and the app should show "API: ok".
-
-## Tech stack
-
-| Part | Stack |
-|---|---|
-| Mobile | Expo, React Native, TypeScript, expo-router, expo-sqlite + Drizzle, NativeWind, i18next |
-| API | Node.js, TypeScript, Express 4, Mongoose, express-validator, Jest |
-| Data | MongoDB Atlas |
-| Hosting | Railway (API), Gmail SMTP (email) |
-
-It's planned as an npm-workspaces monorepo:
-
-```
-apps/mobile      Expo app (Android first)
-apps/api         REST API
-packages/shared  domain types, money/date helpers, sync contract
+```sh
+docker run --rm -p 1025:1025 -p 8025:8025 axllent/mailpit
 ```
 
-## Docs
+To send real email, set either the `SMTP_*` variables (for example Gmail with an App Password) or `RESEND_API_KEY`.
 
-- [GLOSSARY.md](GLOSSARY.md): the domain vocabulary (Month, Remaining, Jar, Top-up, …). Use these terms in code and issues.
-- [docs/adr/](docs/adr/): architecture decisions and why they were made.
-- [docs/mvp-scope.md](docs/mvp-scope.md): what's in and out of the MVP.
-- [.scratch/mvp/spec.md](.scratch/mvp/spec.md): the full MVP spec and user stories.
-- [CLAUDE.md](CLAUDE.md): notes for AI coding agents working in this repo.
+### Mobile
+
+1. Copy `apps/mobile/.env.example` to `apps/mobile/.env` and point `EXPO_PUBLIC_API_URL` at your API. The Android emulator reaches your machine at `10.0.2.2`.
+2. Run `npm start -w @money-tracker/mobile` and open a development build on an Android device or emulator.
+
+### Deploying
+
+- **API:** `railway.json` configures a Railway deploy: build command, start command and the `/health` check. Set `NODE_ENV=production`, `MONGODB_URI`, three different random secrets of 32+ characters (`JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `CODE_HASH_SECRET`) and your email settings. Any Node host works the same way.
+- **Android:** in `apps/mobile/app.json`, remove `owner`, `extra.eas.projectId` and `updates.url` (they belong to the original Expo project). Then, from `apps/mobile`, run `eas init`, replace the `REPLACE-WITH-…-API-URL` placeholders in `eas.json` with your API's URL, and run `eas build --platform android`.
+
+## License
+
+[MIT](LICENSE)
