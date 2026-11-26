@@ -1,4 +1,4 @@
-import { addMonths, currentMonth, formatMonth, monthDates, monthOf, type PayDayHistory } from './month';
+import { addMonths, currentMonth, formatMonth, monthDates, monthOf, payDayOptions, type Month, type PayDayHistory } from './month';
 
 /** A history whose one Pay Day has been in force since long before the dates under test. */
 const since = (payDay: number): PayDayHistory => [{ payDay, startsOn: `2020-01-${String(payDay).padStart(2, '0')}` }];
@@ -14,21 +14,42 @@ const nextDay = (date: string): string => {
  * that fall in it.
  */
 function expectConsecutiveMonths(history: PayDayHistory, from: string, days: number): void {
+  // Collects the first problem and asserts once: an expect per day is too slow for the sweeps.
+  let problem: string | null = null;
   let date = from;
   let month = monthOf(date, history);
-  expect(monthDates(month, history).start <= date).toBe(true);
-  for (let i = 0; i < days; i++) {
+  if (monthDates(month, history).start > date) problem = `${month} starts after ${date}`;
+  for (let i = 0; i < days && !problem; i++) {
     const next = nextDay(date);
     const nextMonth = monthOf(next, history);
+    const dates = monthDates(month, history);
     if (nextMonth === month) {
-      expect(monthDates(month, history).end > date).toBe(true);
-    } else {
-      expect([date, nextMonth]).toEqual([monthDates(month, history).end, addMonths(month, 1)]);
-      expect(monthDates(nextMonth, history).start).toBe(next);
+      if (dates.end <= date) problem = `${month} ends ${dates.end} but ${next} is in it`;
+    } else if (nextMonth !== addMonths(month, 1)) {
+      problem = `${nextMonth} follows ${month} on ${next}`;
+    } else if (dates.end !== date || monthDates(nextMonth, history).start !== next) {
+      problem = `${month} ends ${dates.end}, ${nextMonth} starts ${monthDates(nextMonth, history).start}, but the change is on ${next}`;
     }
     date = next;
     month = nextMonth;
   }
+  expect({ history, problem }).toEqual({ history, problem: null });
+}
+
+/**
+ * A cheaper check than walking every day, for sweeps: `count` Months from
+ * `first` follow on with no gap or overlap, and each one's first and last day
+ * fall in it.
+ */
+function expectContiguousMonths(history: PayDayHistory, first: Month, count: number): void {
+  const problems: string[] = [];
+  for (let i = 0, month = first; i < count; i++, month = addMonths(month, 1)) {
+    const { start, end } = monthDates(month, history);
+    if (start > end) problems.push(`${month} ends ${end} before it starts ${start}`);
+    if (monthOf(start, history) !== month || monthOf(end, history) !== month) problems.push(`${month} (${start} – ${end}) is not where its own days fall`);
+    if (nextDay(end) !== monthDates(addMonths(month, 1), history).start) problems.push(`${month} ends ${end} but the next Month does not start the day after`);
+  }
+  expect({ history, problems }).toEqual({ history, problems: [] });
 }
 
 describe('monthOf with a Pay Day', () => {
@@ -132,5 +153,89 @@ describe('currentMonth', () => {
     expect(currentMonth(new Date(2026, 11, 31, 23, 59, 59))).toBe('2026-12');
     expect(currentMonth(new Date(2028, 1, 29, 12))).toBe('2028-02');
     expect(currentMonth(new Date(2028, 2, 1, 0, 1))).toBe('2028-03');
+  });
+});
+
+describe('payDayOptions: changing Pay Day (spec worked examples)', () => {
+  /** Months as [name, first day, last day]; the last Month is open-ended so only its first day is checked. */
+  type Expected = [Month, string, string?][];
+  const expectMonths = (history: PayDayHistory, expected: Expected) => {
+    for (const [month, start, end] of expected) {
+      const dates = monthDates(month, history);
+      expect([month, dates.start, end === undefined ? undefined : dates.end]).toEqual([month, start, end]);
+    }
+  };
+
+  it.each<[number, number, string, Expected | null, Expected]>([
+    [1, 25, '2026-11-10',
+      [['2026-11', '2026-11-01', '2026-11-24'], ['2026-12', '2026-11-25']],
+      [['2026-11', '2026-11-01', '2026-11-30'], ['2026-12', '2026-12-01', '2026-12-24'], ['2027-01', '2026-12-25']]],
+    [1, 26, '2026-11-23',
+      [['2026-11', '2026-11-01', '2026-11-25'], ['2026-12', '2026-11-26']],
+      [['2026-11', '2026-11-01', '2026-11-30'], ['2026-12', '2026-12-01', '2026-12-25'], ['2027-01', '2026-12-26']]],
+    [1, 20, '2026-11-25',
+      null,
+      [['2026-11', '2026-11-01', '2026-11-30'], ['2026-12', '2026-12-01', '2026-12-19'], ['2027-01', '2026-12-20']]],
+    [25, 10, '2026-11-30',
+      [['2026-12', '2026-11-25', '2027-01-09'], ['2027-01', '2027-01-10']],
+      [['2026-12', '2026-11-25', '2026-12-24'], ['2027-01', '2026-12-25', '2027-02-09'], ['2027-02', '2027-02-10']]],
+  ])('Pay Day %i → %i on %s', (from, to, today, startNow, startAfter) => {
+    const history = from === 1 ? [] : since(from);
+    const options = payDayOptions(history, to, today);
+    if (startNow === null) expect(options.startNow).toBeNull();
+    else expectMonths(options.startNow!.history, startNow);
+    expectMonths(options.startAfterThisMonth.history, startAfter);
+  });
+
+  it('records only the new Pay Day and the date its first Month starts', () => {
+    const options = payDayOptions([], 25, '2026-11-10');
+    expect(options.startNow!.entry).toEqual({ payDay: 25, startsOn: '2026-11-25' });
+    expect(options.startAfterThisMonth.entry).toEqual({ payDay: 25, startsOn: '2026-12-25' });
+  });
+
+  it('a second change before a pending one takes effect replaces it', () => {
+    const pending = payDayOptions([], 25, '2026-11-10').startAfterThisMonth.history;
+    const options = payDayOptions(pending, 10, '2026-11-12');
+    expect(options.startAfterThisMonth.history).toEqual([{ payDay: 10, startsOn: '2027-01-10' }]);
+    expect(monthDates('2026-12', options.startAfterThisMonth.history)).toEqual({ start: '2026-12-01', end: '2027-01-09' });
+  });
+
+  it('keeps earlier changes that have already taken effect', () => {
+    const earlier = { payDay: 25, startsOn: '2026-11-25' };
+    const options = payDayOptions([earlier], 10, '2027-03-01');
+    expect(options.startAfterThisMonth.history).toEqual([earlier, { payDay: 10, startsOn: '2027-05-10' }]);
+    expect(monthDates('2026-11', options.startAfterThisMonth.history)).toEqual({ start: '2026-11-01', end: '2026-11-24' });
+  });
+
+  const todays = ['2026-11-01', '2026-11-14', '2026-11-16', '2026-11-28', '2026-11-30', '2027-02-28'];
+  it.each(Array.from({ length: 31 }, (_, i) => i + 1))('from Pay Day %i to any other, neither option redraws a started Month or breaks the name sequence', (from) => {
+    for (let to = 1; to <= 31; to++) {
+      for (const today of todays) {
+        const before = since(from);
+        const current = monthOf(today, before);
+        const options = payDayOptions(before, to, today);
+        const startNow = options.startNow?.history;
+        const startAfter = options.startAfterThisMonth.history;
+
+        expect(monthDates(current, startAfter)).toEqual(monthDates(current, before));
+        expect(monthDates(addMonths(current, -1), startAfter)).toEqual(monthDates(addMonths(current, -1), before));
+        expectContiguousMonths(startAfter, addMonths(current, -1), 6);
+        // Settled on the new Pay Day: the Month after the Bridge Month starts on it.
+        expect(monthDates(addMonths(current, 2), startAfter).start).toBe(options.startAfterThisMonth.entry.startsOn);
+
+        if (startNow) {
+          expect(monthDates(current, startNow).start).toBe(monthDates(current, before).start);
+          expect(monthOf(today, startNow)).toBe(current);
+          expect(monthDates(addMonths(current, -1), startNow)).toEqual(monthDates(addMonths(current, -1), before));
+          expectContiguousMonths(startNow, addMonths(current, -1), 5);
+        }
+      }
+    }
+  });
+
+  it('offers Start now only early enough that no Month name is skipped', () => {
+    expect(payDayOptions([], 5, '2026-11-03').startNow).not.toBeNull();
+    expect(payDayOptions([], 20, '2026-11-19').startNow).not.toBeNull();
+    expect(payDayOptions([], 20, '2026-11-20').startNow).toBeNull();
   });
 });
