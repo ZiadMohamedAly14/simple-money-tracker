@@ -6,7 +6,7 @@
 import request from 'supertest';
 import type { Express } from 'express';
 import mongoose from 'mongoose';
-import { accountSettingsId, categoryBudgetId, defaultJarId, monthPlanId, otherCategoryId, type PushedChange } from '@money-tracker/shared';
+import { accountSettingsId, categoryBudgetId, defaultJarId, monthPlanId, otherCategoryId, payDayHistoryId, type PushedChange } from '@money-tracker/shared';
 import { HOUR, MINUTE, buildTestApp, createTestClock, createTestMailer, type TestClock, type TestMailer } from './helpers/testApp';
 import { useTestDatabase } from './helpers/testDatabase';
 import { Counter } from '../src/models/counter.model';
@@ -40,6 +40,7 @@ function everyRecord(accountId: string, kidProfileId: string, categoryId = newId
   const jar = (key: 'save' | 'spend') => defaultJarId(accountId, kidProfileId, key);
   return [
     { entity: 'accountSettings', record: { id: accountSettingsId(accountId), ...meta, currency: 'EGP', numberingSystem: 'western' } },
+    { entity: 'payDayHistory', record: { id: payDayHistoryId(accountId), ...meta, entries: [{ payDay: 25, startsOn: '2026-03-25' }] } },
     { entity: 'category', record: { id: categoryId, ...meta, name: 'Food', order: 1, isOther: false, archivedAt: null } },
     { entity: 'monthPlan', record: { id: monthPlanId(accountId, '2026-03'), ...meta, month: '2026-03', expectedIncome: 800000 } },
     {

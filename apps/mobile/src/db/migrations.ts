@@ -119,6 +119,17 @@ const MIGRATIONS: readonly string[][] = [
     // A Category's icon (ticket 21); null on records made before icons synced.
     `ALTER TABLE categories ADD COLUMN icon TEXT`,
   ],
+  [
+    // The Account's Pay Day history (Pay Day ticket 02); no row means Pay Day 1.
+    `CREATE TABLE pay_day_histories (
+      id TEXT PRIMARY KEY NOT NULL,
+      account_id TEXT NOT NULL,
+      updated_at INTEGER NOT NULL,
+      deleted_at INTEGER,
+      server_version INTEGER NOT NULL DEFAULT 0,
+      entries TEXT NOT NULL DEFAULT '[]'
+    )`,
+  ],
 ];
 
 /** Brings the database up to the latest schema. Safe to call on every app start. */

@@ -2,12 +2,13 @@ import { useCallback, useState } from 'react';
 import { Switch, View } from 'react-native';
 import { Redirect, router, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { SUPPORTED_LANGUAGES, type Language, type NumberingSystem } from '@money-tracker/shared';
+import { SUPPORTED_LANGUAGES, toLocalDate, type Language, type NumberingSystem } from '@money-tracker/shared';
 import { authSession, useAuthStatus } from '@/auth/appSession';
 import { changeAccountSettings } from '@/data/budget';
-import { useAccountSettings } from '@/data/useAccountSettings';
+import { useAccountSettings, usePayDayHistory } from '@/data/useAccountSettings';
 import { localDb, localStore } from '@/db/appDatabase';
 import { switchLanguage } from '@/i18n/i18n';
+import { payDaySummary } from '@/i18n/payDayPreview';
 import { useLanguage } from '@/i18n/useLanguage';
 import { parentPinGate } from '@/pin/appPinGate';
 import type { Appearance } from '@/theme/appearance';
@@ -18,7 +19,8 @@ import { showDialog } from '@/ui/dialogStore';
 
 /**
  * Settings (PDF pages 7–8): language and appearance (this device), digits and
- * currency label (Account settings, synced), Parent Area biometrics (this device, once a
+ * currency label (Account settings, synced), Pay Day (synced; shows a pending
+ * change as "1st → 25th from Dec 1"), Parent Area biometrics (this device, once a
  * Parent PIN exists), sign-out and Delete account.
  */
 export default function SettingsRoute() {
@@ -33,6 +35,7 @@ function SettingsScreen() {
   const theme = useTheme();
   const language = useLanguage();
   const { currency, numberingSystem } = useAccountSettings();
+  const payDayHistory = usePayDayHistory();
   const appearance = useAppearance();
   const needsSignIn = useAuthStatus() === 'needsSignIn';
   const [biometrics, setBiometrics] = useState<'hidden' | 'on' | 'off'>('hidden');
@@ -152,6 +155,14 @@ function SettingsScreen() {
           </View>
         }
         onPress={() => router.push('/settings/currency')}
+      />
+
+      <ListRow
+        icon="app:calendar"
+        title={t('payDay.title')}
+        subtitle={payDaySummary(payDayHistory, toLocalDate(new Date()), { t, language, numberingSystem })}
+        end={<AppIcon name="chevron-forward" size={18} color={theme.colors.muted} />}
+        onPress={() => router.push('/settings/pay-day')}
       />
 
       {biometrics !== 'hidden' ? (

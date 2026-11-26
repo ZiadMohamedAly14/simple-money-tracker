@@ -3,13 +3,14 @@ import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Redirect, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { categoryStatus, formatMonth, formatMoneyParts, ltrIsolate, expectedIncomeGap, type MonthFigures } from '@money-tracker/shared';
+import { categoryStatus, formatMonth, formatMoneyParts, ltrIsolate, expectedIncomeGap, monthDates, type MonthFigures } from '@money-tracker/shared';
 import { useAuthStatus, useKidModeProfileId } from '@/auth/appSession';
 import { categoryIconFor } from '@/data/categoryIcons';
-import { useAccountSettings, useOnboardingState } from '@/data/useAccountSettings';
+import { useAccountSettings, useOnboardingState, usePayDayHistory } from '@/data/useAccountSettings';
 import { useMonthBudget } from '@/data/useMonthBudget';
 import { useMonthSwitcher } from '@/data/useMonthSwitcher';
 import { localStore } from '@/db/appDatabase';
+import { formatMonthDates } from '@/i18n/payDayPreview';
 import { useFormatMoney } from '@/i18n/useFormatMoney';
 import { useLanguage } from '@/i18n/useLanguage';
 import { syncTriggers } from '@/sync/appSync';
@@ -39,7 +40,8 @@ export default function HomeRoute() {
  * A Month's Remaining, Income, Spending and Unallocated (PDF pages 1 and 13),
  * and each Category's budget, spent and remaining, all worked out from the
  * local database by `monthFigures` and `categoryBreakdown`. The arrows beside
- * the Month's name go back to earlier Months and forward to the current one;
+ * the Month's name (its dates under it, spec decision 4) go back to earlier
+ * Months and forward to the current one;
  * a past Month also lists the Archived Categories it used.
  */
 function MonthOverview() {
@@ -50,6 +52,7 @@ function MonthOverview() {
   const { currency, numberingSystem } = useAccountSettings();
   const formatMoney = useFormatMoney(numberingSystem);
   const { month, canGoBack, canGoForward, goBack, goForward } = useMonthSwitcher();
+  const payDayHistory = usePayDayHistory();
   const { figures, rows, transactionCount } = useMonthBudget(month);
   const iconOf = useMemo(() => categoryIconFor(localStore.accountId()), []);
   const syncOverdue = useSyncOverdue();
@@ -83,16 +86,15 @@ function MonthOverview() {
             disabled={!canGoBack}
             onPress={goBack}
           />
-          <Text
-            weight="bold"
-            accessibilityRole="header"
-            accessibilityLiveRegion="polite"
-            numberOfLines={1}
-            align="center"
-            className="flex-1 text-xl"
-          >
-            {formatMonth(month, { language, numberingSystem })}
-          </Text>
+          {/* The live region covers the name and its dates, so both are announced on a switch. */}
+          <View accessibilityLiveRegion="polite" className="flex-1 items-center">
+            <Text weight="bold" accessibilityRole="header" numberOfLines={1} align="center" className="text-xl">
+              {formatMonth(month, { language, numberingSystem })}
+            </Text>
+            <Text tone="muted" numberOfLines={1} align="center" className="text-sm">
+              {formatMonthDates(monthDates(month, payDayHistory), { t, language, numberingSystem })}
+            </Text>
+          </View>
           <IconButton
             icon="app:chevron-forward"
             accessibilityLabel={t('home.nextMonth')}

@@ -1,6 +1,6 @@
 # 01: Month boundaries and names from a Pay Day history
 
-**Status:** ready-for-agent
+**Status:** resolved (merged to `mvp` via `pay-day`)
 
 **What to build:** Pure functions in `packages/shared/src/dates/` that take the Account's Pay Day history (empty means Pay Day 1):
 - the date range of a Month key,

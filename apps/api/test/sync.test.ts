@@ -5,6 +5,7 @@ import {
   categoryBudgetId,
   monthPlanId,
   otherCategoryId,
+  payDayHistoryId,
   type PushedChange,
   type SyncResponseData,
 } from '@money-tracker/shared';
@@ -337,6 +338,47 @@ describe('POST /sync', () => {
       const res = await sync(sara, 0, [budget(sara.accountId, '2026-03', otherCategoryId(omar.accountId))]);
       expect(res.status).toBe(422);
       expect(res.body.data).toEqual([{ field: 'changes[0].record.categoryId', message: expect.any(String) }]);
+    });
+  });
+
+  describe('the Pay Day history', () => {
+    const meta = { updatedAt: 1772355600000, deletedAt: null };
+    const entries = [{ payDay: 25, startsOn: '2026-12-25' }];
+    const history = (accountId: string, patch: object = {}): PushedChange =>
+      ({ entity: 'payDayHistory', record: { id: payDayHistoryId(accountId), ...meta, entries, ...patch } }) as PushedChange;
+    const settings = (accountId: string, patch: object = {}): PushedChange =>
+      ({ entity: 'accountSettings', record: { id: accountSettingsId(accountId), ...meta, currency: 'EGP', numberingSystem: 'western', ...patch } }) as PushedChange;
+
+    it("is stored as its own record and the Account's other device pulls it", async () => {
+      const phone = await signIn();
+      const tablet = await signIn();
+
+      expect((await sync(phone, 0, [history(phone.accountId)])).status).toBe(200);
+
+      const pulled = data(await sync(tablet, 0)).changes.filter((c) => c.entity === 'payDayHistory');
+      expect(pulled.map((c) => c.record)).toEqual([
+        expect.objectContaining({ id: payDayHistoryId(phone.accountId), accountId: phone.accountId, entries }),
+      ]);
+    });
+
+    it('a later currency change from another device leaves the Pay Day history alone', async () => {
+      const phone = await signIn();
+      const tablet = await signIn();
+      await sync(tablet, 0, [settings(tablet.accountId)]);
+      await sync(phone, 0, [history(phone.accountId)]);
+
+      await sync(tablet, 0, [settings(tablet.accountId, { currency: 'USD', updatedAt: meta.updatedAt + 60_000 })]);
+
+      const pulled = data(await sync(phone, 0)).changes;
+      expect(pulled.find((c) => c.entity === 'payDayHistory')?.record).toMatchObject({ entries });
+      expect(pulled.find((c) => c.entity === 'accountSettings')?.record).toMatchObject({ currency: 'USD' });
+    });
+
+    it('rejects a Pay Day history under any other ID', async () => {
+      const sara = await signIn();
+      const res = await sync(sara, 0, [history(sara.accountId, { id: accountSettingsId(sara.accountId) })]);
+      expect(res.status).toBe(422);
+      expect(res.body.data).toEqual([{ field: 'changes[0].record.id', message: expect.any(String) }]);
     });
   });
 

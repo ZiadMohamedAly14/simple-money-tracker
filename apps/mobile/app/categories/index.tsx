@@ -1,13 +1,14 @@
 import { useMemo } from 'react';
 import { Pressable, View } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router } from 'expo-router';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useTranslation } from 'react-i18next';
-import { currentMonth, formatMonth } from '@money-tracker/shared';
+import { formatMonth } from '@money-tracker/shared';
 import { useConfirmDeleteCategory } from '@/categories/useConfirmDeleteCategory';
 import { activeCategoriesQuery, archivedCategoriesQuery, categoryActions } from '@/data/categories';
 import { categoryIconFor } from '@/data/categoryIcons';
 import { useAccountSettings } from '@/data/useAccountSettings';
+import { useMonthParam } from '@/data/useMonthParam';
 import { useMonthBudget } from '@/data/useMonthBudget';
 import { localDb, localStore } from '@/db/appDatabase';
 import { useFormatMoney } from '@/i18n/useFormatMoney';
@@ -32,8 +33,7 @@ export default function CategoriesScreen() {
   const language = useLanguage();
   const { currency, numberingSystem } = useAccountSettings();
   const formatMoney = useFormatMoney(numberingSystem);
-  const params = useLocalSearchParams<{ month?: string }>();
-  const month = params.month ?? currentMonth(new Date());
+  const { month } = useMonthParam();
   const monthName = formatMonth(month, { language, numberingSystem });
   const { figures, rows } = useMonthBudget(month);
   const { data: active } = useLiveQuery(activeCategoriesQuery(localDb));

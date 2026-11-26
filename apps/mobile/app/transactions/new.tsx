@@ -1,7 +1,8 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { fromMinorUnits, monthOf, toLocalDate } from '@money-tracker/shared';
-import { useAccountSettings } from '@/data/useAccountSettings';
+import { fromMinorUnits, toLocalDate } from '@money-tracker/shared';
+import { defaultDateIn } from '@/data/months';
+import { useAccountSettings, usePayDayHistory } from '@/data/useAccountSettings';
 import { recordExpense, recordIncome } from '@/data/transactions';
 import { localDb, localStore } from '@/db/appDatabase';
 import { TransactionForm } from '@/transactions/TransactionForm';
@@ -24,6 +25,7 @@ export default function NewTransactionScreen() {
     note?: string;
   }>();
   const { currency } = useAccountSettings();
+  const defaultDate = defaultDateIn(month, usePayDayHistory(), toLocalDate(new Date()));
   const isIncome = kind === 'income';
   const prefilled = Number(amount) > 0 ? Number(amount) : null;
 
@@ -33,12 +35,12 @@ export default function NewTransactionScreen() {
       key={currency}
       kind={isIncome ? 'income' : 'expense'}
       title={isIncome ? t('transactions.addIncome') : t('transactions.addExpense')}
-      defaultDate={defaultDateIn(month)}
+      defaultDate={defaultDate}
       defaultCategoryId={isIncome ? undefined : categoryId}
       initial={
         prefilled === null
           ? undefined
-          : { amount: fromMinorUnits(prefilled, currency), date: defaultDateIn(month), note: note ?? null, categoryId: null }
+          : { amount: fromMinorUnits(prefilled, currency), date: defaultDate, note: note ?? null, categoryId: null }
       }
       onClose={() => router.back()}
       onSave={({ amount, date, note, categoryId }) => {
@@ -48,13 +50,4 @@ export default function NewTransactionScreen() {
       }}
     />
   );
-}
-
-/** Today, or the last day of `month` when that is an earlier Month. */
-function defaultDateIn(month: string | undefined): string {
-  const today = toLocalDate(new Date());
-  if (!month || month >= monthOf(today)) return today;
-  const [year, monthNumber] = month.split('-').map(Number) as [number, number];
-  const lastDay = new Date(Date.UTC(year, monthNumber, 0)).getUTCDate();
-  return `${month}-${String(lastDay).padStart(2, '0')}`;
 }

@@ -31,7 +31,7 @@ describe('Months created lazily (Seam B)', () => {
   async function onboardedPhone(clock = createDeviceClock()) {
     const phone = await createTestDevice(server, { now: clock.now });
     await phone.signIn('sara@example.com');
-    phone.onboardPersonal({ currency: 'USD', expectedIncome: 800000, month: MARCH, categoryNames: NAMES });
+    phone.onboardPersonal({ currency: 'USD', expectedIncome: 800000, payDay: 1, today: `${MARCH}-01`, categoryNames: NAMES });
     return phone;
   }
 
@@ -184,7 +184,7 @@ describe('Months created lazily (Seam B)', () => {
     async function phoneAheadTabletBehind() {
       const phone = await createTestDevice(server);
       await phone.signIn('sara@example.com');
-      phone.onboardPersonal({ currency: 'USD', expectedIncome: 800000, month: '2026-02', categoryNames: NAMES });
+      phone.onboardPersonal({ currency: 'USD', expectedIncome: 800000, payDay: 1, today: '2026-02-01', categoryNames: NAMES });
       const [food, bills, shopping] = ['food', 'bills', 'shopping'].map((name) => idOf(phone, name)) as [string, string, string];
       phone.setCategoryBudgets('2026-02', { [food]: 100000, [bills]: 50000, [shopping]: 30000 });
       await phone.sync();

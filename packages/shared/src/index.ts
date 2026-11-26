@@ -18,7 +18,7 @@ export type { ConfirmDeletionBody, RequestDeletionCodeBody } from './account/del
 export { ltrIsolate } from './i18n/bidi';
 export { formatCountdown } from './i18n/countdown';
 export type { CountdownOptions } from './i18n/countdown';
-export { toWesternDigits } from './i18n/digits';
+export { formatDigits, toWesternDigits } from './i18n/digits';
 export { applyKeypadKey } from './keypad/keypad';
 export type { DigitKey, KeypadKey, KeypadMode, OperatorKey } from './keypad/keypad';
 export { evaluateNonNegativeAmount, evaluateAmountExpression } from './keypad/expression';
@@ -29,6 +29,7 @@ export {
   DEFAULT_LANGUAGE,
   DEFAULT_NUMBERING_SYSTEM,
   SUPPORTED_LANGUAGES,
+  dateLocale,
   directionChanges,
   intlLocale,
   isRtl,
@@ -39,8 +40,8 @@ export { currencyMinorDigits, formatMoney, fromMinorUnits, toMinorUnits } from '
 export type { CurrencyCode, MoneyFormatOptions } from './money/money';
 export { toLocalDate } from './dates/localDate';
 export { secondsUntil } from './dates/secondsUntil';
-export { addMonths, currentMonth, formatMonth, monthOf } from './dates/month';
-export type { Month } from './dates/month';
+export { addMonths, cancelPendingPayDay, currentMonth, LAST_PAY_DAY, formatDayMonth, isPayDay, formatMonth, monthDates, monthOf, payDayOptions, payDayState, setupPayDayHistory } from './dates/month';
+export type { Month, MonthDates, PayDayEntry, PayDayHistory, DateTextOptions, PayDayOption, PayDayOptions, PayDayState } from './dates/month';
 export { DEFAULT_CATEGORY_ICONS, DEFAULT_CATEGORY_KEYS, EARLIER_DEFAULT_CATEGORY_ICONS } from './budget/defaultCategories';
 export type { DefaultCategoryKey } from './budget/defaultCategories';
 export { monthFigures } from './budget/monthFigures';
@@ -75,6 +76,7 @@ export {
   isUuid,
   monthPlanId,
   otherCategoryId,
+  payDayHistoryId,
   uuidv7,
 } from './sync/ids';
 export type { RandomBytes } from './sync/ids';
@@ -90,6 +92,7 @@ export type {
   KidTransactionKind,
   MonthPlanFields,
   ParseResult,
+  PayDayHistoryFields,
   PulledChange,
   PulledRecord,
   PushedChange,

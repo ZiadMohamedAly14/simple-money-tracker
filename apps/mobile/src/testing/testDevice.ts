@@ -19,6 +19,8 @@ import {
   monthPlansQuery,
   openMonth,
   readMonthOverview,
+  readPayDayHistory,
+  savePayDayHistory,
   setCategoryBudgets,
   setExpectedIncome,
   type PersonalOnboarding,
@@ -99,7 +101,7 @@ import {
   type PinGateState,
   type PinGateStore,
 } from '@/pin/parentPinGate';
-import { SYNC_ENTITIES, defaultJarId, type SyncEntity } from '@money-tracker/shared';
+import { SYNC_ENTITIES, defaultJarId, monthDates, type PayDayHistory, type SyncEntity } from '@money-tracker/shared';
 import type { AxiosRequestConfig } from 'axios';
 import type { TestServer } from './testServer';
 
@@ -280,7 +282,7 @@ export async function createTestDevice(
     deleteTransactions: (ids: readonly string[]) => deleteTransactions(store, ids),
     expenses: () => expensesQuery(db).all(),
     recordIncome: (income: NewIncome) => recordIncome(store, db, income),
-    monthTransactions: (month: string) => monthTransactionListQuery(db, month).all(),
+    monthTransactions: (month: string) => monthTransactionListQuery(db, monthDates(month, readPayDayHistory(db))).all(),
     categories: () => categoriesQuery(db).all(),
     categoryChoices: () => categoryChoicesQuery(db).all(),
     pendingChanges: () => store.pendingCount(),
@@ -291,6 +293,8 @@ export async function createTestDevice(
     setCategoryBudgets: (month: string, amounts: Record<string, number>) => setCategoryBudgets(store, month, amounts),
     accountSettings: () => accountSettingsQuery(db).get(),
     changeAccountSettings: (changes: AccountSettingsChanges) => changeAccountSettings(store, db, changes),
+    payDayHistory: () => readPayDayHistory(db),
+    savePayDayHistory: (history: PayDayHistory) => savePayDayHistory(store, db, history),
     monthPlans: () => monthPlansQuery(db).all(),
     openMonth: (month: string) => openMonth(store, db, month),
     monthOverview: (month: string) => readMonthOverview(db, month),

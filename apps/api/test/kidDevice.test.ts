@@ -9,6 +9,7 @@ import {
   defaultJarId,
   monthPlanId,
   otherCategoryId,
+  payDayHistoryId,
   type PushedChange,
   type SyncResponseData,
 } from '@money-tracker/shared';
@@ -69,6 +70,9 @@ const expense = (accountId: string, id = newId()): PushedChange =>
 const settings = (accountId: string): PushedChange =>
   ({ entity: 'accountSettings', record: { id: accountSettingsId(accountId), ...meta, currency: 'EGP', numberingSystem: 'arabic-indic' } }) as PushedChange;
 
+const payDayHistory = (accountId: string): PushedChange =>
+  ({ entity: 'payDayHistory', record: { id: payDayHistoryId(accountId), ...meta, entries: [{ payDay: 25, startsOn: '2026-03-25' }] } }) as PushedChange;
+
 const monthPlan = (accountId: string): PushedChange =>
   ({ entity: 'monthPlan', record: { id: monthPlanId(accountId, '2026-03'), ...meta, month: '2026-03', expectedIncome: 800000 } }) as PushedChange;
 
@@ -114,6 +118,7 @@ describe('Kid-Mode device (Seam A)', () => {
     const lina = jarsOf(parent.accountId, LINA);
     const res = await sync(parent, 0, [
       settings(parent.accountId),
+      payDayHistory(parent.accountId),
       monthPlan(parent.accountId),
       expense(parent.accountId),
       kidProfile(OMAR, 'Omar'),
@@ -244,7 +249,7 @@ describe('Kid-Mode device (Seam A)', () => {
 
       const body = JSON.stringify((await sync(kid, 0)).body);
 
-      for (const entity of ['category', 'monthPlan', 'categoryBudget', 'transaction']) {
+      for (const entity of ['payDayHistory', 'category', 'monthPlan', 'categoryBudget', 'transaction']) {
         expect(body).not.toContain(`"entity":"${entity}"`);
       }
       expect(body).not.toContain(LINA);
@@ -327,13 +332,14 @@ describe('Kid-Mode device (Seam A)', () => {
       expect(linas.map((c) => (c.record as { amount: number }).amount).sort((a, b) => Number(a) - Number(b))).toEqual([100, 9000]);
     });
 
-    it('cannot write Personal data, Account settings, Kid Profiles or Jars', async () => {
+    it('cannot write Personal data, Account settings, the Pay Day history, Kid Profiles or Jars', async () => {
       const { parent } = await family();
       const kid = await omarsDevice();
 
       const attempts = [
         expense(parent.accountId),
         settings(parent.accountId),
+        payDayHistory(parent.accountId),
         monthPlan(parent.accountId),
         kidProfile(OMAR, 'Omar the Great', { updatedAt: meta.updatedAt + 10 }),
         jarChanges(parent.accountId, OMAR)[0]!,

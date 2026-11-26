@@ -1,4 +1,4 @@
-import { monthOf, type Month } from '../dates/month';
+import { monthOf, type Month, type PayDayHistory } from '../dates/month';
 import type { TransactionKind } from '../sync/records';
 
 /** One Category's figures for a Month. All amounts in minor units (ADR-0004). */
@@ -14,6 +14,8 @@ export interface CategoryFigures {
 
 export interface CategoryBreakdownInput {
   month: Month;
+  /** The Account's Pay Day history, which draws the Month's dates. */
+  history: PayDayHistory;
   /** Live (not deleted) Categories, archived ones included. */
   categories: readonly { id: string; order: number; isOther: boolean; archivedAt: number | null }[];
   /** Category Budgets; only the ones for `month` count. */
@@ -29,7 +31,7 @@ export interface CategoryBreakdownInput {
  * stays in the history of Months where it had either. A deleted Category's
  * Expenses count as Other's, and its budgets are gone. Never stored or synced.
  */
-export function categoryBreakdown({ month, categories, budgets, transactions }: CategoryBreakdownInput): CategoryFigures[] {
+export function categoryBreakdown({ month, history, categories, budgets, transactions }: CategoryBreakdownInput): CategoryFigures[] {
   const budgeted = new Map<string, number>();
   for (const b of budgets) {
     if (b.month === month) budgeted.set(b.categoryId, (budgeted.get(b.categoryId) ?? 0) + b.amount);
@@ -39,7 +41,7 @@ export function categoryBreakdown({ month, categories, budgets, transactions }: 
   const otherId = categories.find((c) => c.isOther)?.id;
   const spentBy = new Map<string, number>();
   for (const t of transactions) {
-    if (t.kind !== 'expense' || t.categoryId === null || monthOf(t.date) !== month) continue;
+    if (t.kind !== 'expense' || t.categoryId === null || monthOf(t.date, history) !== month) continue;
     const categoryId = live.has(t.categoryId) || otherId === undefined ? t.categoryId : otherId;
     spentBy.set(categoryId, (spentBy.get(categoryId) ?? 0) + t.amount);
   }

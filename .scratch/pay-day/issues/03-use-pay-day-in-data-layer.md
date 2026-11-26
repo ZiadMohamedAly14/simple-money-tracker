@@ -1,6 +1,6 @@
 # 03: Use Pay Day boundaries everywhere Months are read
 
-**Status:** ready-for-agent
+**Status:** resolved (merged to `mvp` via `pay-day`)
 **Blocked by:** 01, 02
 
 **What to build:** Replace calendar-month assumptions with the functions from 01:

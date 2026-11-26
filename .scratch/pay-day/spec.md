@@ -35,7 +35,7 @@ Boundaries and names:
 | 26 | 26 Nov | December | 26 Nov – 25 Dec |
 | 28 | 23 Nov | November | 28 Oct – 27 Nov |
 | 31 | 15 Mar 2027 | March | 28 Feb – 30 Mar |
-| 31 / Last day | 20 Apr 2027 | May | 31 Mar – 29 Apr |
+| 31 / Last day | 20 Apr 2027 | April | 31 Mar – 29 Apr |
 | 16 | 20 Feb 2027 | March | 16 Feb – 15 Mar (February is 16 Jan – 15 Feb) |
 
 Pay Day 31 clamped to short months is exactly "Last day of the month": Months start 31 Jan, 28 Feb, 31 Mar and 30 Apr. "Last day" is a friendlier label for 31, not a separate rule.

@@ -1,8 +1,8 @@
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
-import { DEFAULT_NUMBERING_SYSTEM, type CurrencyCode, type NumberingSystem } from '@money-tracker/shared';
+import { DEFAULT_NUMBERING_SYSTEM, type CurrencyCode, type NumberingSystem, type PayDayHistory } from '@money-tracker/shared';
 import { localDb } from '@/db/appDatabase';
 import type { OnboardingState } from '@/db/localStore';
-import { accountSettingsQuery, onboardingQuery } from './budget';
+import { accountSettingsQuery, onboardingQuery, payDayHistoryOf, payDayHistoryQuery } from './budget';
 import { FALLBACK_CURRENCY } from './currency';
 
 export interface AccountSettings {
@@ -18,6 +18,12 @@ export function useAccountSettings(): AccountSettings {
     currency: row?.currency ?? FALLBACK_CURRENCY,
     numberingSystem: row?.numberingSystem ?? DEFAULT_NUMBERING_SYSTEM,
   };
+}
+
+/** The Account's Pay Day history, live; empty (Pay Day 1) until the Pay Day is first changed. Pass it to every Month lookup. */
+export function usePayDayHistory(): PayDayHistory {
+  const { data } = useLiveQuery(payDayHistoryQuery(localDb));
+  return payDayHistoryOf(data);
 }
 
 /** This device's onboarding state, live; null until the first read finishes. */

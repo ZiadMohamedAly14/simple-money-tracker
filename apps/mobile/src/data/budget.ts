@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull, like } from 'drizzle-orm';
+import { and, asc, between, eq, inArray, isNull } from 'drizzle-orm';
 import {
   DEFAULT_CATEGORY_ICONS,
   DEFAULT_CATEGORY_KEYS,
@@ -6,18 +6,24 @@ import {
   accountSettingsId,
   categoryBudgetId,
   defaultCategoryId,
+  monthDates,
   monthFigures,
+  monthOf,
   monthPlanId,
+  payDayHistoryId,
   copiedPlanEditTime,
   newMonthPlan,
+  setupPayDayHistory,
   type CurrencyCode,
   type DefaultCategoryKey,
   type Month,
+  type MonthDates,
   type MonthFigures,
   type NumberingSystem,
+  type PayDayHistory,
 } from '@money-tracker/shared';
 import { ONBOARDING_STATE_KEY, type KnownRecord, type LocalStore } from '@/db/localStore';
-import { accountSettings, categories, categoryBudgets, deviceState, monthPlans, transactions } from '@/db/schema';
+import { accountSettings, categories, categoryBudgets, deviceState, monthPlans, payDayHistories, transactions } from '@/db/schema';
 import type { LocalDb } from '@/db/types';
 
 function requireAccount(store: LocalStore): string {
@@ -32,32 +38,46 @@ const monthPlanRecord = (accountId: string, month: Month, expectedIncome: number
   fields: { month, expectedIncome },
 });
 
+const payDayHistoryRecord = (accountId: string, history: PayDayHistory): KnownRecord => ({
+  entity: 'payDayHistory',
+  id: payDayHistoryId(accountId),
+  fields: { entries: [...history] },
+});
+
 export interface PersonalOnboarding {
   currency: CurrencyCode;
   /** In minor units. */
   expectedIncome: number;
-  /** The Month onboarding happens in (`currentMonth(new Date())`). */
-  month: Month;
+  /** The chosen Pay Day, 1–31 (1 for "1st / not sure"). */
+  payDay: number;
+  /** The device's local date `YYYY-MM-DD` (`toLocalDate(new Date())`). */
+  today: string;
   /** Each default Category's name in the device language (from the `categories.defaults` strings). */
   categoryNames: Record<DefaultCategoryKey, string>;
 }
 
 /**
  * Finishes the personal onboarding path on this device: the Account's
- * currency, the default Categories (budget 0, so no Category Budgets) and this
- * Month's plan. Works offline; every ID is derived from the Account, so a
- * second device onboarding offline makes the same records. The sync engine
- * then tells the server onboarding is complete.
+ * currency, the default Categories (budget 0, so no Category Budgets), the
+ * Pay Day history (none for Pay Day 1) and the plan for the current Month under
+ * the chosen Pay Day, all in one write. Returns that Month. Works offline;
+ * every ID is derived from the Account, so a second device onboarding offline
+ * makes the same records. The sync engine then tells the server onboarding is
+ * complete.
  */
 export function completePersonalOnboarding(
   store: LocalStore,
-  { currency, expectedIncome, month, categoryNames }: PersonalOnboarding,
-): void {
+  { currency, expectedIncome, payDay, today, categoryNames }: PersonalOnboarding,
+): Month {
   const accountId = requireAccount(store);
+  const history = setupPayDayHistory(payDay, today);
+  const month = monthOf(today, history);
   store.completeOnboarding([
     ...accountBasics(accountId, currency, categoryNames),
+    ...(history.length > 0 ? [payDayHistoryRecord(accountId, history)] : []),
     monthPlanRecord(accountId, month, expectedIncome),
   ]);
+  return month;
 }
 
 /**
@@ -177,6 +197,37 @@ export function accountSettingsQuery(db: LocalDb) {
   return db.select().from(accountSettings).where(isNull(accountSettings.deletedAt)).limit(1);
 }
 
+/**
+ * Stores the Account's new Pay Day history: pass the `history` of the option
+ * the adult picked from `payDayOptions` (Settings or the setup step), which
+ * already replaces a pending change (last edit wins). It is its own synced
+ * record, so a currency change can't undo it. Returns `not_ready` and writes
+ * nothing while the device hasn't received the Account yet: its history
+ * would be built on a guessed Pay Day 1 and could overwrite one set elsewhere.
+ */
+export function savePayDayHistory(store: LocalStore, db: LocalDb, history: PayDayHistory): 'saved' | 'not_ready' {
+  const accountId = requireAccount(store);
+  if (!accountSettingsQuery(db).get()) return 'not_ready';
+  store.put([payDayHistoryRecord(accountId, history)]);
+  return 'saved';
+}
+
+/** Live-queryable: the Pay Day history row (none until the Pay Day is first changed). Read it with `payDayHistoryOf`. */
+export function payDayHistoryQuery(db: LocalDb) {
+  return db.select().from(payDayHistories).where(isNull(payDayHistories.deletedAt)).limit(1);
+}
+
+// One shared empty history, so hooks that depend on it don't recompute on every render.
+const NO_PAY_DAY_CHANGES: PayDayHistory = [];
+
+/** The history in a `payDayHistoryQuery` result: no row means Pay Day 1 (an empty history). */
+export const payDayHistoryOf = (rows: readonly { entries: PayDayHistory | null }[]): PayDayHistory => rows[0]?.entries ?? NO_PAY_DAY_CHANGES;
+
+/** The Account's current Pay Day history, for date-to-Month lookups outside React. */
+export function readPayDayHistory(db: LocalDb): PayDayHistory {
+  return payDayHistoryOf(payDayHistoryQuery(db).all());
+}
+
 /** Live-queryable: the device's onboarding state row (see `OnboardingState`; no row = not started). */
 export function onboardingQuery(db: LocalDb) {
   return db.select().from(deviceState).where(eq(deviceState.key, ONBOARDING_STATE_KEY));
@@ -210,12 +261,15 @@ export function categoryBudgetsQuery(db: LocalDb, month: Month) {
     );
 }
 
-/** Live-queryable: the Transactions dated in a Month. */
-export function monthTransactionsQuery(db: LocalDb, month: Month) {
+/** The condition for a Transaction dated within a Month's dates (`monthDates(month, history)`). */
+export const datedIn = ({ start, end }: MonthDates) => between(transactions.date, start, end);
+
+/** Live-queryable: the Transactions dated in a Month, given its dates (`monthDates(month, history)`). */
+export function monthTransactionsQuery(db: LocalDb, dates: MonthDates) {
   return db
     .select()
     .from(transactions)
-    .where(and(isNull(transactions.deletedAt), like(transactions.date, `${month}-%`)));
+    .where(and(isNull(transactions.deletedAt), datedIn(dates)));
 }
 
 /** Live-queryable: the earliest dated Transaction (one row, or none), which bounds how far back Months go. */
@@ -231,19 +285,22 @@ export function earliestTransactionQuery(db: LocalDb) {
 /** A Month's figures from what the live queries above return. */
 export function monthOverviewOf(
   month: Month,
+  history: PayDayHistory,
   plans: readonly { expectedIncome: number }[],
   budgets: readonly { month: Month; amount: number }[],
   monthTransactions: Parameters<typeof monthFigures>[0]['transactions'],
 ): MonthFigures {
-  return monthFigures({ month, expectedIncome: plans[0]?.expectedIncome ?? 0, budgets, transactions: monthTransactions });
+  return monthFigures({ month, history, expectedIncome: plans[0]?.expectedIncome ?? 0, budgets, transactions: monthTransactions });
 }
 
 /** A Month's figures, read once (tests; screens use the live queries with `monthOverviewOf`). */
 export function readMonthOverview(db: LocalDb, month: Month): MonthFigures {
+  const history = readPayDayHistory(db);
   return monthOverviewOf(
     month,
+    history,
     monthPlansQuery(db, month).all(),
     categoryBudgetsQuery(db, month).all(),
-    monthTransactionsQuery(db, month).all(),
+    monthTransactionsQuery(db, monthDates(month, history)).all(),
   );
 }

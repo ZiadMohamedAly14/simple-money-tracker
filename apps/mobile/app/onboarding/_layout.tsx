@@ -4,7 +4,7 @@ import { useOnboardingState } from '@/data/useAccountSettings';
 import { ThemedStack } from '@/theme/ThemedStack';
 
 /**
- * Onboarding: purpose, then (personal path) currency, Expected Income and an
+ * Onboarding: purpose, then (personal path) currency, Pay Day, Expected Income and an
  * optional split across Categories, or (kid path) currency, Kid Profile,
  * Parent PIN and an optional first Top-up. Once onboarding is done only the
  * optional last steps stay reachable, so going back can't onboard twice.

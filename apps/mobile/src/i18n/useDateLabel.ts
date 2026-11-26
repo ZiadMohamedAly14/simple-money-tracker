@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { intlLocale, toLocalDate, type NumberingSystem } from '@money-tracker/shared';
+import { dateLocale, toLocalDate, type NumberingSystem } from '@money-tracker/shared';
 import { useLanguage } from './useLanguage';
 
 /**
@@ -12,7 +12,7 @@ export function useDateLabel(numberingSystem?: NumberingSystem) {
   const { t } = useTranslation();
   const language = useLanguage();
   return useMemo(() => {
-    const locale = intlLocale(language, numberingSystem);
+    const locale = dateLocale(language, numberingSystem);
     const short = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' });
     const long = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
     const now = new Date();

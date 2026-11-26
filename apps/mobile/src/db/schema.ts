@@ -1,5 +1,5 @@
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
-import type { JarSplit, KidTransactionKind, NumberingSystem, SyncEntity, TransactionKind } from '@money-tracker/shared';
+import type { JarSplit, KidTransactionKind, NumberingSystem, PayDayEntry, SyncEntity, TransactionKind } from '@money-tracker/shared';
 
 /**
  * The device's database: the only data source for screens (ADR-0003).
@@ -20,6 +20,13 @@ export const accountSettings = sqliteTable('account_settings', {
   ...syncedColumns(),
   currency: text('currency').notNull(),
   numberingSystem: text('numbering_system').$type<NumberingSystem>().notNull(),
+});
+
+/** One per Account (`payDayHistoryId`): the Pay Day changes (ADR-0009). No row means Pay Day 1. */
+export const payDayHistories = sqliteTable('pay_day_histories', {
+  ...syncedColumns(),
+  /** The entries, stored as JSON text. */
+  entries: text('entries', { mode: 'json' }).$type<PayDayEntry[]>().notNull(),
 });
 
 export const categories = sqliteTable('categories', {
@@ -100,6 +107,7 @@ export const deviceState = sqliteTable('device_state', {
 /** The table behind each synced entity. Add new synced entities here, in `schema`, and in `migrations.ts`. */
 export const SYNCED_TABLES = {
   accountSettings,
+  payDayHistory: payDayHistories,
   category: categories,
   monthPlan: monthPlans,
   categoryBudget: categoryBudgets,
@@ -111,6 +119,7 @@ export const SYNCED_TABLES = {
 
 export const schema = {
   accountSettings,
+  payDayHistories,
   categories,
   monthPlans,
   categoryBudgets,
@@ -124,6 +133,7 @@ export const schema = {
 export type Schema = typeof schema;
 
 export type AccountSettingsRow = typeof accountSettings.$inferSelect;
+export type PayDayHistoryRow = typeof payDayHistories.$inferSelect;
 export type CategoryRow = typeof categories.$inferSelect;
 export type MonthPlanRow = typeof monthPlans.$inferSelect;
 export type CategoryBudgetRow = typeof categoryBudgets.$inferSelect;

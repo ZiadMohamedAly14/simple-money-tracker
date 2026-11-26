@@ -36,7 +36,7 @@ export function isUuid(value: unknown): value is string {
 }
 
 /** Record kinds with one fixed ID per Account. Never renumber: the IDs are stored. */
-const FIXED_KIND = { otherCategory: '000001', accountSettings: '000002' } as const;
+const FIXED_KIND = { otherCategory: '000001', accountSettings: '000002', payDayHistory: '000003' } as const;
 
 /**
  * A UUID (version 8, "custom") made from an Account's 24-hex ObjectId and a
@@ -60,6 +60,11 @@ export function otherCategoryId(accountId: string): string {
 /** The ID of an Account's settings record (currency, numbering system): one per Account. */
 export function accountSettingsId(accountId: string): string {
   return fixedId(accountId, FIXED_KIND.accountSettings);
+}
+
+/** The ID of an Account's Pay Day history record: one per Account. */
+export function payDayHistoryId(accountId: string): string {
+  return fixedId(accountId, FIXED_KIND.payDayHistory);
 }
 
 /**

@@ -24,7 +24,7 @@ describe('Settings: Account settings and sign-out (Seam B)', () => {
   it('changing the currency relabels amounts without converting them, and reaches the other device', async () => {
     const phone = await createTestDevice(server);
     await phone.signIn('sara@example.com');
-    phone.onboardPersonal({ currency: 'EGP', expectedIncome: 800000, month: '2026-03', categoryNames: NAMES });
+    phone.onboardPersonal({ currency: 'EGP', expectedIncome: 800000, payDay: 1, today: '2026-03-01', categoryNames: NAMES });
     phone.recordExpense({ amount: 12500, date: '2026-03-02' });
     await phone.sync();
 
@@ -48,7 +48,7 @@ describe('Settings: Account settings and sign-out (Seam B)', () => {
   it('the numbering system is an Account setting: switching to Arabic-Indic offline keeps the currency and syncs', async () => {
     const phone = await createTestDevice(server);
     await phone.signIn('sara@example.com');
-    phone.onboardPersonal({ currency: 'SAR', expectedIncome: 0, month: '2026-03', categoryNames: NAMES });
+    phone.onboardPersonal({ currency: 'SAR', expectedIncome: 0, payDay: 1, today: '2026-03-01', categoryNames: NAMES });
     await phone.sync();
 
     phone.goOffline();
@@ -66,7 +66,7 @@ describe('Settings: Account settings and sign-out (Seam B)', () => {
   it('a device that has not received the Account settings yet changes nothing, so it can’t overwrite a digits choice made elsewhere', async () => {
     const phone = await createTestDevice(server);
     await phone.signIn('sara@example.com');
-    phone.onboardPersonal({ currency: 'SAR', expectedIncome: 0, month: '2026-03', categoryNames: NAMES });
+    phone.onboardPersonal({ currency: 'SAR', expectedIncome: 0, payDay: 1, today: '2026-03-01', categoryNames: NAMES });
     phone.changeAccountSettings({ numberingSystem: 'arabic-indic' });
     await phone.sync();
 
@@ -90,7 +90,7 @@ describe('Settings: Account settings and sign-out (Seam B)', () => {
   it('signing out ends the session on the server and clears the Account’s data from the device', async () => {
     const phone = await createTestDevice(server);
     await phone.signIn('sara@example.com');
-    phone.onboardPersonal({ currency: 'USD', expectedIncome: 0, month: '2026-03', categoryNames: NAMES });
+    phone.onboardPersonal({ currency: 'USD', expectedIncome: 0, payDay: 1, today: '2026-03-01', categoryNames: NAMES });
     await phone.sync();
     const sessionsBefore = await server.sessionCount();
 
