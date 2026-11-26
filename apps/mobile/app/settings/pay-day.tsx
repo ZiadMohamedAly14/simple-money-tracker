@@ -2,9 +2,8 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { payDayOptions, toLocalDate } from '@money-tracker/shared';
+import { cancelPendingPayDay, payDayOptions, payDayState, toLocalDate } from '@money-tracker/shared';
 import { savePayDayHistory } from '@/data/budget';
-import { cancelPendingPayDay, payDayState } from '@/data/payDay';
 import { useAccountSettings, usePayDayHistory } from '@/data/useAccountSettings';
 import { localDb, localStore } from '@/db/appDatabase';
 import { payDayLabel } from '@/i18n/payDayLabel';
@@ -20,8 +19,9 @@ type Changeover = 'startAfterThisMonth' | 'startNow';
  * Changes the Account's Pay Day (spec decisions 6–8, ADR-0009). Before saving,
  * each changeover option previews the current and next Months; "Start after
  * this Month" is preselected and "Start now" shows only when it skips no
- * Month name. Picking the Pay Day in force while a change is pending cancels
- * it. No mockup yet: it reuses the currency screen's layout and Settings'
+ * Month name. Picking the Pay Day the Account is on while a change is pending
+ * cancels it; picking it with nothing pending changes nothing, so Save stays
+ * disabled. No mockup yet: it reuses the currency screen's layout and Settings'
  * cards.
  */
 export default function SettingsPayDayScreen() {
@@ -30,15 +30,15 @@ export default function SettingsPayDayScreen() {
   const { numberingSystem } = useAccountSettings();
   const history = usePayDayHistory();
   const today = toLocalDate(new Date());
-  const { payDay: inForce, pending } = payDayState(history, today);
+  const { payDay: current, pending } = payDayState(history, today);
   // Until the adult picks, show the Pay Day the Account is heading to.
   const [picked, setPicked] = useState<number | null>(null);
   const [changeover, setChangeover] = useState<Changeover>('startAfterThisMonth');
-  const payDay = picked ?? pending?.payDay ?? inForce;
+  const payDay = picked ?? pending?.payDay ?? current;
   const text = { t, language, numberingSystem };
 
-  const cancelsPending = pending !== null && payDay === inForce;
-  const unchanged = pending === null && payDay === inForce;
+  const cancelsPending = pending !== null && payDay === current;
+  const unchanged = pending === null && payDay === current;
   const preview = unchanged || cancelsPending ? null : changeoverPreview(history, payDay, today, text);
   // "Start now" may stop being offered when the day changes.
   const chosen: Changeover = changeover === 'startNow' && preview?.startNow ? 'startNow' : 'startAfterThisMonth';

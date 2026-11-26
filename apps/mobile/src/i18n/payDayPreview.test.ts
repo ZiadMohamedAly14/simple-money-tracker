@@ -73,6 +73,20 @@ describe('changeoverPreview: the worked examples', () => {
   });
 });
 
+describe('changeoverPreview during a Bridge Month', () => {
+  it('keeps the Bridge Month as it is, makes the next Month the Bridge, and offers no Start now', async () => {
+    const bridgeTo25 = payDayOptions([], 25, '2026-11-10').startAfterThisMonth.history;
+    expect(await englishPreview(bridgeTo25, 10, '2026-12-10')).toEqual({
+      startNow: null,
+      startAfterThisMonth: [
+        { title: 'December', dates: 'Dec 1 – Dec 24' },
+        { title: 'January (Bridge Month)', dates: 'Dec 25 – Feb 9' },
+        { title: 'February', dates: 'from Feb 10' },
+      ],
+    });
+  });
+});
+
 describe('changeoverPreview in Arabic', () => {
   it('names the Months in Arabic, marks the Bridge Month, and uses the chosen digits', async () => {
     const preview = changeoverPreview([], 25, '2026-11-10', { t: await translator('ar'), language: 'ar', numberingSystem: 'arabic-indic' });

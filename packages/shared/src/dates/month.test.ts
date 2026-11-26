@@ -4,7 +4,9 @@ import {
   formatMonth,
   monthDates,
   monthOf,
+  cancelPendingPayDay,
   payDayOptions,
+  payDayState,
   setupPayDayHistory,
   type Month,
   type PayDayHistory,
@@ -265,5 +267,112 @@ describe('payDayOptions: changing Pay Day (spec worked examples)', () => {
     expect(payDayOptions([], 5, '2026-11-03').startNow).not.toBeNull();
     expect(payDayOptions([], 20, '2026-11-19').startNow).not.toBeNull();
     expect(payDayOptions([], 20, '2026-11-20').startNow).toBeNull();
+  });
+});
+
+describe('changing Pay Day again before an earlier change has fully played out', () => {
+  // The "Start after this Month" change 1 → 25 made on 10 Nov: December is a Bridge Month, 1–24 Dec.
+  const bridgeTo25 = payDayOptions([], 25, '2026-11-10').startAfterThisMonth.history;
+  // The "Start now" change 25 → 10 made on 30 Nov: December runs 25 Nov – 9 Jan.
+  const stretchTo10 = payDayOptions(since(25), 10, '2026-11-30').startNow!.history;
+  const PAY_DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
+
+  it('during a Bridge Month, no option redraws it (Repro A)', () => {
+    for (const to of PAY_DAYS) {
+      const options = payDayOptions(bridgeTo25, to, '2026-12-10');
+      expect([to, monthDates('2026-12', options.startAfterThisMonth.history)]).toEqual([to, { start: '2026-12-01', end: '2026-12-24' }]);
+      if (options.startNow) expect([to, monthDates('2026-12', options.startNow.history)]).toEqual([to, { start: '2026-12-01', end: '2026-12-24' }]);
+    }
+  });
+
+  it('during a Bridge Month, Start after this Month makes the next Month the Bridge to the new Pay Day', () => {
+    const { history } = payDayOptions(bridgeTo25, 10, '2026-12-10').startAfterThisMonth;
+    expect(monthDates('2027-01', history)).toEqual({ start: '2026-12-25', end: '2027-02-09' });
+    expect(monthDates('2027-02', history).start).toBe('2027-02-10');
+  });
+
+  it('during a Month stretched by Start now, no option redraws it (Repro B)', () => {
+    for (const to of PAY_DAYS) {
+      const options = payDayOptions(stretchTo10, to, '2026-12-20');
+      expect([to, monthDates('2026-12', options.startAfterThisMonth.history)]).toEqual([to, { start: '2026-11-25', end: '2027-01-09' }]);
+      if (options.startNow) expect([to, monthDates('2026-12', options.startNow.history)]).toEqual([to, { start: '2026-11-25', end: '2027-01-09' }]);
+    }
+  });
+
+  it('every day of an earlier change, for any new Pay Day, keeps started Months and the name sequence', () => {
+    const earlier: [string, PayDayHistory][] = [
+      ['1 → 25 start after', bridgeTo25],
+      ['1 → 25 start now', payDayOptions([], 25, '2026-11-10').startNow!.history],
+      ['25 → 10 start now', stretchTo10],
+      ['25 → 10 start after', payDayOptions(since(25), 10, '2026-11-30').startAfterThisMonth.history],
+      ['1 → 20 start after', payDayOptions([], 20, '2026-11-25').startAfterThisMonth.history],
+    ];
+    for (const [, before] of earlier) {
+      for (let today = '2026-11-30'; today <= '2027-02-15'; today = nextDay(today)) {
+        const current = monthOf(today, before);
+        for (const to of PAY_DAYS) {
+          const options = payDayOptions(before, to, today);
+          const startAfter = options.startAfterThisMonth.history;
+          for (const month of [addMonths(current, -2), addMonths(current, -1), current]) {
+            expect([today, to, month, monthDates(month, startAfter)]).toEqual([today, to, month, monthDates(month, before)]);
+          }
+          expectContiguousMonths(startAfter, addMonths(current, -2), 6);
+          if (options.startNow) {
+            const startNow = options.startNow.history;
+            expect([today, to, monthDates(addMonths(current, -1), startNow)]).toEqual([today, to, monthDates(addMonths(current, -1), before)]);
+            expect([today, to, monthDates(current, startNow).start]).toEqual([today, to, monthDates(current, before).start]);
+            expectContiguousMonths(startNow, addMonths(current, -2), 5);
+          }
+        }
+      }
+    }
+  });
+});
+
+describe('payDayState: the Pay Day the Account is on, and the change still pending (spec decision 8)', () => {
+  it('is Pay Day 1 with nothing pending for an Account that never changed it', () => {
+    expect(payDayState([], '2026-11-10')).toEqual({ payDay: 1, pending: null });
+  });
+
+  it('a Start after this Month change is pending until its Bridge Month starts, from the Bridge Month\'s first day', () => {
+    const history = payDayOptions([], 25, '2026-11-10').startAfterThisMonth.history;
+    expect(payDayState(history, '2026-11-10')).toEqual({ payDay: 1, pending: { payDay: 25, from: '2026-12-01' } });
+    expect(payDayState(history, '2026-11-30')).toEqual({ payDay: 1, pending: { payDay: 25, from: '2026-12-01' } });
+  });
+
+  it('once the Bridge Month has started, the change is settled and no longer pending', () => {
+    const history = payDayOptions([], 25, '2026-11-10').startAfterThisMonth.history;
+    expect(payDayState(history, '2026-12-01')).toEqual({ payDay: 25, pending: null });
+    expect(payDayState(history, '2026-12-25')).toEqual({ payDay: 25, pending: null });
+  });
+
+  it('a Start now change is never pending: it reshapes the Month already under way', () => {
+    const history = payDayOptions([], 25, '2026-11-10').startNow!.history;
+    expect(payDayState(history, '2026-11-10')).toEqual({ payDay: 25, pending: null });
+  });
+
+  it('picking the Pay Day the Account is on during a Bridge Month changes nothing', () => {
+    const history = payDayOptions([], 25, '2026-11-10').startAfterThisMonth.history;
+    expect(payDayState(history, '2026-12-10').payDay).toBe(25);
+  });
+});
+
+describe('cancelPendingPayDay', () => {
+  it('drops a pending change, so Months stay on the Pay Day in force', () => {
+    const history = payDayOptions([], 25, '2026-11-10').startAfterThisMonth.history;
+    const kept = cancelPendingPayDay(history, '2026-11-20');
+    expect(payDayState(kept, '2026-11-20')).toEqual({ payDay: 1, pending: null });
+    expect(monthDates('2026-12', kept)).toEqual({ start: '2026-12-01', end: '2026-12-31' });
+  });
+
+  it('keeps changes that have already taken effect', () => {
+    const on25 = payDayOptions([], 25, '2026-10-01').startNow!.history;
+    const pendingTo10 = payDayOptions(on25, 10, '2026-11-30').startAfterThisMonth.history;
+    expect(cancelPendingPayDay(pendingTo10, '2026-12-05')).toEqual(on25);
+  });
+
+  it('keeps a change that shapes a Month already under way', () => {
+    const startNow = payDayOptions(since(25), 10, '2026-11-30').startNow!.history;
+    expect(cancelPendingPayDay(startNow, '2026-12-20')).toEqual(startNow);
   });
 });

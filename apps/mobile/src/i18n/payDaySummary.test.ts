@@ -22,16 +22,16 @@ describe('payDaySummary (the Settings row)', () => {
     expect(payDaySummary(history, '2026-11-30', { t, language: 'en' })).toBe('1st → 25th from Dec 1');
   });
 
-  it('once the Bridge Month has started, shows when the first Month on the new Pay Day starts', async () => {
+  it('once the Bridge Month has started, shows just the new Pay Day: the change is settled', async () => {
     const t = await translator('en');
     const history = payDayOptions([], 25, '2026-11-10').startAfterThisMonth.history;
-    expect(payDaySummary(history, '2026-12-01', { t, language: 'en' })).toBe('1st → 25th from Dec 25');
+    expect(payDaySummary(history, '2026-12-01', { t, language: 'en' })).toBe('25th');
   });
 
-  it('after a Start now change, shows when the first Month on the new Pay Day starts', async () => {
+  it('after a Start now change, shows just the new Pay Day: no pending line', async () => {
     const t = await translator('en');
     const history = payDayOptions([], 25, '2026-11-10').startNow!.history;
-    expect(payDaySummary(history, '2026-11-10', { t, language: 'en' })).toBe('1st → 25th from Nov 25');
+    expect(payDaySummary(history, '2026-11-10', { t, language: 'en' })).toBe('25th');
   });
 
   it('shows just the new Pay Day once the change has taken effect', async () => {

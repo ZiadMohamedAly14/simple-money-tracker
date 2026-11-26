@@ -1,6 +1,6 @@
 import type { TFunction } from 'i18next';
-import { intlLocale, type Language, type Month, type MonthDates, type NumberingSystem, type PayDayHistory } from '@money-tracker/shared';
-import { changeoverMonths, payDayState, type PreviewMonth } from '@/data/payDay';
+import { intlLocale, payDayState, type Language, type Month, type MonthDates, type NumberingSystem, type PayDayHistory } from '@money-tracker/shared';
+import { changeoverMonths, type PreviewMonth } from '@/data/payDay';
 import { payDayLabel } from './payDayLabel';
 
 export interface PreviewTextOptions {
