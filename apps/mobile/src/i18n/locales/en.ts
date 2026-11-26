@@ -502,6 +502,13 @@ export const en = {
     deleteOffline: 'Deleting your account needs the internet. Connect and try again.',
   },
   payDay: {
+    title: 'Pay Day',
+    advice: 'Choose the earliest day you usually get paid. An early or late salary doesn’t move your Months.',
+    whenTitle: 'When should it start?',
+    startAfterThisMonth: 'Start after this Month',
+    startNow: 'Start now',
+    cancelPending: 'Saving cancels the change to {{to}}. Your Months stay as they are.',
+    save: 'Save',
     dayOrdinal: { one: '{{day}}st', two: '{{day}}nd', few: '{{day}}rd', other: '{{day}}th' },
     lastDay: 'Last day of the month',
     range: '{{start}} – {{end}}',

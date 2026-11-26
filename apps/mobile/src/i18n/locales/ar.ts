@@ -503,6 +503,13 @@ export const ar: Translations = {
     deleteOffline: 'حذف الحساب يحتاج إلى الإنترنت. اتصل وحاول مجددًا.',
   },
   payDay: {
+    title: 'يوم الراتب',
+    advice: 'اختر أبكر يوم تستلم فيه راتبك عادةً. وصول الراتب مبكرًا أو متأخرًا لا يغيّر أشهرك.',
+    whenTitle: 'متى يبدأ التغيير؟',
+    startAfterThisMonth: 'بعد انتهاء هذا الشهر',
+    startNow: 'من الآن',
+    cancelPending: 'الحفظ يلغي التغيير إلى {{to}}. تبقى أشهرك كما هي.',
+    save: 'حفظ',
     dayOrdinal: { one: 'يوم {{day}}', two: 'يوم {{day}}', few: 'يوم {{day}}', other: 'يوم {{day}}' },
     lastDay: 'آخر يوم في الشهر',
     range: '{{start}} – {{end}}',

@@ -106,17 +106,20 @@ export interface ChipProps {
   onPress?: () => void;
   /** Leading icon, e.g. the Category's (`categoryIconFor`). */
   icon?: GlyphName;
+  /** What a screen reader says, when the label alone is too short ("25" → "25th"). */
+  accessibilityLabel?: string;
 }
 
 /**
  * Pill: selected = primary, unselected = chip token (tint, white in Kid).
  * Shows the full name and truncates (design flaw 12).
  */
-export function Chip({ label, selected, onPress, icon }: ChipProps) {
+export function Chip({ label, selected, onPress, icon, accessibilityLabel }: ChipProps) {
   const theme = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
       accessibilityState={{ selected: !!selected }}
       onPress={onPress}
       // 40 tall; the slop makes the touch target 48 without changing the layout (the chip rows have an 8 gap).

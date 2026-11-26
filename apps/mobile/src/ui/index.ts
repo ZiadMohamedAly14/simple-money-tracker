@@ -23,6 +23,8 @@ export type { AppIconRef, GlyphName, GlyphProps, IconCircleProps, IconCircleTone
 export { Caret } from './Caret';
 export { CodeBoxes, NumericKeypad, PinDots } from './Keypad';
 export type { CodeBoxesProps, NumericKeypadProps, PinDotsProps } from './Keypad';
+export { PayDayPicker } from './PayDayPicker';
+export type { PayDayPickerProps } from './PayDayPicker';
 export { Screen, ScreenHeader } from './Screen';
 export type { ScreenHeaderProps, ScreenProps } from './Screen';
 export { Text, TextField } from './Text';
