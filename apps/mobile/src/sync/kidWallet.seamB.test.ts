@@ -29,7 +29,7 @@ describe('Kid Profiles, Jars and Top-ups (Seam B)', () => {
   async function onboardedPhone(options: Parameters<typeof createTestDevice>[1] = {}) {
     const phone = await createTestDevice(server, options);
     await phone.signIn('sara@example.com');
-    phone.onboardPersonal({ currency: 'EGP', expectedIncome: 0, month: '2026-03', categoryNames: CATEGORY_NAMES });
+    phone.onboardPersonal({ currency: 'EGP', expectedIncome: 0, payDay: 1, today: '2026-03-01', categoryNames: CATEGORY_NAMES });
     return phone;
   }
 

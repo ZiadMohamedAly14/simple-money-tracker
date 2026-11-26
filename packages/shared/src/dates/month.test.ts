@@ -1,4 +1,14 @@
-import { addMonths, currentMonth, formatMonth, monthDates, monthOf, payDayOptions, type Month, type PayDayHistory } from './month';
+import {
+  addMonths,
+  currentMonth,
+  formatMonth,
+  monthDates,
+  monthOf,
+  payDayOptions,
+  setupPayDayHistory,
+  type Month,
+  type PayDayHistory,
+} from './month';
 
 /** A history whose one Pay Day has been in force since long before the dates under test. */
 const since = (payDay: number): PayDayHistory => [{ payDay, startsOn: `2020-01-${String(payDay).padStart(2, '0')}` }];
@@ -59,23 +69,25 @@ describe('monthOf with a Pay Day', () => {
   });
 });
 
+const WORKED_EXAMPLES: [number, string, Month, string, string][] = [
+  // Pay Day, date, Month name, first day, last day
+  [1, '2026-11-23', '2026-11', '2026-11-01', '2026-11-30'],
+  [5, '2026-11-23', '2026-11', '2026-11-05', '2026-12-04'],
+  [15, '2026-11-10', '2026-10', '2026-10-15', '2026-11-14'],
+  [16, '2026-11-23', '2026-12', '2026-11-16', '2026-12-15'],
+  [26, '2026-11-23', '2026-11', '2026-10-26', '2026-11-25'],
+  [26, '2026-11-26', '2026-12', '2026-11-26', '2026-12-25'],
+  [28, '2026-11-23', '2026-11', '2026-10-28', '2026-11-27'],
+  [31, '2027-03-15', '2027-03', '2027-02-28', '2027-03-30'],
+  // The spec table names this "May", but that contradicts its own row above
+  // (28 Feb – 30 Mar is March) and would skip April; decision 4 makes it April.
+  [31, '2027-04-20', '2027-04', '2027-03-31', '2027-04-29'],
+  [16, '2027-02-20', '2027-03', '2027-02-16', '2027-03-15'],
+  [16, '2027-02-15', '2027-02', '2027-01-16', '2027-02-15'],
+];
+
 describe('Month boundaries and names (spec worked examples)', () => {
-  it.each([
-    // Pay Day, date, Month name, first day, last day
-    [1, '2026-11-23', '2026-11', '2026-11-01', '2026-11-30'],
-    [5, '2026-11-23', '2026-11', '2026-11-05', '2026-12-04'],
-    [15, '2026-11-10', '2026-10', '2026-10-15', '2026-11-14'],
-    [16, '2026-11-23', '2026-12', '2026-11-16', '2026-12-15'],
-    [26, '2026-11-23', '2026-11', '2026-10-26', '2026-11-25'],
-    [26, '2026-11-26', '2026-12', '2026-11-26', '2026-12-25'],
-    [28, '2026-11-23', '2026-11', '2026-10-28', '2026-11-27'],
-    [31, '2027-03-15', '2027-03', '2027-02-28', '2027-03-30'],
-    // The spec table names this "May", but that contradicts its own row above
-    // (28 Feb – 30 Mar is March) and would skip April; decision 4 makes it April.
-    [31, '2027-04-20', '2027-04', '2027-03-31', '2027-04-29'],
-    [16, '2027-02-20', '2027-03', '2027-02-16', '2027-03-15'],
-    [16, '2027-02-15', '2027-02', '2027-01-16', '2027-02-15'],
-  ])('Pay Day %i: %s is in %s, %s – %s', (payDay, date, month, start, end) => {
+  it.each(WORKED_EXAMPLES)('Pay Day %i: %s is in %s, %s – %s', (payDay, date, month, start, end) => {
     expect(monthOf(date, since(payDay))).toBe(month);
     expect(monthDates(month, since(payDay))).toEqual({ start, end });
   });
@@ -92,6 +104,22 @@ describe('Month boundaries and names (spec worked examples)', () => {
   it('an empty history is calendar months', () => {
     expect(monthDates('2024-02', [])).toEqual({ start: '2024-02-01', end: '2024-02-29' });
     expect(monthDates('2026-12', [])).toEqual({ start: '2026-12-01', end: '2026-12-31' });
+  });
+});
+
+describe('setupPayDayHistory: the Pay Day picked while setting up (spec decision 5)', () => {
+  it.each(WORKED_EXAMPLES)('Pay Day %i on %s: the first Month is %s, %s – %s', (payDay, today, month, start, end) => {
+    const history = setupPayDayHistory(payDay, today);
+    expect(monthOf(today, history)).toBe(month);
+    expect(monthDates(month, history)).toEqual({ start, end });
+  });
+
+  it('1st / not sure needs no entry: calendar Months', () => {
+    expect(setupPayDayHistory(1, '2026-11-23')).toEqual([]);
+  });
+
+  it('records one entry starting on the first Month, however few days are left', () => {
+    expect(setupPayDayHistory(26, '2026-11-23')).toEqual([{ payDay: 26, startsOn: '2026-10-26' }]);
   });
 });
 

@@ -7,7 +7,8 @@ import { Button, ListRow, Screen, ScreenHeader, Text } from '@/ui';
 
 /**
  * Step 2 on both paths: pick the Account's one currency (PDF page 5). It can be
- * relabelled later in Settings. `path=kid` continues to the Kid Profile step.
+ * relabelled later in Settings. `path=kid` continues to the Kid Profile step;
+ * the personal path continues to Pay Day.
  */
 export default function CurrencyScreen() {
   const { t } = useTranslation();
@@ -20,7 +21,7 @@ export default function CurrencyScreen() {
       footer={
         <Button
           label={t('onboarding.next')}
-          onPress={() => router.push({ pathname: kidPath ? '/onboarding/kid' : '/onboarding/income', params: { currency } })}
+          onPress={() => router.push({ pathname: kidPath ? '/onboarding/kid' : '/onboarding/pay-day', params: { currency } })}
         />
       }
     >

@@ -68,6 +68,16 @@ export function payDayOptions(history: PayDayHistory, payDay: number, today: str
   };
 }
 
+/**
+ * The history for an Account that picks `payDay` while setting up on the local
+ * date `today` (spec decision 5): the current Month is simply the one under
+ * that Pay Day, however few days are left. Pay Day 1 needs no entry.
+ */
+export function setupPayDayHistory(payDay: number, today: string): PayDayHistory {
+  if (payDay === 1) return [];
+  return [{ payDay, startsOn: startOnPayDay(monthOnPayDay(today, payDay), payDay) }];
+}
+
 /** A Month's name and year for display, e.g. "November 2026" or "نوفمبر 2026". */
 export function formatMonth(month: Month, { language, numberingSystem }: { language: Language; numberingSystem?: NumberingSystem }): string {
   const [year, monthNumber] = month.split('-').map(Number) as [number, number];

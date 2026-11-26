@@ -29,7 +29,7 @@ describe('Account deletion (Seam B)', () => {
   async function family() {
     const phone = await createTestDevice(server);
     await phone.signIn(EMAIL);
-    phone.onboardPersonal({ currency: 'EGP', expectedIncome: 500000, month: '2026-03', categoryNames: CATEGORY_NAMES });
+    phone.onboardPersonal({ currency: 'EGP', expectedIncome: 500000, payDay: 1, today: '2026-03-01', categoryNames: CATEGORY_NAMES });
     phone.recordExpense({ amount: 2500, date: '2026-03-02' });
     expect(await phone.pinGate.setPin(PIN)).toEqual({ status: 'ok' });
     const omar = phone.createKidProfile({ name: 'Omar', jarNames: JAR_NAMES });

@@ -91,7 +91,7 @@ export default function SplitScreen() {
       <ScreenHeader title={t('onboarding.splitTitle')} />
       <View className="gap-1">
         <Text tone="muted" className="text-sm">
-          {t('onboarding.step', { step: 4, count: PERSONAL_STEPS })}
+          {t('onboarding.step', { step: 5, count: PERSONAL_STEPS })}
         </Text>
         <Text tone={unallocated < 0 ? 'negative' : 'muted'}>
           {t('onboarding.splitBody', { amount: formatMoney(unallocated, currency) })}

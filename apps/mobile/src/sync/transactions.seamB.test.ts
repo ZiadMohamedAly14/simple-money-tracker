@@ -31,7 +31,7 @@ describe('recording Transactions (Seam B)', () => {
     const tablet = await createTestDevice(server, { now });
     await phone.signIn('sara@example.com');
     await tablet.signIn('sara@example.com');
-    phone.onboardPersonal({ currency: 'EGP', expectedIncome: 1_000_000, month: '2026-03', categoryNames: NAMES });
+    phone.onboardPersonal({ currency: 'EGP', expectedIncome: 1_000_000, payDay: 1, today: '2026-03-01', categoryNames: NAMES });
     await phone.sync();
     await tablet.sync();
     return [phone, tablet];
