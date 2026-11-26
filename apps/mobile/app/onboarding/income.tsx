@@ -1,7 +1,7 @@
 import { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { DEFAULT_CATEGORY_KEYS, toLocalDate, type DefaultCategoryKey } from '@money-tracker/shared';
+import { DEFAULT_CATEGORY_KEYS, isPayDay, toLocalDate, type DefaultCategoryKey } from '@money-tracker/shared';
 import { completePersonalOnboarding } from '@/data/budget';
 import { FALLBACK_CURRENCY, PERSONAL_STEPS } from '@/data/currency';
 import { localStore } from '@/db/appDatabase';
@@ -17,7 +17,8 @@ export default function ExpectedIncomeScreen() {
   const { t } = useTranslation();
   const params = useLocalSearchParams<{ currency?: string; payDay?: string }>();
   const currency = params.currency ?? FALLBACK_CURRENCY;
-  const payDay = Number(params.payDay ?? 1);
+  // A route param can be anything: fall back to Pay Day 1 (calendar Months) unless it is a day 1–31.
+  const payDay = isPayDay(Number(params.payDay)) ? Number(params.payDay) : 1;
   const entry = useAmountEntry(currency);
   // Expected Income may be 0 (unlike a Transaction), but not negative or an unfinished sum.
   const amount = entry.typed ? entry.nonNegative : null;

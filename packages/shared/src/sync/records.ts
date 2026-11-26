@@ -2,7 +2,7 @@ import type { NumberingSystem } from '../i18n/language';
 import { isCategoryIconName } from '../budget/categoryIcon';
 import { topUpSplitProblem } from '../kid/topUpSplit';
 import { isUuid } from './ids';
-import { isPayDayStart, type PayDayEntry } from '../dates/month';
+import { isPayDay, isPayDayStart, type PayDayEntry } from '../dates/month';
 
 /**
  * The sync contract (ADR-0001, ADR-0007). Every synced record has device-made
@@ -323,11 +323,7 @@ class FieldReader {
     const entries = value.map((item) => (typeof item === 'object' && item !== null ? (item as Fields) : {}));
     const valid = entries.every(
       ({ payDay, startsOn }) =>
-        Number.isInteger(payDay) &&
-        (payDay as number) >= 1 &&
-        (payDay as number) <= 31 &&
-        isLocalDate(startsOn) &&
-        isPayDayStart(payDay as number, startsOn),
+        isPayDay(payDay) && isLocalDate(startsOn) && isPayDayStart(payDay, startsOn),
     );
     if (!valid || new Set(entries.map((e) => e.startsOn)).size !== entries.length) return this.fail(field, problem, []);
     return entries.map(({ payDay, startsOn }) => ({ payDay: payDay as number, startsOn: startsOn as string }));
