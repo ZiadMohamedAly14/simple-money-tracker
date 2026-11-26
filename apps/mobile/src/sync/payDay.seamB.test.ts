@@ -35,7 +35,7 @@ describe('Pay Day history (Seam B)', () => {
   async function phoneAndTablet(clock = createDeviceClock()) {
     const phone = await createTestDevice(server, { now: clock.now });
     await phone.signIn('sara@example.com');
-    phone.onboardPersonal({ currency: 'EGP', expectedIncome: 800000, month: '2026-11', categoryNames: NAMES });
+    phone.onboardPersonal({ currency: 'EGP', expectedIncome: 800000, payDay: 1, today: '2026-11-01', categoryNames: NAMES });
     await phone.sync();
     const tablet = await createTestDevice(server, { now: clock.now });
     await tablet.signIn('sara@example.com');

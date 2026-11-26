@@ -28,7 +28,7 @@ describe('Archiving a Kid Profile (Seam B)', () => {
   async function family() {
     const phone = await createTestDevice(server);
     await phone.signIn(EMAIL);
-    phone.onboardPersonal({ currency: 'EGP', expectedIncome: 0, month: '2026-03', categoryNames: CATEGORY_NAMES });
+    phone.onboardPersonal({ currency: 'EGP', expectedIncome: 0, payDay: 1, today: '2026-03-01', categoryNames: CATEGORY_NAMES });
     expect(await phone.pinGate.setPin(PIN)).toEqual({ status: 'ok' });
     const omar = phone.createKidProfile({ name: 'Omar', jarNames: JAR_NAMES });
     const lina = phone.createKidProfile({ name: 'Lina', jarNames: JAR_NAMES });

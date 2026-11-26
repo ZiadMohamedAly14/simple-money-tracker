@@ -2,7 +2,15 @@
  * Seam B: personal onboarding and Month plans on simulated devices, synced
  * through the real API (in-memory Mongo).
  */
-import { DEFAULT_CATEGORY_KEYS, defaultCategoryId, monthPlanId, otherCategoryId, type DefaultCategoryKey } from '@money-tracker/shared';
+import {
+  DEFAULT_CATEGORY_KEYS,
+  defaultCategoryId,
+  monthDates,
+  monthOf,
+  monthPlanId,
+  otherCategoryId,
+  type DefaultCategoryKey,
+} from '@money-tracker/shared';
 import { startTestServer, type TestServer } from '@/testing/testServer';
 import { createTestDevice } from '@/testing/testDevice';
 
@@ -37,7 +45,7 @@ describe('personal onboarding and Month plans (Seam B)', () => {
     expect(phone.onboarding()).toBe('not_started');
 
     phone.goOffline();
-    phone.onboardPersonal({ currency: 'USD', expectedIncome: 800000, month: '2026-03', categoryNames: ENGLISH });
+    phone.onboardPersonal({ currency: 'USD', expectedIncome: 800000, payDay: 1, today: '2026-03-01', categoryNames: ENGLISH });
 
     expect(phone.onboarding()).toBe('unreported');
     expect(phone.accountSettings()).toMatchObject({ currency: 'USD', numberingSystem: 'western' });
@@ -60,10 +68,46 @@ describe('personal onboarding and Month plans (Seam B)', () => {
     });
   });
 
+  it('setting up on 23 Nov with Pay Day 26 creates the plan for November (26 Oct – 25 Nov), and the tablet draws the same Months', async () => {
+    const phone = await createTestDevice(server);
+    await phone.signIn('sara@example.com');
+    phone.goOffline();
+    const month = phone.onboardPersonal({
+      currency: 'EGP',
+      expectedIncome: 800000,
+      payDay: 26,
+      today: '2026-11-23',
+      categoryNames: ENGLISH,
+    });
+
+    expect(month).toBe('2026-11');
+    expect(phone.monthPlans()).toEqual([expect.objectContaining({ month: '2026-11', expectedIncome: 800000 })]);
+    expect(monthDates('2026-11', phone.payDayHistory())).toEqual({ start: '2026-10-26', end: '2026-11-25' });
+    expect(monthOf('2026-11-26', phone.payDayHistory())).toBe('2026-12');
+
+    phone.goOnline();
+    expect(await phone.sync()).toBe('synced');
+    const tablet = await createTestDevice(server);
+    await tablet.signIn('sara@example.com');
+    expect(await tablet.sync()).toBe('synced');
+    expect(tablet.payDayHistory()).toEqual(phone.payDayHistory());
+    expect(monthDates('2026-11', tablet.payDayHistory())).toEqual({ start: '2026-10-26', end: '2026-11-25' });
+  });
+
+  it('setting up with the default Pay Day (1st / not sure) keeps calendar Months', async () => {
+    const phone = await createTestDevice(server);
+    await phone.signIn('sara@example.com');
+    const month = phone.onboardPersonal({ currency: 'EGP', expectedIncome: 0, payDay: 1, today: '2026-11-23', categoryNames: ENGLISH });
+
+    expect(month).toBe('2026-11');
+    expect(phone.payDayHistory()).toEqual([]);
+    expect(monthDates('2026-11', phone.payDayHistory())).toEqual({ start: '2026-11-01', end: '2026-11-30' });
+  });
+
   it('names the default Categories in the device language', async () => {
     const phone = await createTestDevice(server);
     await phone.signIn('sara@example.com');
-    phone.onboardPersonal({ currency: 'EGP', expectedIncome: 0, month: '2026-03', categoryNames: ARABIC });
+    phone.onboardPersonal({ currency: 'EGP', expectedIncome: 0, payDay: 1, today: '2026-03-01', categoryNames: ARABIC });
     expect(phone.categories().slice(0, 2).map((c) => c.name)).toEqual(['الطعام والبقالة', 'الفواتير والخدمات']);
   });
 
@@ -71,7 +115,7 @@ describe('personal onboarding and Month plans (Seam B)', () => {
     const phone = await createTestDevice(server);
     await phone.signIn('sara@example.com');
     phone.goOffline();
-    phone.onboardPersonal({ currency: 'USD', expectedIncome: 800000, month: '2026-03', categoryNames: ENGLISH });
+    phone.onboardPersonal({ currency: 'USD', expectedIncome: 800000, payDay: 1, today: '2026-03-01', categoryNames: ENGLISH });
     expect(await phone.sync()).toBe('offline');
 
     const early = await createTestDevice(server);
@@ -98,8 +142,8 @@ describe('personal onboarding and Month plans (Seam B)', () => {
     await tablet.signIn('sara@example.com');
     phone.goOffline();
     tablet.goOffline();
-    phone.onboardPersonal({ currency: 'USD', expectedIncome: 800000, month: '2026-03', categoryNames: ENGLISH });
-    tablet.onboardPersonal({ currency: 'USD', expectedIncome: 900000, month: '2026-03', categoryNames: ENGLISH });
+    phone.onboardPersonal({ currency: 'USD', expectedIncome: 800000, payDay: 1, today: '2026-03-01', categoryNames: ENGLISH });
+    tablet.onboardPersonal({ currency: 'USD', expectedIncome: 900000, payDay: 1, today: '2026-03-01', categoryNames: ENGLISH });
 
     phone.goOnline();
     tablet.goOnline();
@@ -118,7 +162,7 @@ describe('personal onboarding and Month plans (Seam B)', () => {
   it('splits Expected Income across Categories, and the second device sees the same Unallocated', async () => {
     const phone = await createTestDevice(server);
     await phone.signIn('sara@example.com');
-    phone.onboardPersonal({ currency: 'USD', expectedIncome: 800000, month: '2026-03', categoryNames: ENGLISH });
+    phone.onboardPersonal({ currency: 'USD', expectedIncome: 800000, payDay: 1, today: '2026-03-01', categoryNames: ENGLISH });
     const accountId = phone.accountId()!;
 
     phone.setCategoryBudgets('2026-03', {
@@ -138,7 +182,7 @@ describe('personal onboarding and Month plans (Seam B)', () => {
   it('shows extra Income as ordinary Income with a note: Income can exceed Expected Income', async () => {
     const phone = await createTestDevice(server);
     await phone.signIn('sara@example.com');
-    phone.onboardPersonal({ currency: 'USD', expectedIncome: 800000, month: '2026-03', categoryNames: ENGLISH });
+    phone.onboardPersonal({ currency: 'USD', expectedIncome: 800000, payDay: 1, today: '2026-03-01', categoryNames: ENGLISH });
     phone.store.create('transaction', { kind: 'income', amount: 800000, categoryId: null, date: '2026-03-01', note: 'Salary' });
     phone.store.create('transaction', { kind: 'income', amount: 200000, categoryId: null, date: '2026-03-20', note: 'Freelance' });
     phone.recordExpense({ amount: 50000, date: '2026-03-05' });
@@ -149,7 +193,7 @@ describe('personal onboarding and Month plans (Seam B)', () => {
       income: 1000000,
       spending: 50000,
       remaining: 950000, // Income is above the plan, so Remaining counts Income: 1,000,000 − 50,000
-      unallocated: 800000,
+      unallocated: 1000000, // Income is above the plan, so Unallocated counts Income too: 1,000,000 − 0 in Category Budgets
     });
   });
 

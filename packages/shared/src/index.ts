@@ -39,7 +39,7 @@ export { currencyMinorDigits, formatMoney, fromMinorUnits, toMinorUnits } from '
 export type { CurrencyCode, MoneyFormatOptions } from './money/money';
 export { toLocalDate } from './dates/localDate';
 export { secondsUntil } from './dates/secondsUntil';
-export { addMonths, currentMonth, formatMonth, monthDates, monthOf, payDayOptions } from './dates/month';
+export { addMonths, currentMonth, formatMonth, monthDates, monthOf, payDayOptions, setupPayDayHistory } from './dates/month';
 export type { Month, MonthDates, PayDayEntry, PayDayHistory, PayDayOption, PayDayOptions } from './dates/month';
 export { DEFAULT_CATEGORY_ICONS, DEFAULT_CATEGORY_KEYS, EARLIER_DEFAULT_CATEGORY_ICONS } from './budget/defaultCategories';
 export type { DefaultCategoryKey } from './budget/defaultCategories';

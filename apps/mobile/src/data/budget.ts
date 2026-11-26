@@ -8,10 +8,12 @@ import {
   defaultCategoryId,
   monthDates,
   monthFigures,
+  monthOf,
   monthPlanId,
   payDayHistoryId,
   copiedPlanEditTime,
   newMonthPlan,
+  setupPayDayHistory,
   type CurrencyCode,
   type DefaultCategoryKey,
   type Month,
@@ -36,32 +38,46 @@ const monthPlanRecord = (accountId: string, month: Month, expectedIncome: number
   fields: { month, expectedIncome },
 });
 
+const payDayHistoryRecord = (accountId: string, history: PayDayHistory): KnownRecord => ({
+  entity: 'payDayHistory',
+  id: payDayHistoryId(accountId),
+  fields: { entries: [...history] },
+});
+
 export interface PersonalOnboarding {
   currency: CurrencyCode;
   /** In minor units. */
   expectedIncome: number;
-  /** The Month onboarding happens in (`currentMonth(new Date(), history)`). */
-  month: Month;
+  /** The chosen Pay Day, 1–31 (1 for "1st / not sure"). */
+  payDay: number;
+  /** The device's local date `YYYY-MM-DD` (`toLocalDate(new Date())`). */
+  today: string;
   /** Each default Category's name in the device language (from the `categories.defaults` strings). */
   categoryNames: Record<DefaultCategoryKey, string>;
 }
 
 /**
  * Finishes the personal onboarding path on this device: the Account's
- * currency, the default Categories (budget 0, so no Category Budgets) and this
- * Month's plan. Works offline; every ID is derived from the Account, so a
- * second device onboarding offline makes the same records. The sync engine
- * then tells the server onboarding is complete.
+ * currency, the default Categories (budget 0, so no Category Budgets), the
+ * Pay Day history (none for Pay Day 1) and the plan for the current Month under
+ * the chosen Pay Day, all in one write. Returns that Month. Works offline;
+ * every ID is derived from the Account, so a second device onboarding offline
+ * makes the same records. The sync engine then tells the server onboarding is
+ * complete.
  */
 export function completePersonalOnboarding(
   store: LocalStore,
-  { currency, expectedIncome, month, categoryNames }: PersonalOnboarding,
-): void {
+  { currency, expectedIncome, payDay, today, categoryNames }: PersonalOnboarding,
+): Month {
   const accountId = requireAccount(store);
+  const history = setupPayDayHistory(payDay, today);
+  const month = monthOf(today, history);
   store.completeOnboarding([
     ...accountBasics(accountId, currency, categoryNames),
+    ...(history.length > 0 ? [payDayHistoryRecord(accountId, history)] : []),
     monthPlanRecord(accountId, month, expectedIncome),
   ]);
+  return month;
 }
 
 /**
@@ -192,7 +208,7 @@ export function accountSettingsQuery(db: LocalDb) {
 export function savePayDayHistory(store: LocalStore, db: LocalDb, history: PayDayHistory): 'saved' | 'not_ready' {
   const accountId = requireAccount(store);
   if (!accountSettingsQuery(db).get()) return 'not_ready';
-  store.put([{ entity: 'payDayHistory', id: payDayHistoryId(accountId), fields: { entries: [...history] } }]);
+  store.put([payDayHistoryRecord(accountId, history)]);
   return 'saved';
 }
 

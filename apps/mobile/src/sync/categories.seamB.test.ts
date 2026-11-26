@@ -28,7 +28,7 @@ describe('Categories and Category Budgets (Seam B)', () => {
   async function onboardedPhone(clock = createDeviceClock()) {
     const phone = await createTestDevice(server, { now: clock.now });
     await phone.signIn('sara@example.com');
-    phone.onboardPersonal({ currency: 'USD', expectedIncome: 800000, month: MONTH, categoryNames: NAMES });
+    phone.onboardPersonal({ currency: 'USD', expectedIncome: 800000, payDay: 1, today: `${MONTH}-01`, categoryNames: NAMES });
     return phone;
   }
 
